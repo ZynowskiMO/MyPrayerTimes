@@ -147,6 +147,43 @@ check("summer Isha raw is NaN (angle unreachable)", isNaN(ishaS))
 check("summer Asr raw matches adhan-js", near(asrS, 16.1279039575, 1e-7))
 check("summer Asr rounds to fixture (968)", roundMinUTC(asrS) == fx["2026-06-21"].asr)
 
+-- ---- PHASE 1 EXIT CRITERION: full engine vs adhan-js fixtures ------------
+-- Build the assembled PrayerTimes for Rotterdam (MWL, Standard Asr) on every
+-- locked test date and compare all six times to the adhan-js fixtures within
+-- +/-1 minute. Prints a PASS/FAIL table; any cell over tolerance fails CI.
+local PrayerTimes = require("PrayerTimes")
+local CalculationMethod = require("CalculationMethod")
+
+local PRAYERS = { "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha" }
+local TOLERANCE = 1 -- minutes
+
+-- Smallest difference between two minute-of-day values, accounting for wrap.
+local function minuteDiff(a, b)
+  local d = math.abs(a - b)
+  return math.min(d, 1440 - d)
+end
+
+print("\n=== Phase 1 exit criterion: Rotterdam MWL / Standard Asr ===")
+print("    (engine vs adhan-js 4.4.4, tolerance +/-1 min, minute-of-day UTC)\n")
+local header = string.format("%-12s", "date")
+for _, p in ipairs(PRAYERS) do header = header .. string.format("%-10s", p) end
+print(header)
+
+local fixtureRows = dofile("fixtures/rotterdam_mwl_standard.lua").dates
+for _, row in ipairs(fixtureRows) do
+  local y, mo, d = row.date:match("(%d+)-(%d+)-(%d+)")
+  y, mo, d = tonumber(y), tonumber(mo), tonumber(d)
+  local pt = PrayerTimes.new(y, mo, d, ROTTERDAM, CalculationMethod.MuslimWorldLeague())
+  local cells = string.format("%-12s", row.date)
+  for _, p in ipairs(PRAYERS) do
+    local diff = minuteDiff(pt[p], row[p])
+    local ok = diff <= TOLERANCE
+    check(string.format("%s %s within +/-1 min", row.date, p), ok)
+    cells = cells .. string.format("%-10s", ok and ("ok " .. diff) or ("FAIL " .. diff))
+  end
+  print(cells)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
