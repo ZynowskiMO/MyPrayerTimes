@@ -64,6 +64,31 @@ check("apparentSolarLongitude in [0,360)",
   inRange360(Astro.apparentSolarLongitude(Tj2000, Astro.meanSolarLongitude(Tj2000))))
 check("meanSiderealTime in [0,360)", inRange360(Astro.meanSiderealTime(Tj2000)))
 
+-- ---- SolarCoordinates: declination / RA / sidereal vs adhan-js -----------
+-- Reference values produced by adhan-js 4.4.4 (its own SolarCoordinates) for
+-- two Julian Days: 2448908.5 = Meeus Astronomical Algorithms Example 25.b
+-- (1992 Oct 13.0, apparent declination ~ -7.785 deg) and 2461212.5 =
+-- 2026-06-21 00:00 UT (near summer solstice, declination ~ +23.44 deg).
+local SolarCoordinates = require("SolarCoordinates")
+
+local meeus = SolarCoordinates.new(2448908.5)
+check("Meeus 25.b declination matches adhan-js",
+  near(meeus.declination, -7.7850685152648795, 1e-9))
+check("Meeus 25.b right ascension matches adhan-js",
+  near(meeus.rightAscension, 198.3808221425188, 1e-9))
+check("Meeus 25.b apparent sidereal time matches adhan-js",
+  near(meeus.apparentSiderealTime, 21.80542426334863, 1e-9))
+-- Independent textbook cross-check: Meeus gives delta ~ -7.785 deg.
+check("Meeus 25.b declination ~ -7.785 (textbook)",
+  near(meeus.declination, -7.785, 0.01))
+
+local sol = SolarCoordinates.new(2461212.5)
+check("solstice declination matches adhan-js",
+  near(sol.declination, 23.437715792610817, 1e-9))
+-- Summer-solstice declination must sit just under the obliquity (~23.44 deg).
+check("solstice declination ~ +23.44 (near max tilt)",
+  near(sol.declination, 23.44, 0.01))
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

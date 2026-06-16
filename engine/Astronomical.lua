@@ -10,6 +10,7 @@ local degreesToRadians = MathUtils.degreesToRadians
 local unwindAngle = MathUtils.unwindAngle
 
 local sin = math.sin
+local cos = math.cos
 local floor = math.floor
 local ceil = math.ceil
 
@@ -83,6 +84,54 @@ function A.meanSiderealTime(julianCentury)
   local term4 = (T * T * T) / 38710000
   local Theta = term1 + term2 + term3 - term4
   return unwindAngle(Theta)
+end
+
+function A.ascendingLunarNodeLongitude(julianCentury)
+  local T = julianCentury
+  local term1 = 125.04452
+  local term2 = 1934.136261 * T
+  local term3 = 0.0020708 * (T * T)
+  local term4 = (T * T * T) / 450000
+  local Omega = term1 - term2 + term3 + term4
+  return unwindAngle(Omega)
+end
+
+function A.meanObliquityOfTheEcliptic(julianCentury)
+  local T = julianCentury
+  local term1 = 23.439291
+  local term2 = 0.013004167 * T
+  local term3 = 0.0000001639 * (T * T)
+  local term4 = 0.0000005036 * (T * T * T)
+  return term1 - term2 - term3 + term4
+end
+
+function A.apparentObliquityOfTheEcliptic(julianCentury, meanObliquityOfTheEcliptic)
+  local T = julianCentury
+  local Epsilon0 = meanObliquityOfTheEcliptic
+  local O = 125.04 - 1934.136 * T
+  return Epsilon0 + 0.00256 * cos(degreesToRadians(O))
+end
+
+function A.nutationInLongitude(julianCentury, solarLongitude, lunarLongitude, ascendingNode)
+  local L0 = solarLongitude
+  local Lp = lunarLongitude
+  local Omega = ascendingNode
+  local term1 = (-17.2 / 3600) * sin(degreesToRadians(Omega))
+  local term2 = (1.32 / 3600) * sin(2 * degreesToRadians(L0))
+  local term3 = (0.23 / 3600) * sin(2 * degreesToRadians(Lp))
+  local term4 = (0.21 / 3600) * sin(2 * degreesToRadians(Omega))
+  return term1 - term2 - term3 + term4
+end
+
+function A.nutationInObliquity(julianCentury, solarLongitude, lunarLongitude, ascendingNode)
+  local L0 = solarLongitude
+  local Lp = lunarLongitude
+  local Omega = ascendingNode
+  local term1 = (9.2 / 3600) * cos(degreesToRadians(Omega))
+  local term2 = (0.57 / 3600) * cos(2 * degreesToRadians(L0))
+  local term3 = (0.1 / 3600) * cos(2 * degreesToRadians(Lp))
+  local term4 = (0.09 / 3600) * cos(2 * degreesToRadians(Omega))
+  return term1 + term2 + term3 - term4
 end
 
 return A
