@@ -89,6 +89,36 @@ check("solstice declination matches adhan-js",
 check("solstice declination ~ +23.44 (near max tilt)",
   near(sol.declination, 23.44, 0.01))
 
+-- ---- SolarTime: transit / sunrise / sunset for Rotterdam -----------------
+-- Reference fractional-hour (UTC) values from adhan-js 4.4.4 SolarTime for
+-- Rotterdam (51.9244, 4.4777). The Lua port must match these closely; small
+-- floating differences are fine, the prayer-time tolerance is +/-1 minute.
+local SolarTime = require("SolarTime")
+local ROTTERDAM = { latitude = 51.9244, longitude = 4.4777 }
+
+local function roundMinUTC(hours) return math.floor(hours * 60 + 0.5) end
+
+local stWinter = SolarTime.new(2026, 12, 21, ROTTERDAM)
+check("winter transit matches adhan-js", near(stWinter.transit, 11.6691540885, 1e-7))
+check("winter sunrise matches adhan-js", near(stWinter.sunrise, 7.7909050794, 1e-7))
+check("winter sunset matches adhan-js", near(stWinter.sunset, 15.5472916270, 1e-7))
+
+local stSummer = SolarTime.new(2026, 6, 21, ROTTERDAM)
+check("summer transit matches adhan-js", near(stSummer.transit, 11.7319190136, 1e-7))
+check("summer sunrise matches adhan-js", near(stSummer.sunrise, 3.3715712451, 1e-7))
+check("summer sunset matches adhan-js", near(stSummer.sunset, 20.0921808055, 1e-7))
+
+-- Sunrise and sunset already equal the locked fixtures (minute-of-day UTC).
+-- Sunrise -> fixture.sunrise; sunset -> fixture.maghrib (Maghrib == sunset).
+-- Dhuhr is NOT checked here: MWL adds methodAdjustments.dhuhr = +1 min,
+-- applied during prayer-time assembly in a later checkpoint.
+local fx = {}
+for _, r in ipairs(dofile("fixtures/rotterdam_mwl_standard.lua").dates) do fx[r.date] = r end
+check("winter sunrise == fixture (467)", roundMinUTC(stWinter.sunrise) == fx["2026-12-21"].sunrise)
+check("winter sunset == fixture maghrib (933)", roundMinUTC(stWinter.sunset) == fx["2026-12-21"].maghrib)
+check("summer sunrise == fixture (202)", roundMinUTC(stSummer.sunrise) == fx["2026-06-21"].sunrise)
+check("summer sunset == fixture maghrib (1206)", roundMinUTC(stSummer.sunset) == fx["2026-06-21"].maghrib)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

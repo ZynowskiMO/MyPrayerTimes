@@ -7,10 +7,15 @@
 
 local MathUtils = require("MathUtils")
 local degreesToRadians = MathUtils.degreesToRadians
+local radiansToDegrees = MathUtils.radiansToDegrees
 local unwindAngle = MathUtils.unwindAngle
+local normalizeToScale = MathUtils.normalizeToScale
+local quadrantShiftAngle = MathUtils.quadrantShiftAngle
 
 local sin = math.sin
 local cos = math.cos
+local asin = math.asin
+local acos = math.acos
 local floor = math.floor
 local ceil = math.ceil
 
@@ -132,6 +137,94 @@ function A.nutationInObliquity(julianCentury, solarLongitude, lunarLongitude, as
   local term3 = (0.1 / 3600) * cos(2 * degreesToRadians(Lp))
   local term4 = (0.09 / 3600) * cos(2 * degreesToRadians(Omega))
   return term1 + term2 + term3 - term4
+end
+
+function A.altitudeOfCelestialBody(observerLatitude, declination, localHourAngle)
+  local Phi = observerLatitude
+  local delta = declination
+  local H = localHourAngle
+  -- Astronomical Algorithms page 93
+  local term1 = sin(degreesToRadians(Phi)) * sin(degreesToRadians(delta))
+  local term2 = cos(degreesToRadians(Phi)) * cos(degreesToRadians(delta))
+    * cos(degreesToRadians(H))
+  return radiansToDegrees(asin(term1 + term2))
+end
+
+function A.approximateTransit(longitude, siderealTime, rightAscension)
+  local L = longitude
+  local Theta0 = siderealTime
+  local a2 = rightAscension
+  local Lw = L * -1
+  local m0 = normalizeToScale((a2 + Lw - Theta0) / 360, 1)
+  local expectedTransit = normalizeToScale((12.0 - L / 15.0) / 24.0, 1)
+  if m0 - expectedTransit > 0.5 then
+    return m0 - 1.0
+  elseif expectedTransit - m0 > 0.5 then
+    return m0 + 1.0
+  else
+    return m0
+  end
+end
+
+function A.correctedTransit(approximateTransit, longitude, siderealTime,
+                            rightAscension, previousRightAscension, nextRightAscension)
+  local m0 = approximateTransit
+  local L = longitude
+  local Theta0 = siderealTime
+  local a2 = rightAscension
+  local a1 = previousRightAscension
+  local a3 = nextRightAscension
+  local Lw = L * -1
+  local Theta = unwindAngle(Theta0 + 360.985647 * m0)
+  local a = unwindAngle(A.interpolateAngles(a2, a1, a3, m0))
+  local H = quadrantShiftAngle(Theta - Lw - a)
+  local dm = H / -360
+  return (m0 + dm) * 24
+end
+
+function A.correctedHourAngle(approximateTransit, angle, coordinates, afterTransit,
+                              siderealTime, rightAscension, previousRightAscension,
+                              nextRightAscension, declination, previousDeclination,
+                              nextDeclination)
+  local m0 = approximateTransit
+  local h0 = angle
+  local Theta0 = siderealTime
+  local a2 = rightAscension
+  local a1 = previousRightAscension
+  local a3 = nextRightAscension
+  local d2 = declination
+  local d1 = previousDeclination
+  local d3 = nextDeclination
+  local Lw = coordinates.longitude * -1
+  local term1 = sin(degreesToRadians(h0))
+    - sin(degreesToRadians(coordinates.latitude)) * sin(degreesToRadians(d2))
+  local term2 = cos(degreesToRadians(coordinates.latitude)) * cos(degreesToRadians(d2))
+  local H0 = radiansToDegrees(acos(term1 / term2))
+  local m = afterTransit and (m0 + H0 / 360) or (m0 - H0 / 360)
+  local Theta = unwindAngle(Theta0 + 360.985647 * m)
+  local a = unwindAngle(A.interpolateAngles(a2, a1, a3, m))
+  local delta = A.interpolate(d2, d1, d3, m)
+  local H = Theta - Lw - a
+  local h = A.altitudeOfCelestialBody(coordinates.latitude, delta, H)
+  local term3 = h - h0
+  local term4 = 360 * cos(degreesToRadians(delta))
+    * cos(degreesToRadians(coordinates.latitude)) * sin(degreesToRadians(H))
+  local dm = term3 / term4
+  return (m + dm) * 24
+end
+
+function A.interpolate(y2, y1, y3, n)
+  local a = y2 - y1
+  local b = y3 - y2
+  local c = b - a
+  return y2 + (n / 2) * (a + b + n * c)
+end
+
+function A.interpolateAngles(y2, y1, y3, n)
+  local a = unwindAngle(y2 - y1)
+  local b = unwindAngle(y3 - y2)
+  local c = b - a
+  return y2 + (n / 2) * (a + b + n * c)
 end
 
 return A
