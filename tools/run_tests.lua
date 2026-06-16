@@ -119,6 +119,34 @@ check("winter sunset == fixture maghrib (933)", roundMinUTC(stWinter.sunset) == 
 check("summer sunrise == fixture (202)", roundMinUTC(stSummer.sunrise) == fx["2026-06-21"].sunrise)
 check("summer sunset == fixture maghrib (1206)", roundMinUTC(stSummer.sunset) == fx["2026-06-21"].maghrib)
 
+-- ---- Fajr / Asr / Isha raw times (MWL 18/17, Shafi Asr) ------------------
+-- MWL fajrAngle = 18, ishaAngle = 17. Asr (Standard) uses shadow length 1.
+-- Raw fractional-hour (UTC) references from adhan-js 4.4.4 SolarTime methods.
+local Madhab = require("Madhab")
+local function isNaN(x) return x ~= x end
+
+-- Winter: all three angles are reachable at this latitude.
+local fajrW = stWinter:hourAngle(-1 * 18, false)
+local ishaW = stWinter:hourAngle(-1 * 17, true)
+local asrW  = stWinter:afternoon(Madhab.shadowLength(Madhab.Shafi))
+check("winter Fajr raw matches adhan-js", near(fajrW, 5.694705957998483, 1e-7))
+check("winter Isha raw matches adhan-js", near(ishaW, 17.531409514807383, 1e-7))
+check("winter Asr raw matches adhan-js", near(asrW, 13.2858551963, 1e-7))
+check("winter Fajr rounds to fixture (342)", roundMinUTC(fajrW) == fx["2026-12-21"].fajr)
+check("winter Asr rounds to fixture (797)", roundMinUTC(asrW) == fx["2026-12-21"].asr)
+check("winter Isha rounds to fixture (1052)", roundMinUTC(ishaW) == fx["2026-12-21"].isha)
+
+-- Summer: Fajr/Isha angles are NEVER reached at 51.9N -> NaN (the high-lat
+-- case the default rule resolves to the midnight clamp during assembly). Asr
+-- is still well-defined.
+local fajrS = stSummer:hourAngle(-1 * 18, false)
+local ishaS = stSummer:hourAngle(-1 * 17, true)
+local asrS  = stSummer:afternoon(Madhab.shadowLength(Madhab.Shafi))
+check("summer Fajr raw is NaN (angle unreachable)", isNaN(fajrS))
+check("summer Isha raw is NaN (angle unreachable)", isNaN(ishaS))
+check("summer Asr raw matches adhan-js", near(asrS, 16.1279039575, 1e-7))
+check("summer Asr rounds to fixture (968)", roundMinUTC(asrS) == fx["2026-06-21"].asr)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
