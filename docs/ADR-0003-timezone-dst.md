@@ -1,6 +1,6 @@
 # ADR-0003: Timezone and DST handling (city-local time without a tz database)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-17
 - **Decision makers:** Muhamed Bašić (PO), Claude (advisory)
 - **Relates to:** ADR-0002 (local calculation). Governs sub-phase 2b.

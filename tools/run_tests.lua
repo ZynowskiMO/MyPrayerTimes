@@ -255,6 +255,37 @@ for _, city in ipairs(dofile("fixtures/highlat_recommended.lua").cities) do
   print("")
 end
 
+-- ---- 2b-2: Timezone offset / DST transition boundaries -------------------
+local Timezone = require("Timezone")
+
+-- 2026 EU transitions: last Sunday of March = 29th, of October = 25th.
+check("2026-03-29 is Sunday (weekday 0 via Timezone.RULES path)",
+  Timezone.RULES.EU(2026, 3, 29) == 60) -- only true if 29th is the last Sunday
+check("EU rule: 2026-03-28 winter (0)", Timezone.RULES.EU(2026, 3, 28) == 0)
+check("EU rule: 2026-03-29 spring-forward -> summer (60)", Timezone.RULES.EU(2026, 3, 29) == 60)
+check("EU rule: 2026-10-24 still summer (60)", Timezone.RULES.EU(2026, 10, 24) == 60)
+check("EU rule: 2026-10-25 fall-back -> winter (0)", Timezone.RULES.EU(2026, 10, 25) == 0)
+check("EU rule: midsummer 2026-07-01 (60)", Timezone.RULES.EU(2026, 7, 1) == 60)
+check("EU rule: midwinter 2026-01-15 (0)", Timezone.RULES.EU(2026, 1, 15) == 0)
+
+-- "none" zone (e.g. Istanbul +3) never changes across the same dates.
+local istanbul = { baseUtcOffset = 180, dstRule = "none" }
+check("none: Istanbul +180 on 2026-03-28", Timezone.offsetMinutes(istanbul, 2026, 3, 28) == 180)
+check("none: Istanbul +180 on 2026-03-29", Timezone.offsetMinutes(istanbul, 2026, 3, 29) == 180)
+check("none: Istanbul +180 on 2026-07-01", Timezone.offsetMinutes(istanbul, 2026, 7, 1) == 180)
+check("none: Istanbul +180 on 2026-10-25", Timezone.offsetMinutes(istanbul, 2026, 10, 25) == 180)
+
+-- EU city (e.g. Amsterdam base +60) gains an hour in summer.
+local amsterdam = { baseUtcOffset = 60, dstRule = "EU" }
+check("EU: Amsterdam +60 in winter", Timezone.offsetMinutes(amsterdam, 2026, 1, 15) == 60)
+check("EU: Amsterdam +120 in summer", Timezone.offsetMinutes(amsterdam, 2026, 7, 1) == 120)
+check("EU: Amsterdam +120 on spring-forward day", Timezone.offsetMinutes(amsterdam, 2026, 3, 29) == 120)
+check("EU: Amsterdam +60 on fall-back day", Timezone.offsetMinutes(amsterdam, 2026, 10, 25) == 60)
+
+-- Conversion + wrap: 23:30 UTC + 1h -> 00:30 next local day.
+check("toLocal wraps past midnight", Timezone.toLocalMinuteOfDay(23 * 60 + 30, 60) == 30)
+check("toLocal formats HH:MM", Timezone.formatHHMM(Timezone.toLocalMinuteOfDay(11 * 60, 120)) == "13:00")
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
