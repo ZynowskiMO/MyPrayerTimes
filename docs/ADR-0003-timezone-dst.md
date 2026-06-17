@@ -120,3 +120,22 @@ Negative / trade-offs:
 - Demand justifies a non-European region whose DST does not fit `"none"` or a
   simple solar rule (e.g. North Africa), or
 - The EU changes or abolishes its DST rule.
+
+## Addendum (2026-06-17): manual lat/lon entry timezone
+
+The deferred manual-entry timezone is resolved as:
+
+- **Default (B) - player's machine timezone.** A manually-entered location uses
+  the player's current UTC offset, read in WoW from `date()` vs `date("!*t")`
+  and applied at refresh time; DST is handled by the OS, so it stays correct
+  year-round with zero user input. The machine-offset source is **injected**
+  into the converter so it remains runner-testable -- it is the single place
+  the conversion is not driven by the pure rules table.
+- **Advanced override (A) - explicit offset + rule.** The user may instead set
+  a UTC offset and pick a DST rule (`"none"`/`"EU"`), stored as a normal
+  `{ baseUtcOffset, dstRule }` manual city flowing through the pure pipeline --
+  for entering a city in a different timezone than the player's machine.
+
+Rationale: manual entrants almost always mean their own location, where the OS
+clock is already correct; the override covers the rare cross-timezone case.
+Implemented in sub-phase 2d-3/2d-4.

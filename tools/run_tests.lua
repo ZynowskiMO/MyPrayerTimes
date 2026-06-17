@@ -531,6 +531,105 @@ Window.tick()
 check("highlight advances after the prayer passes",
   Window.lastSchedule.nextKey ~= sched1.nextKey)
 
+-- ---- 2d-1: Notifier pure trigger logic -----------------------------------
+local Notifier = require("Notifier")
+-- Five-prayer local times (Rotterdam winter); sunrise present but ignored.
+local NT = { fajr = 402, sunrise = 527, dhuhr = 761, asr = 857, maghrib = 993, isha = 1112 }
+local DEFAULT_NOTIFY = { beforeMinutes = 10, atTime = true }
+local DAY = "2026-12-21"
+
+-- Continuous day: every prayer fires before+at exactly once; sunrise never.
+do
+  local fired, count = {}, {}
+  local sawSunrise = false
+  for nowMin = 0, 1439 do
+    for _, ev in ipairs(Notifier.check(NT, nowMin, DEFAULT_NOTIFY, DAY, fired)) do
+      local k = ev.prayer .. ":" .. ev.type
+      count[k] = (count[k] or 0) + 1
+      if ev.prayer == "sunrise" then sawSunrise = true end
+    end
+  end
+  local total = 0
+  for _, c in pairs(count) do total = total + c end
+  check("continuous day fires 10 alerts (5 before + 5 at)", total == 10)
+  check("each alert fires exactly once", count["maghrib:before"] == 1 and count["maghrib:at"] == 1)
+  check("Sunrise never notifies", sawSunrise == false)
+end
+
+-- Mid-window login: 5 min before Maghrib (993) fires 'before' once, in 5 min.
+do
+  local fired = {}
+  local ev = Notifier.check(NT, 988, DEFAULT_NOTIFY, DAY, fired)
+  check("mid-window login fires before once", #ev == 1 and ev[1].prayer == "maghrib"
+    and ev[1].type == "before" and ev[1].minutesUntil == 5)
+  check("same window, next tick does not re-fire", #Notifier.check(NT, 989, DEFAULT_NOTIFY, DAY, fired) == 0)
+end
+
+-- Login exactly at the prayer minute: 'at' fires, 'before' is skipped (closed).
+do
+  local fired = {}
+  local ev = Notifier.check(NT, 993, DEFAULT_NOTIFY, DAY, fired)
+  check("at-minute login fires only 'at'", #ev == 1 and ev[1].type == "at")
+end
+
+-- Login a minute late: neither fires (stale).
+do
+  local fired = {}
+  check("late login fires nothing", #Notifier.check(NT, 994, DEFAULT_NOTIFY, DAY, fired) == 0)
+end
+
+-- Persisted dedupe across a simulated /reload: keep the same `fired` table.
+do
+  local fired = {}
+  Notifier.check(NT, 985, DEFAULT_NOTIFY, DAY, fired)            -- before fires (8 min out)
+  -- "reload" keeps persisted fired:
+  check("reload mid-window does not re-fire before",
+    #Notifier.check(NT, 990, DEFAULT_NOTIFY, DAY, fired) == 0)
+  local atEv = Notifier.check(NT, 993, DEFAULT_NOTIFY, DAY, fired)
+  check("at still fires once after persisted before", #atEv == 1 and atEv[1].type == "at")
+  check("reload at prayer minute does not re-fire at",
+    #Notifier.check(NT, 993, DEFAULT_NOTIFY, DAY, fired) == 0)
+end
+
+-- Settings: before-only, at-only, both-off.
+do
+  local f1 = {}; local e1 = Notifier.check(NT, 402, { beforeMinutes = 0, atTime = true }, DAY, f1)
+  check("beforeMinutes=0 disables before", #e1 == 1 and e1[1].type == "at")
+  local f2 = {}; local e2 = Notifier.check(NT, 392, { beforeMinutes = 10, atTime = false }, DAY, f2)
+  check("atTime=false still allows before", #e2 == 1 and e2[1].type == "before")
+  local f3 = {}
+  local any = false
+  for nowMin = 0, 1439 do
+    if #Notifier.check(NT, nowMin, { beforeMinutes = 0, atTime = false }, DAY, f3) > 0 then any = true end
+  end
+  check("both off -> no alerts all day", any == false)
+end
+
+-- pruneFired drops other days, keeps today.
+do
+  local fired = { ["2026-12-20:fajr:at"] = true, ["2026-12-21:fajr:at"] = true }
+  Notifier.pruneFired(fired, "2026-12-21")
+  check("pruneFired removes stale day", fired["2026-12-20:fajr:at"] == nil)
+  check("pruneFired keeps current day", fired["2026-12-21:fajr:at"] == true)
+end
+
+-- Full-day simulation printout (Rotterdam winter, before=10 + at-time).
+print("\n=== 2d-1 notification simulation: Rotterdam winter, before=10m + at ===")
+do
+  local PRO = { fajr = "Fajr", dhuhr = "Dhuhr", asr = "Asr", maghrib = "Maghrib", isha = "Isha" }
+  local fired = {}
+  for nowMin = 0, 1439 do
+    for _, ev in ipairs(Notifier.check(NT, nowMin, DEFAULT_NOTIFY, DAY, fired)) do
+      local hhmm = string.format("%02d:%02d", math.floor(nowMin / 60), nowMin % 60)
+      if ev.type == "before" then
+        print(string.format("  %s  %-8s (in %d min)", hhmm, PRO[ev.prayer], ev.minutesUntil))
+      else
+        print(string.format("  %s  %-8s (now)", hhmm, PRO[ev.prayer]))
+      end
+    end
+  end
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
