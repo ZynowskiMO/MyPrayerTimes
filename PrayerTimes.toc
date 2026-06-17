@@ -29,6 +29,7 @@ engine/Notifier.lua
 # Data + data-layer access.
 data/cities.lua
 engine/Cities.lua
+engine/Selection.lua
 
 # UI + entry point.
 ui/Alerts.lua

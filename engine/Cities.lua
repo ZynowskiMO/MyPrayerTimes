@@ -46,6 +46,23 @@ function Cities.search(query)
   return results
 end
 
+-- Cities grouped by country for the picker: an array of { country, cities },
+-- countries sorted A-Z and each country's cities sorted by name.
+function Cities.byCountry()
+  local groups = {}
+  for _, city in ipairs(CITY_LIST) do
+    groups[city.country] = groups[city.country] or {}
+    table.insert(groups[city.country], city)
+  end
+  local ordered = {}
+  for country, list in pairs(groups) do
+    table.sort(list, function(a, b) return a.name < b.name end)
+    ordered[#ordered + 1] = { country = country, cities = list }
+  end
+  table.sort(ordered, function(a, b) return a.country < b.country end)
+  return ordered
+end
+
 -- Prayer times for a city (table or name) on a date, in the city's local time.
 -- Returns nil for an unknown name. Result:
 --   { city, offsetMinutes, prayers = { <prayer> = { utc, localMin, hhmm } } }

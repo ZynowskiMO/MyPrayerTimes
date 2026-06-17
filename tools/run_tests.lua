@@ -673,6 +673,85 @@ WowMock.resetAlerts()
 Window.testNotification()
 check("testNotification fires a sample", WowMock.lastRaidNotice ~= nil)
 
+-- ---- 2d-3: selection model + country grouping + manual validation -------
+local Selection = require("Selection")
+
+-- Country grouping for the picker.
+do
+  local groups = Cities.byCountry()
+  local total, germany, sorted = 0, nil, true
+  for i, g in ipairs(groups) do
+    total = total + #g.cities
+    if g.country == "Germany" then germany = g end
+    if i > 1 and groups[i - 1].country > g.country then sorted = false end
+  end
+  check("byCountry covers all 65 cities", total == 65)
+  check("byCountry countries sorted A-Z", sorted == true)
+  check("Germany grouped has 6, name-sorted", germany and #germany.cities == 6
+    and germany.cities[1].name <= germany.cities[2].name)
+end
+
+-- Coordinate validation.
+check("valid coords accepted", (Selection.validateCoords(51.9, 4.5)) == true)
+check("latitude out of range rejected", (Selection.validateCoords(120, 0)) == false)
+check("longitude out of range rejected", (Selection.validateCoords(0, 200)) == false)
+check("non-number coords rejected", (Selection.validateCoords("x", 0)) == false)
+
+-- Bundled-city selection persists and resolves.
+do
+  local db = {}
+  Selection.setCity(db, "Sarajevo")
+  check("setCity persists descriptor", db.selectedCity.kind == "city" and db.selectedCity.name == "Sarajevo")
+  check("resolve bundled city", Selection.resolve(db).name == "Sarajevo")
+end
+
+-- Default + unknown fall back to Rotterdam (temporary, until first-run picker).
+check("empty selection resolves to default", Selection.resolve({}).name == "Rotterdam")
+check("unknown saved city falls back", Selection.resolve({ selectedCity = { kind = "city", name = "Atlantis" } }).name == "Rotterdam")
+
+-- Manual entry, fixed offset + rule -> flows through the pure pipeline.
+do
+  local db = {}
+  local ok = Selection.setManual(db, 48.5, 9.0, { tz = "fixed", baseUtcOffset = 90, dstRule = "none" })
+  check("setManual(fixed) accepted", ok == true)
+  local city = Selection.resolve(db)
+  check("manual fixed city offset/rule", city.baseUtcOffset == 90 and city.dstRule == "none")
+  check("manual fixed flows through Cities.times",
+    Cities.times(city, 2026, 1, 15).offsetMinutes == 90)
+end
+
+-- Manual entry, machine tz -> uses the injected live offset (ADR-0003 addendum).
+do
+  local db = {}
+  Selection.setManual(db, 50.0, 10.0, { tz = "machine" })
+  local city = Selection.resolve(db, function() return 120 end)
+  check("manual machine uses injected offset", city.baseUtcOffset == 120 and city.dstRule == "none")
+  check("manual machine offset applied by Cities.times",
+    Cities.times(city, 2026, 7, 1).offsetMinutes == 120)
+end
+
+-- Invalid manual entry is rejected and does not change the selection.
+do
+  local db = { selectedCity = { kind = "city", name = "Berlin" } }
+  local ok, err = Selection.setManual(db, 999, 0)
+  check("invalid manual rejected with message", ok == false and type(err) == "string")
+  check("invalid manual leaves selection untouched", db.selectedCity.name == "Berlin")
+end
+
+-- Window follows the persisted selection (title + times).
+do
+  local db = {}
+  Selection.setCity(db, "Istanbul")
+  Window.init(db)
+  WowMock.setNow(1766318400)
+  Window.refresh()
+  check("Window title follows selection", Window.frame.title:GetText() == "Istanbul")
+  local iCity = Cities.findByName("Istanbul")
+  local iNow = Clock.cityNow(iCity, 1766318400)
+  local iRes = Cities.times("Istanbul", iNow.year, iNow.month, iNow.day)
+  check("Window Fajr follows selection", Window.frame.rows.fajr.time:GetText() == iRes.prayers.fajr.hhmm)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

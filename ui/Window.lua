@@ -9,13 +9,13 @@ local Schedule = require("Schedule")
 local Clock = require("Clock")
 local Notifier = require("Notifier")
 local Alerts = require("Alerts")
+local Selection = require("Selection")
 
 local LABELS = {
   fajr = "Fajr", sunrise = "Sunrise", dhuhr = "Dhuhr",
   asr = "Asr", maghrib = "Maghrib", isha = "Isha",
 }
 local ORDER = Schedule.ORDER
-local DEFAULT_CITY = "Rotterdam" -- temporary hardcoded default for 2c
 
 local NEXT_COLOR = { 0.25, 1.0, 0.4 } -- green highlight for the next prayer
 local NORMAL_COLOR = { 1.0, 1.0, 1.0 }
@@ -25,6 +25,16 @@ local Window = {}
 local function nowEpoch()
   if GetServerTime then return GetServerTime() end
   return time()
+end
+
+-- Player's live UTC offset in minutes (for manual machine-tz entries). WoW-side
+-- via date(); overridden in tests. DST is handled by the OS.
+function Window.machineOffset()
+  if not (time and date) then return 0 end
+  local now = time()
+  local u = date("!*t", now)
+  u.isdst = false
+  return math.floor((now - time(u)) / 60 + 0.5)
 end
 
 function Window.create()
@@ -174,16 +184,16 @@ function Window.refresh()
   local f = Window.frame
   if not f then return end
 
-  local city = Cities.findByName(DEFAULT_CITY)
+  local city = Selection.resolve(Window.db, Window.machineOffset)
   local now = Clock.cityNow(city, nowEpoch())
-  local result = Cities.times(DEFAULT_CITY, now.year, now.month, now.day)
+  local result = Cities.times(city, now.year, now.month, now.day)
 
   Window.localTimes = {}
   for _, key in ipairs(ORDER) do
     Window.localTimes[key] = result.prayers[key].localMin
     f.rows[key].time:SetText(result.prayers[key].hhmm)
   end
-  f.title:SetText(DEFAULT_CITY)
+  f.title:SetText(city.name)
   Window.dayKey = string.format("%04d-%02d-%02d", now.year, now.month, now.day)
   return renderNow(now)
 end
@@ -193,7 +203,7 @@ end
 function Window.tick()
   local f = Window.frame
   if not f then return end
-  local city = Cities.findByName(DEFAULT_CITY)
+  local city = Selection.resolve(Window.db, Window.machineOffset)
   local now = Clock.cityNow(city, nowEpoch())
   local dayKey = string.format("%04d-%02d-%02d", now.year, now.month, now.day)
   if dayKey ~= Window.dayKey then return Window.refresh() end
