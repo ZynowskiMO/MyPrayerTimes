@@ -30,8 +30,17 @@ function Window.create()
 
   local f = CreateFrame("Frame", "PrayerTimesFrame", UIParent)
   f:SetSize(190, 210)
-  f:SetPoint("CENTER")
   f:SetFrameStrata("MEDIUM")
+  f:SetClampedToScreen(true)
+  f:SetMovable(true)
+  f:RegisterForDrag("LeftButton")
+  f:SetScript("OnDragStart", function(self)
+    if not (Window.db and Window.db.locked) then self:StartMoving() end
+  end)
+  f:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    Window.savePosition()
+  end)
 
   local bg = f:CreateTexture(nil, "BACKGROUND")
   bg:SetAllPoints()
@@ -55,9 +64,55 @@ function Window.create()
   end
 
   Window.frame = f
+  Window.restorePosition()
+  Window.applyLock()
   Window.refresh()
   f:Show()
   return f
+end
+
+-- Persistence + lock. Window.db is the per-character SavedVariables table,
+-- supplied by Window.init (Main passes PrayerTimesDB). All of this is pure
+-- enough to drive from the runner with a plain table standing in for the DB.
+function Window.init(db)
+  Window.db = db
+  db.locked = db.locked or false
+end
+
+function Window.savePosition()
+  local f = Window.frame
+  if not (f and Window.db) then return end
+  local point, _, relPoint, x, y = f:GetPoint(1)
+  Window.db.position = { point = point, relPoint = relPoint, x = x, y = y }
+end
+
+function Window.restorePosition()
+  local f = Window.frame
+  if not f then return end
+  f:ClearAllPoints()
+  local p = Window.db and Window.db.position
+  if p then
+    f:SetPoint(p.point, UIParent, p.relPoint, p.x, p.y)
+  else
+    f:SetPoint("CENTER")
+  end
+end
+
+-- Locked = the window ignores the mouse entirely (can't be dragged, clicks
+-- pass through). The OnDragStart guard also checks the flag.
+function Window.applyLock()
+  local f = Window.frame
+  if not f then return end
+  f:EnableMouse(not (Window.db and Window.db.locked))
+end
+
+function Window.setLocked(locked)
+  if Window.db then Window.db.locked = locked and true or false end
+  Window.applyLock()
+end
+
+function Window.toggleLock()
+  Window.setLocked(not (Window.db and Window.db.locked))
 end
 
 -- Recompute and render times + highlight for the current moment.

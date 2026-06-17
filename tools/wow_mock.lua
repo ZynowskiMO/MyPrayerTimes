@@ -83,6 +83,7 @@ function M.install()
   _G.time = function() return nowEpoch end
   _G.GameFontNormal = {}
   _G.GameFontHighlight = {}
+  _G.SlashCmdList = {}
 end
 
 function M.setNow(epoch) nowEpoch = epoch end

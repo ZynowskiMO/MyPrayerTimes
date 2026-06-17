@@ -452,6 +452,48 @@ for _, k in ipairs(Schedule.ORDER) do rTimes[k] = rRes.prayers[k].localMin end
 check("Window highlights the schedule's next prayer",
   Window.lastSchedule.nextKey == Schedule.compute(rTimes, rNow.minuteOfDay).nextKey)
 
+-- ---- 2c-3: movable / lockable / position persistence --------------------
+-- Drive the persistence + lock logic with a plain table as the SavedVariables
+-- DB (the runner can't test real reload persistence -- that's verified
+-- in-game -- but the save/restore/lock logic is fully testable).
+local db = {}
+Window.init(db)
+check("init defaults locked = false", db.locked == false)
+
+-- savePosition reads the frame's current anchor into the DB.
+win:ClearAllPoints()
+win:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 123, -45)
+Window.savePosition()
+check("savePosition captures point", db.position.point == "TOPLEFT")
+check("savePosition captures offsets", db.position.x == 123 and db.position.y == -45)
+
+-- restorePosition applies a stored anchor back onto the frame.
+db.position = { point = "BOTTOMRIGHT", relPoint = "BOTTOMRIGHT", x = -10, y = 20 }
+Window.restorePosition()
+local rp, _, rrel, rx, ry = win:GetPoint(1)
+check("restorePosition applies stored anchor",
+  rp == "BOTTOMRIGHT" and rrel == "BOTTOMRIGHT" and rx == -10 and ry == 20)
+
+-- Lock toggles mouse interactivity and the DB flag.
+Window.setLocked(true)
+check("setLocked(true) sets flag", db.locked == true)
+check("locked window disables mouse", win:IsMouseEnabled() == false)
+Window.setLocked(false)
+check("unlocked window enables mouse", win:IsMouseEnabled() == true)
+Window.toggleLock()
+check("toggleLock flips to locked", db.locked == true)
+
+-- Drag is blocked while locked, allowed while unlocked, and saves on stop.
+win._moving = false
+Window.setLocked(true)
+win:GetScript("OnDragStart")(win)
+check("locked frame does not start moving", win._moving == false)
+Window.setLocked(false)
+win:GetScript("OnDragStart")(win)
+check("unlocked frame starts moving", win._moving == true)
+win:GetScript("OnDragStop")(win)
+check("drag stop ends moving", win._moving == false)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
