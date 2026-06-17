@@ -63,6 +63,24 @@ function Cities.byCountry()
   return ordered
 end
 
+-- Flat row list for the picker. Empty query -> country headers + their cities;
+-- non-empty -> flat sorted matches. Each row is {kind="header",label=} or
+-- {kind="city",city=}. Pure (the WoW picker just renders these rows).
+function Cities.displayList(query)
+  local rows = {}
+  if not query or query == "" then
+    for _, group in ipairs(Cities.byCountry()) do
+      rows[#rows + 1] = { kind = "header", label = group.country }
+      for _, c in ipairs(group.cities) do rows[#rows + 1] = { kind = "city", city = c } end
+    end
+  else
+    for _, c in ipairs(Cities.search(query)) do
+      rows[#rows + 1] = { kind = "city", city = c }
+    end
+  end
+  return rows
+end
+
 -- Prayer times for a city (table or name) on a date, in the city's local time.
 -- Returns nil for an unknown name. Result:
 --   { city, offsetMinutes, prayers = { <prayer> = { utc, localMin, hhmm } } }

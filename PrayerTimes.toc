@@ -34,4 +34,5 @@ engine/Selection.lua
 # UI + entry point.
 ui/Alerts.lua
 ui/Window.lua
+ui/Picker.lua
 core/Main.lua

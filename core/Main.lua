@@ -4,14 +4,22 @@
 -- the selected city's own "today".
 
 local Window = require("Window")
+local Picker = require("Picker")
+local Selection = require("Selection")
 
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
   PrayerTimesDB = PrayerTimesDB or {}
   Window.init(PrayerTimesDB)
+  Picker.init(PrayerTimesDB)
   Window.create()
-  print("|cff33ff99PrayerTimes|r loaded. Drag to move; |cffffd100/pt lock|r to lock.")
+  if Picker.shouldAutoOpen(PrayerTimesDB) then
+    Picker.open() -- first run: welcome / choose a city
+    print("|cff33ff99PrayerTimes|r: choose your city.")
+  else
+    print("|cff33ff99PrayerTimes|r loaded. |cffffd100/pt settings|r to change city.")
+  end
 end)
 
 -- Temporary slash scaffold for 2c testing; the full command set is 2d.
@@ -28,6 +36,8 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     if Window.frame then Window.frame:Hide() end
   elseif msg == "test" then
     Window.testNotification()
+  elseif msg == "settings" or msg == "city" then
+    Picker.toggle()
   else
     Window.toggleLock()
     print("PrayerTimes: window " .. (PrayerTimesDB.locked and "locked" or "unlocked"))

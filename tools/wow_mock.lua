@@ -8,8 +8,13 @@
 local M = {}
 local nowEpoch = 0
 
+-- Any method we did not explicitly stub becomes a harmless no-op, so UI widget
+-- code (EditBox/Button/ScrollFrame extras) loads and runs without per-method
+-- mock churn. Explicit methods on the table take precedence over this.
+local NOOP_INDEX = { __index = function() return function() end end }
+
 local function makeFontString()
-  local fs = { _text = "", _shown = true, _points = {} }
+  local fs = setmetatable({ _text = "", _shown = true, _points = {} }, NOOP_INDEX)
   function fs:SetText(t) self._text = t end
   function fs:GetText() return self._text end
   function fs:SetPoint(...) self._points[#self._points + 1] = { ... } end
@@ -23,7 +28,7 @@ local function makeFontString()
 end
 
 local function makeTexture()
-  local tx = { _shown = true }
+  local tx = setmetatable({ _shown = true }, NOOP_INDEX)
   function tx:SetAllPoints() end
   function tx:SetColorTexture() end
   function tx:SetTexture() end
@@ -33,7 +38,11 @@ local function makeTexture()
 end
 
 local function makeFrame()
-  local f = { _shown = true, _scripts = {}, _movable = false, _mouse = false, _points = {} }
+  local f = setmetatable({ _shown = true, _scripts = {}, _movable = false, _mouse = false,
+    _points = {}, _text = "" }, NOOP_INDEX)
+  -- EditBox-style text (search/lat/lon boxes).
+  function f:SetText(t) self._text = t end
+  function f:GetText() return self._text end
   function f:SetPoint(...) self._points[#self._points + 1] = { ... } end
   function f:ClearAllPoints() self._points = {} end
   function f:GetPoint(i) local p = self._points[i or 1]; if p then return unpack(p) end end

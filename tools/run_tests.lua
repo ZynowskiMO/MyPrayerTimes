@@ -752,6 +752,81 @@ do
   check("Window Fajr follows selection", Window.frame.rows.fajr.time:GetText() == iRes.prayers.fajr.hhmm)
 end
 
+-- ---- 2d-4a: city picker (logic under the mock) ---------------------------
+local Picker = require("Picker")
+
+-- Display list: empty query -> headers + all 65 cities; query -> flat matches.
+do
+  local all = Cities.displayList("")
+  local cityRows, headerRows = 0, 0
+  for _, r in ipairs(all) do
+    if r.kind == "city" then cityRows = cityRows + 1 else headerRows = headerRows + 1 end
+  end
+  check("displayList('') lists all 65 cities", cityRows == 65)
+  check("displayList('') has country headers", headerRows >= 10)
+  local hits = Cities.displayList("ber")
+  local foundBerlin = false
+  for _, r in ipairs(hits) do if r.kind == "city" and r.city.name == "Berlin" then foundBerlin = true end end
+  check("displayList('ber') finds Berlin, no headers", foundBerlin and hits[1].kind == "city")
+end
+
+-- shouldAutoOpen: true with no selection, false once chosen.
+check("first run auto-opens picker", Picker.shouldAutoOpen({}) == true)
+check("does not auto-open once chosen",
+  Picker.shouldAutoOpen({ selectedCity = { kind = "city", name = "Berlin" } }) == false)
+
+-- currentSelectionText for the three cases.
+check("indicator: default", Picker.currentSelectionText({}) == "Selected: Rotterdam (default)")
+check("indicator: city",
+  Picker.currentSelectionText({ selectedCity = { kind = "city", name = "Sarajevo" } })
+    == "Selected: Sarajevo, Bosnia and Herzegovina")
+check("indicator: manual",
+  Picker.currentSelectionText({ selectedCity = { kind = "manual", latitude = 48.5, longitude = 9, tz = "machine" } })
+    :find("Manual 48.5000, 9.0000") ~= nil)
+
+-- Build the picker under the mock and drive selection/manual logic.
+do
+  local pdb = {}
+  Window.init(pdb)
+  Picker.init(pdb)
+  Window.create()
+  Picker.create()
+  WowMock.setNow(1766318400)
+
+  check("picker builds VISIBLE_ROWS rows", #Picker.rows == 14)
+  check("picker populated display rows", #Picker.displayRows == 65 + (#Cities.byCountry()))
+
+  -- Selecting a city persists and updates the main window.
+  Picker.selectCity("Sarajevo")
+  check("selectCity persists", pdb.selectedCity.kind == "city" and pdb.selectedCity.name == "Sarajevo")
+  check("selectCity updates main window title", Window.frame.title:GetText() == "Sarajevo")
+  check("selectCity updates indicator", Picker.selectedLabel:GetText():find("Sarajevo") ~= nil)
+
+  -- Manual entry (machine tz) persists and retargets the window.
+  local ok = Picker.applyManual("48.5", "9.0", "")
+  check("applyManual valid accepted", ok == true)
+  check("applyManual persists manual", pdb.selectedCity.kind == "manual" and pdb.selectedCity.tz == "machine")
+  check("applyManual updates window title", Window.frame.title:GetText() == "Manual")
+
+  -- Manual entry with explicit offset override.
+  Picker.applyManual("40.0", "20.0", "2")
+  check("applyManual offset override -> fixed +120",
+    pdb.selectedCity.tz == "fixed" and pdb.selectedCity.baseUtcOffset == 120)
+
+  -- Invalid coordinates are rejected and leave the selection unchanged.
+  local before = pdb.selectedCity
+  local ok2, err2 = Picker.applyManual("999", "0", "")
+  check("applyManual invalid rejected", ok2 == false and type(err2) == "string")
+  check("applyManual invalid keeps selection", pdb.selectedCity == before)
+
+  -- Search box drives the list; scroll clamps.
+  Picker.refreshList("istanbul")
+  check("search narrows list", #Picker.displayRows == 1 and Picker.displayRows[1].city.name == "Istanbul")
+  Picker.refreshList("")
+  Picker.scroll(-100) -- scroll way down; offset clamps, no error
+  check("scroll offset clamps", Picker.scrollOffset <= (#Picker.displayRows - 14))
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
