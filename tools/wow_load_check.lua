@@ -75,6 +75,12 @@ if win and win.frame and win.frame.rows then
 end
 expect("window has six rows with HH:MM", rowCount == 6 and rowsOk)
 expect("a next prayer was highlighted", win and win.lastSchedule and win.lastSchedule.nextKey ~= nil)
+expect("Notifier + Alerts registered", ns.modules.Notifier ~= nil and ns.modules.Alerts ~= nil)
+expect("/pt test fires an alert", (function()
+  WowMock.resetAlerts()
+  win.testNotification()
+  return WowMock.lastRaidNotice ~= nil
+end)())
 
 print(string.format("\nWoW load-path check: %d files loaded, %d failure(s)",
   #files, fail))

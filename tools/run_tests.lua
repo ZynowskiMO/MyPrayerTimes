@@ -630,6 +630,48 @@ do
   end
 end
 
+-- ---- 2d-2: Alerts presentation + Window wiring (under the mock) ----------
+local Alerts = require("Alerts")
+
+-- Pure message text.
+check("messageFor before", Alerts.messageFor({ prayer = "maghrib", type = "before", minutesUntil = 10 })
+  == "Maghrib in 10 min")
+check("messageFor at", Alerts.messageFor({ prayer = "fajr", type = "at" }) == "Fajr - it's time")
+
+-- fire() plays a sound and shows a center-screen notice.
+WowMock.resetAlerts()
+Alerts.fire({ prayer = "isha", type = "at" }, { sound = true })
+check("fire plays a sound", WowMock.lastSound ~= nil)
+check("fire shows raid notice text", WowMock.lastRaidNotice == "Isha - it's time")
+
+-- sound = false suppresses the sound but still shows the notice.
+WowMock.resetAlerts()
+Alerts.fire({ prayer = "isha", type = "at" }, { sound = false })
+check("muted: no sound", WowMock.lastSound == nil)
+check("muted: still shows notice", WowMock.lastRaidNotice ~= nil)
+
+-- Window wiring: checkNotifications fires due alerts once, deduped.
+do
+  local ndb = {}
+  Window.init(ndb)
+  Window.localTimes = { fajr = 402, sunrise = 527, dhuhr = 761, asr = 857, maghrib = 993, isha = 1112 }
+  Window.dayKey = "2026-12-21"
+
+  WowMock.resetAlerts()
+  local atNow = { minuteOfDay = 993, secondOfDay = 993 * 60 } -- Maghrib at-time
+  local evs = Window.checkNotifications(atNow)
+  check("Window fires Maghrib at-time", #evs == 1 and evs[1].prayer == "maghrib" and evs[1].type == "at")
+  check("Window center-screen shows Maghrib", WowMock.lastRaidNotice == "Maghrib - it's time")
+  local countAfter = WowMock.raidNoticeCount
+  Window.checkNotifications(atNow) -- same minute again (e.g. next tick / reload)
+  check("Window does not re-fire same minute", WowMock.raidNoticeCount == countAfter)
+end
+
+-- /pt test path fires a sample alert.
+WowMock.resetAlerts()
+Window.testNotification()
+check("testNotification fires a sample", WowMock.lastRaidNotice ~= nil)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

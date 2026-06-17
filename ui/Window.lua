@@ -7,6 +7,8 @@
 local Cities = require("Cities")
 local Schedule = require("Schedule")
 local Clock = require("Clock")
+local Notifier = require("Notifier")
+local Alerts = require("Alerts")
 
 local LABELS = {
   fajr = "Fajr", sunrise = "Sunrise", dhuhr = "Dhuhr",
@@ -85,6 +87,34 @@ end
 function Window.init(db)
   Window.db = db
   db.locked = db.locked or false
+  local n = db.notify or {}
+  if n.beforeMinutes == nil then n.beforeMinutes = 10 end
+  if n.atTime == nil then n.atTime = true end
+  if n.sound == nil then n.sound = true end
+  n.fired = n.fired or {}
+  db.notify = n
+end
+
+-- Fire any due prayer notifications for `now` (called every tick). Reads
+-- settings + the persisted dedupe set from the DB so a /reload never re-fires.
+function Window.checkNotifications(now)
+  local db = Window.db
+  if not (db and db.notify and Window.localTimes and Window.dayKey) then return end
+  local n = db.notify
+  if n.firedDay ~= Window.dayKey then
+    n.fired = {}
+    n.firedDay = Window.dayKey
+  end
+  local five = {}
+  for _, p in ipairs(Notifier.PRAYERS) do five[p] = Window.localTimes[p] end
+  local events = Notifier.check(five, now.minuteOfDay, n, Window.dayKey, n.fired)
+  for _, ev in ipairs(events) do Alerts.fire(ev, n) end
+  return events
+end
+
+-- Fire a sample notification so the player can see/hear the presentation.
+function Window.testNotification()
+  Alerts.test(Window.db and Window.db.notify)
 end
 
 function Window.savePosition()
@@ -134,6 +164,7 @@ local function renderNow(now)
   end
   local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
   f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
+  Window.checkNotifications(now)
   Window.lastSchedule = sched -- exposed for tests
   return sched
 end

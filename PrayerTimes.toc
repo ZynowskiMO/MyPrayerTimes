@@ -24,11 +24,13 @@ engine/Timezone.lua
 engine/Calculator.lua
 engine/Schedule.lua
 engine/Clock.lua
+engine/Notifier.lua
 
 # Data + data-layer access.
 data/cities.lua
 engine/Cities.lua
 
 # UI + entry point.
+ui/Alerts.lua
 ui/Window.lua
 core/Main.lua

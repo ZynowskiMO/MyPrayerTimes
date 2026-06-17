@@ -26,6 +26,8 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     if Window.frame then Window.frame:Show() end
   elseif msg == "hide" then
     if Window.frame then Window.frame:Hide() end
+  elseif msg == "test" then
+    Window.testNotification()
   else
     Window.toggleLock()
     print("PrayerTimes: window " .. (PrayerTimesDB.locked and "locked" or "unlocked"))
