@@ -218,6 +218,43 @@ local forced = Calculator.timesForLocation(2026, 6, 21, ROTTERDAM,
   { highLatitudeRule = HighLatitudeRule.MiddleOfTheNight })
 check("explicit MiddleOfTheNight override re-clamps", forced.fajr == forced.isha)
 
+-- ---- 2a-3 EXIT CRITERION: recommended rule vs adhan-js, no clamp ---------
+-- Verify the engine via Calculator.timesForLocation (recommended rule) matches
+-- the adhan-js recommended-rule fixtures for Rotterdam + Stockholm within
+-- +/-1 min, and assert summer Fajr/Isha are de-clamped (not the midnight
+-- midpoint). Summer dates here are the ones that previously clamped.
+local SUMMER_DATES = { ["2026-06-21"] = true, ["2026-07-15"] = true }
+
+print("\n=== Phase 2a exit criterion: HighLatitudeRule.recommended() ===")
+print("    (engine vs adhan-js 4.4.4, tolerance +/-1 min, minute-of-day UTC)\n")
+
+for _, city in ipairs(dofile("fixtures/highlat_recommended.lua").cities) do
+  print(string.format("%s (%.1fN)  rule=%s", city.name, city.lat, city.rule))
+  local hdr = string.format("  %-12s", "date")
+  for _, p in ipairs(PRAYERS) do hdr = hdr .. string.format("%-10s", p) end
+  print(hdr)
+  local coords = { latitude = city.lat, longitude = city.lon }
+  for _, row in ipairs(city.dates) do
+    local y, mo, d = row.date:match("(%d+)-(%d+)-(%d+)")
+    local pt = Calculator.timesForLocation(tonumber(y), tonumber(mo), tonumber(d), coords)
+    local cells = string.format("  %-12s", row.date)
+    for _, p in ipairs(PRAYERS) do
+      local diff = minuteDiff(pt[p], row[p])
+      local ok = diff <= TOLERANCE
+      check(string.format("%s %s %s within +/-1 min", city.name, row.date, p), ok)
+      cells = cells .. string.format("%-10s", ok and ("ok " .. diff) or ("FAIL " .. diff))
+    end
+    print(cells)
+    -- No-clamp: on summer dates Fajr and Isha must differ (the clamp made them
+    -- equal at the midnight midpoint).
+    if SUMMER_DATES[row.date] then
+      check(string.format("%s %s summer NOT clamped (Fajr ~= Isha)", city.name, row.date),
+        pt.fajr ~= pt.isha)
+    end
+  end
+  print("")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
