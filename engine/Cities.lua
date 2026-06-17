@@ -94,8 +94,13 @@ function Cities.times(cityOrName, year, month, day)
 
   local prayers = {}
   for _, p in ipairs(PRAYERS) do
-    local localMin = Timezone.toLocalMinuteOfDay(utc[p], offset)
-    prayers[p] = { utc = utc[p], localMin = localMin, hhmm = Timezone.formatHHMM(localMin) }
+    local u = utc[p]
+    if u == nil then -- non-finite time (e.g. polar) -> fail safe
+      prayers[p] = { utc = nil, localMin = nil, hhmm = "--:--" }
+    else
+      local localMin = Timezone.toLocalMinuteOfDay(u, offset)
+      prayers[p] = { utc = u, localMin = localMin, hhmm = Timezone.formatHHMM(localMin) }
+    end
   end
 
   return { city = city, offsetMinutes = offset, prayers = prayers }

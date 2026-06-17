@@ -172,8 +172,12 @@ local function renderNow(now)
     f.rows[key].label:SetTextColor(c[1], c[2], c[3])
     f.rows[key].time:SetTextColor(c[1], c[2], c[3])
   end
-  local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
-  f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
+  if sched.nextKey and sched.untilMinutes then
+    local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
+    f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
+  else
+    f.countdown:SetText("--:--")
+  end
   Window.checkNotifications(now)
   Window.lastSchedule = sched -- exposed for tests
   return sched

@@ -895,6 +895,47 @@ do
     ok == false and db5.selectedCity.name == "Saint Petersburg")
 end
 
+-- ---- 2d crash fix: non-finite times at polar latitudes -------------------
+-- Validation rejects polar / out-of-range coordinates.
+check("validateCoords rejects north pole", (Selection.validateCoords(90, 0)) == false)
+check("validateCoords rejects arctic 80", (Selection.validateCoords(80, 20)) == false)
+check("validateCoords rejects 66 (polar boundary)", (Selection.validateCoords(66, 20)) == false)
+check("validateCoords rejects -66", (Selection.validateCoords(-66, 0)) == false)
+check("validateCoords accepts 65", (Selection.validateCoords(65, 20)) == true)
+check("validateCoords accepts Helsinki 60.2", (Selection.validateCoords(60.17, 24.94)) == true)
+check("validateCoords rejects longitude 200", (Selection.validateCoords(50, 200)) == false)
+
+-- formatHHMM fails safe on non-finite input.
+local NAN = 0 / 0
+check("formatHHMM NaN -> --:--", Timezone.formatHHMM(NAN) == "--:--")
+check("formatHHMM +Inf -> --:--", Timezone.formatHHMM(math.huge) == "--:--")
+check("formatHHMM normal still works", Timezone.formatHHMM(625) == "10:25")
+
+-- Engine defense in depth: even if a polar coord reaches the engine (bypassing
+-- validation), it must not crash -- undefined prayers render "--:--", not NaN.
+do
+  local polar = { name = "Polar", latitude = 80, longitude = 20, baseUtcOffset = 0, dstRule = "none" }
+  local ok, res = pcall(Cities.times, polar, 2026, 6, 21)
+  check("Cities.times at polar lat does not crash", ok == true)
+  check("polar Maghrib renders --:-- (not NaN)", res.prayers.maghrib.hhmm == "--:--" and res.prayers.maghrib.localMin == nil)
+end
+
+-- Schedule tolerates a nil (undefined) time without erroring.
+do
+  local partial = { fajr = 300, sunrise = 360, dhuhr = 700, asr = 800, maghrib = nil, isha = nil }
+  local ok = pcall(Schedule.compute, partial, 750)
+  check("Schedule.compute tolerates nil times", ok == true)
+end
+
+-- applyManual rejects a polar coordinate with the normal error, no crash.
+do
+  local db = { selectedCity = { kind = "city", name = "Berlin" } }
+  Picker.init(db)
+  local ok, err = Picker.applyManual("80", "20", "")
+  check("applyManual rejects polar with message", ok == false and type(err) == "string")
+  check("applyManual polar leaves selection unchanged", db.selectedCity.name == "Berlin")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

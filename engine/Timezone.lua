@@ -70,6 +70,11 @@ function Timezone.toLocalMinuteOfDay(utcMinuteOfDay, offsetMinutes)
 end
 
 function Timezone.formatHHMM(minuteOfDay)
+  -- Fail safe on non-finite input (NaN/Inf) rather than crashing on format.
+  if type(minuteOfDay) ~= "number" or minuteOfDay ~= minuteOfDay
+      or minuteOfDay == math.huge or minuteOfDay == -math.huge then
+    return "--:--"
+  end
   return string.format("%02d:%02d", floor(minuteOfDay / 60), minuteOfDay % 60)
 end
 

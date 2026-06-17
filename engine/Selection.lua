@@ -15,6 +15,11 @@ local DEFAULT_CITY = "Rotterdam" -- temporary fallback until the 2d-4 picker / f
 
 local Selection = {}
 
+-- Latitudes at/above the polar circles make the sun fail to cross the horizon
+-- at the solstices, so sunrise/sunset (and thus Maghrib) are undefined. The
+-- engine has no PolarCircleResolution yet (ADR-0003), so reject beyond this.
+local POLAR_LIMIT = 65
+
 -- Validate manual coordinates. Returns ok, errorMessage.
 function Selection.validateCoords(lat, lon)
   if type(lat) ~= "number" or type(lon) ~= "number"
@@ -23,6 +28,9 @@ function Selection.validateCoords(lat, lon)
   end
   if lat < -90 or lat > 90 then return false, "Latitude must be between -90 and 90" end
   if lon < -180 or lon > 180 then return false, "Longitude must be between -180 and 180" end
+  if lat > POLAR_LIMIT or lat < -POLAR_LIMIT then
+    return false, "Polar latitudes (beyond +/-65) are not supported"
+  end
   return true
 end
 

@@ -16,7 +16,7 @@ Schedule.ORDER = ORDER
 function Schedule.compute(times, nowMin)
   local nextKey, nextMin
   for _, key in ipairs(ORDER) do
-    if times[key] > nowMin then
+    if times[key] and times[key] > nowMin then
       nextKey, nextMin = key, times[key]
       break
     end
@@ -25,7 +25,7 @@ function Schedule.compute(times, nowMin)
   local untilMinutes
   if nextKey then
     untilMinutes = nextMin - nowMin
-  else
+  elseif times.fajr then
     -- Past the day's last time -> next is tomorrow's Fajr.
     nextKey, nextMin = "fajr", times.fajr
     untilMinutes = (1440 - nowMin) + times.fajr

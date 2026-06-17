@@ -34,7 +34,12 @@ end
 
 -- Fractional UTC hours (+ whole-minute adjustment) -> minute-of-day [0,1440).
 -- floor(x + 0.5) reproduces adhan-js roundedMinute (round half up at 30s).
+-- Returns nil for a non-finite time (e.g. polar latitudes where the sun never
+-- crosses the horizon) so callers can fail safe instead of storing NaN.
 local function toMinuteOfDay(hours, adjustmentMinutes)
+  if hours ~= hours or hours == math.huge or hours == -math.huge then
+    return nil
+  end
   local mins = floor(hours * 60 + adjustmentMinutes + 0.5)
   return mins % 1440
 end
