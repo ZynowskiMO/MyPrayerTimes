@@ -57,6 +57,98 @@ function Selection.get(db)
   return db and db.selectedCity
 end
 
+-- ---- Saved user cities ("My Cities") -------------------------------------
+
+local function trim(s)
+  return type(s) == "string" and s:gsub("^%s+", ""):gsub("%s+$", "") or ""
+end
+
+function Selection.getSavedCities(db)
+  return (db and db.savedCities) or {}
+end
+
+function Selection.findSaved(db, name)
+  if not (db and db.savedCities and type(name) == "string") then return nil end
+  local lname = name:lower()
+  for _, c in ipairs(db.savedCities) do
+    if c.name:lower() == lname then return c end
+  end
+  return nil
+end
+
+-- Save a named manual location. opts.tz = "machine" (default) | "fixed"
+-- (+ opts.baseUtcOffset, opts.dstRule). Returns ok, errorMessage, savedName.
+function Selection.saveCity(db, name, lat, lon, opts)
+  opts = opts or {}
+  name = trim(name)
+  if name == "" then return false, "Enter a name for the city" end
+  local ok, err = Selection.validateCoords(lat, lon)
+  if not ok then return false, err end
+  db.savedCities = db.savedCities or {}
+  if Selection.findSaved(db, name) then
+    return false, "A saved city named '" .. name .. "' already exists"
+  end
+  local entry = { name = name, latitude = lat, longitude = lon, tz = opts.tz or "machine" }
+  if entry.tz == "fixed" then
+    entry.baseUtcOffset = opts.baseUtcOffset or 0
+    entry.dstRule = opts.dstRule or "none"
+  end
+  table.insert(db.savedCities, entry)
+  return true, nil, name
+end
+
+function Selection.deleteCity(db, name)
+  if not (db and db.savedCities and type(name) == "string") then return false end
+  local lname = name:lower()
+  for i, c in ipairs(db.savedCities) do
+    if c.name:lower() == lname then
+      table.remove(db.savedCities, i)
+      if db.selectedCity and db.selectedCity.kind == "saved"
+          and db.selectedCity.name:lower() == lname then
+        db.selectedCity = nil -- fall back to default
+      end
+      return true
+    end
+  end
+  return false
+end
+
+-- Rename a saved city (nice-to-have). Returns ok, errorMessage.
+function Selection.renameCity(db, oldName, newName)
+  local entry = Selection.findSaved(db, oldName)
+  if not entry then return false, "No such saved city" end
+  newName = trim(newName)
+  if newName == "" then return false, "Enter a name" end
+  if newName:lower() ~= oldName:lower() and Selection.findSaved(db, newName) then
+    return false, "A saved city named '" .. newName .. "' already exists"
+  end
+  if db.selectedCity and db.selectedCity.kind == "saved"
+      and db.selectedCity.name:lower() == oldName:lower() then
+    db.selectedCity.name = newName
+  end
+  entry.name = newName
+  return true
+end
+
+function Selection.setSavedCity(db, name)
+  db.selectedCity = { kind = "saved", name = name }
+  return true
+end
+
+-- Build a city object from coordinates + a tz spec (shared by manual + saved).
+local function buildTzCity(name, lat, lon, tz, baseUtcOffset, dstRule, machineOffsetMinutes)
+  local city = { name = name, latitude = lat, longitude = lon }
+  if tz == "fixed" then
+    city.baseUtcOffset = baseUtcOffset or 0
+    city.dstRule = dstRule or "none"
+  else
+    -- Machine tz: live offset already includes DST -> model as fixed "none".
+    city.baseUtcOffset = (machineOffsetMinutes and machineOffsetMinutes()) or 0
+    city.dstRule = "none"
+  end
+  return city
+end
+
 -- Resolve the selection to a city object { name, latitude, longitude,
 -- baseUtcOffset, dstRule }. machineOffsetMinutes is an injected function
 -- returning the player's live UTC offset in minutes (only used for tz="machine").
@@ -64,16 +156,14 @@ function Selection.resolve(db, machineOffsetMinutes)
   local sel = db and db.selectedCity
 
   if sel and sel.kind == "manual" then
-    local city = { name = "Manual", latitude = sel.latitude, longitude = sel.longitude }
-    if sel.tz == "fixed" then
-      city.baseUtcOffset = sel.baseUtcOffset or 0
-      city.dstRule = sel.dstRule or "none"
-    else
-      -- Machine tz: live offset already includes DST -> model as fixed "none".
-      city.baseUtcOffset = (machineOffsetMinutes and machineOffsetMinutes()) or 0
-      city.dstRule = "none"
+    return buildTzCity("Manual", sel.latitude, sel.longitude,
+      sel.tz, sel.baseUtcOffset, sel.dstRule, machineOffsetMinutes)
+  elseif sel and sel.kind == "saved" then
+    local s = Selection.findSaved(db, sel.name)
+    if s then
+      return buildTzCity(s.name, s.latitude, s.longitude,
+        s.tz, s.baseUtcOffset, s.dstRule, machineOffsetMinutes)
     end
-    return city
   end
 
   local name = (sel and sel.kind == "city" and sel.name) or DEFAULT_CITY

@@ -936,6 +936,77 @@ do
   check("applyManual polar leaves selection unchanged", db.selectedCity.name == "Berlin")
 end
 
+-- ---- 2d-4c: saved "My Cities" (model + picker) ---------------------------
+do
+  local db = {}
+  Window.init(db)
+  Picker.init(db)
+
+  -- Save (machine tz) -> persists, validates, and auto-selects.
+  local ok = Picker.saveManual("Travnik", "44.2261", "17.6650", "", false)
+  check("saveManual accepted", ok == true)
+  check("saved city persisted", Selection.findSaved(db, "Travnik") ~= nil)
+  check("saved city uses machine tz", Selection.findSaved(db, "Travnik").tz == "machine")
+  check("saving selects it", db.selectedCity.kind == "saved" and db.selectedCity.name == "Travnik")
+
+  -- Saved city flows through the same pipeline (resolve + Cities.times).
+  local resolved = Selection.resolve(db, function() return 60 end)
+  check("saved resolves with machine offset", resolved.name == "Travnik" and resolved.baseUtcOffset == 60)
+  check("saved produces times", Cities.times(resolved, 2026, 1, 15).prayers.fajr.hhmm ~= nil)
+
+  -- Save with explicit offset + EU rule.
+  Picker.saveManual("Tashkent", "41.3", "69.2", "5", false)
+  check("saved fixed offset", Selection.findSaved(db, "Tashkent").baseUtcOffset == 300)
+  check("saved fixed dstRule none", Selection.findSaved(db, "Tashkent").dstRule == "none")
+  Picker.saveManual("MyBerlin", "52.5", "13.4", "1", true)
+  check("saved fixed EU rule", Selection.findSaved(db, "MyBerlin").dstRule == "EU")
+
+  -- Duplicate name rejected; empty name rejected; polar rejected.
+  local dOk, dErr = Picker.saveManual("Travnik", "40", "10", "", false)
+  check("duplicate name rejected", dOk == false and dErr:find("already exists") ~= nil)
+  check("empty name rejected", (Picker.saveManual("", "40", "10", "", false)) == false)
+  check("polar coord rejected on save", (Picker.saveManual("Pole", "80", "10", "", false)) == false)
+  check("invalid coords rejected on save", (Picker.saveManual("Bad", "abc", "10", "", false)) == false)
+
+  -- Picker rows: My Cities group on top, with the built-in list beneath.
+  local rows = Picker.buildRows(db, "")
+  check("first row is My Cities header", rows[1].kind == "header" and rows[1].label == "My Cities")
+  check("saved rows follow the header", rows[2].kind == "saved")
+  local hasBuiltin = false
+  for _, r in ipairs(rows) do if r.kind == "city" then hasBuiltin = true end end
+  check("built-in cities still present", hasBuiltin)
+
+  -- Search filters saved cities too.
+  local s = Picker.buildRows(db, "trav")
+  check("search matches saved city", s[1].kind == "header" and s[2].kind == "saved" and s[2].city.name == "Travnik")
+
+  -- Delete: removes it and clears selection if it was active.
+  Selection.setSavedCity(db, "Travnik")
+  Picker.deleteSaved("Travnik")
+  check("deleted saved city gone", Selection.findSaved(db, "Travnik") == nil)
+  check("deleting selected falls back to default", db.selectedCity == nil)
+
+  -- Rename (nice-to-have, model-level).
+  check("rename saved city", (Selection.renameCity(db, "Tashkent", "Samarkand")) == true)
+  check("renamed present, old gone",
+    Selection.findSaved(db, "Samarkand") ~= nil and Selection.findSaved(db, "Tashkent") == nil)
+end
+
+-- Picker renders saved rows + highlight + delete buttons (under the mock).
+do
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Selection.saveCity(db, "Travnik", 44.2261, 17.6650, {})
+  Picker.create()
+  Picker.selectSaved("Travnik")
+  Picker.refreshList("")
+  check("My Cities header rendered row 1", Picker.rows[1].kind == "header")
+  check("saved row rendered + selected + delete shown",
+    Picker.rows[2].kind == "saved" and Picker.rows[2]._selected == true)
+  check("name field has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
