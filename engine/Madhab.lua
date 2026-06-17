@@ -19,4 +19,5 @@ function Madhab.shadowLength(madhab)
   end
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.Madhab = Madhab end
 return Madhab

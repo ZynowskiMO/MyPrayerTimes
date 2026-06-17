@@ -21,4 +21,5 @@ function HighLatitudeRule.recommended(coordinates)
   end
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.HighLatitudeRule = HighLatitudeRule end
 return HighLatitudeRule

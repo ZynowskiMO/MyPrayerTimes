@@ -13,7 +13,7 @@
 -- NOTE: no city above the Arctic circle (~66.5N) -- PolarCircleResolution is
 -- out of scope (ADR-0003); the northernmost here is ~60N (Helsinki/St. P.).
 
-return {
+local CITIES = {
   -- ===== UTC+0, EU DST =====
   { name = "London", country = "United Kingdom", latitude = 51.5074, longitude = -0.1278, baseUtcOffset = 0, dstRule = "EU" },
   { name = "Birmingham", country = "United Kingdom", latitude = 52.4862, longitude = -1.8904, baseUtcOffset = 0, dstRule = "EU" },
@@ -99,3 +99,6 @@ return {
   -- ===== UTC+7, no DST (Siberia) =====
   { name = "Novosibirsk", country = "Russia", latitude = 55.0084, longitude = 82.9357, baseUtcOffset = 420, dstRule = "none" },
 }
+
+if PrayerTimesNS then PrayerTimesNS.modules.cities = CITIES end
+return CITIES

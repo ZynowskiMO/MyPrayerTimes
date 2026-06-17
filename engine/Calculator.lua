@@ -29,4 +29,5 @@ function Calculator.timesForLocation(year, month, day, coordinates, opts)
   return PrayerTimes.new(year, month, day, coordinates, params)
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.Calculator = Calculator end
 return Calculator

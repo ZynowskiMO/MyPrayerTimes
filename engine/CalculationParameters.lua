@@ -37,4 +37,5 @@ function CalculationParameters:nightPortions()
   end
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.CalculationParameters = CalculationParameters end
 return CalculationParameters

@@ -66,4 +66,5 @@ function Cities.times(cityOrName, year, month, day)
   return { city = city, offsetMinutes = offset, prayers = prayers }
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.Cities = Cities end
 return Cities

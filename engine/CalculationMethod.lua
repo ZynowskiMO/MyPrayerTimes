@@ -13,4 +13,5 @@ function CalculationMethod.MuslimWorldLeague()
   return params
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.CalculationMethod = CalculationMethod end
 return CalculationMethod

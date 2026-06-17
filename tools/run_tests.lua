@@ -376,6 +376,30 @@ for _, s in ipairs(dofile("fixtures/tz_local_reference.lua").samples) do
   print("")
 end
 
+-- ---- 2c-1: WoW API mock sanity (tooling for the UI checkpoints) ----------
+-- The mock stubs only the WoW functions our UI calls; verify it behaves so
+-- ui/Window.lua (2c-2+) can be loaded and exercised under the runner.
+local WowMock = dofile("tools/wow_mock.lua")
+WowMock.install()
+
+local mf = CreateFrame("Frame", "TestFrame", UIParent)
+mf:Hide(); check("mock frame Hide -> not shown", mf:IsShown() == false)
+mf:Show(); check("mock frame Show -> shown", mf:IsShown() == true)
+mf:SetMovable(true); check("mock frame movable flag", mf:IsMovable() == true)
+mf:EnableMouse(true); check("mock frame mouse flag", mf:IsMouseEnabled() == true)
+
+local mfs = mf:CreateFontString()
+mfs:SetText("12:34"); check("mock fontstring SetText/GetText", mfs:GetText() == "12:34")
+
+local ticks = 0
+local ticker = C_Timer.NewTicker(1, function() ticks = ticks + 1 end)
+ticker.fn(); check("mock ticker stores callback", ticks == 1)
+ticker:Cancel(); check("mock ticker cancellable", ticker._cancelled == true)
+
+WowMock.setNow(1750000000)
+check("mock clock injectable (GetServerTime)", GetServerTime() == 1750000000)
+check("mock clock injectable (time)", time() == 1750000000)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

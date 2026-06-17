@@ -67,4 +67,5 @@ function SolarTime:afternoon(shadowLength)
   return self:hourAngle(angle, true)
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.SolarTime = SolarTime end
 return SolarTime

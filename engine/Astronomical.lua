@@ -227,4 +227,5 @@ function A.interpolateAngles(y2, y1, y3, n)
   return y2 + (n / 2) * (a + b + n * c)
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.Astronomical = A end
 return A

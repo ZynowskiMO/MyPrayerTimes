@@ -1,0 +1,72 @@
+-- wow_load_check.lua
+-- Emulates the WoW addon load path under luajit: reads PrayerTimes.toc and
+-- loads each listed Lua file in order through the bootstrap require() shim,
+-- with the WoW API mocked. Catches .toc order / module-bridge regressions
+-- (which the require-based runner would not) before testing in-game.
+-- Run from repo root:  luajit tools/wow_load_check.lua
+
+local WowMock = dofile("tools/wow_mock.lua")
+WowMock.install()
+_G.date = os.date -- core/Main.lua uses date("*t")
+
+-- Record created frames so we can fire PLAYER_LOGIN like WoW would.
+local frames = {}
+local baseCreate = _G.CreateFrame
+_G.CreateFrame = function(...) local f = baseCreate(...); frames[#frames + 1] = f; return f end
+
+-- Capture chat output from core/Main.lua.
+local printed = {}
+local realPrint = print
+_G.print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
+
+-- WoW has no require(); remove luajit's so bootstrap.lua installs the shim
+-- (this is what makes the emulation faithful to the in-game environment).
+_G.require = nil
+
+local addonName, ns = "PrayerTimes", {}
+
+-- Parse the .toc for .lua files (skip comments/blanks).
+local files = {}
+for line in io.lines("PrayerTimes.toc") do
+  line = line:gsub("%s+$", "")
+  if line ~= "" and not line:match("^#") and line:match("%.lua$") then
+    files[#files + 1] = line
+  end
+end
+
+for _, rel in ipairs(files) do
+  local chunk, err = loadfile(rel)
+  if not chunk then realPrint("LOAD FAIL " .. rel .. ": " .. tostring(err)); os.exit(1) end
+  local ok, e = pcall(chunk, addonName, ns)
+  if not ok then realPrint("RUN FAIL " .. rel .. ": " .. tostring(e)); os.exit(1) end
+end
+
+-- Fire PLAYER_LOGIN on every registered OnEvent handler (Main prints times).
+for _, f in ipairs(frames) do
+  local onEvent = f.GetScript and f:GetScript("OnEvent")
+  if onEvent then onEvent(f, "PLAYER_LOGIN") end
+end
+
+_G.print = realPrint
+
+-- Assertions: registry populated, WoW-path Cities.times correct, Main printed.
+local fail = 0
+local function expect(name, cond) if not cond then fail = fail + 1; print("  FAIL: " .. name) end end
+
+expect("loaded " .. #files .. " toc files", #files >= 15)
+expect("PrayerTimesNS.modules populated", ns.modules and ns.modules.Cities ~= nil)
+expect("data.cities registered", ns.modules.cities ~= nil and #ns.modules.cities == 65)
+
+-- Same call core/Main makes, via the WoW require() shim.
+local Cities = ns.modules.Cities
+local res = Cities.times("Rotterdam", 2026, 12, 21)
+expect("WoW-path Rotterdam winter Fajr 06:42", res and res.prayers.fajr.hhmm == "06:42")
+
+local sixLines = 0
+for _, l in ipairs(printed) do if l:match("%d%d:%d%d") then sixLines = sixLines + 1 end end
+expect("Main printed six prayer lines", sixLines == 6)
+
+print(string.format("\nWoW load-path check: %d files loaded, %d failure(s)",
+  #files, fail))
+if fail > 0 then os.exit(1) end
+print("OK - addon loads cleanly via the .toc chain.")

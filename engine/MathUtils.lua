@@ -38,4 +38,5 @@ function M.quadrantShiftAngle(angle)
   return angle - 360 * jsRound(angle / 360)
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.MathUtils = M end
 return M

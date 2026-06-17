@@ -73,4 +73,5 @@ function Timezone.formatHHMM(minuteOfDay)
   return string.format("%02d:%02d", floor(minuteOfDay / 60), minuteOfDay % 60)
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.Timezone = Timezone end
 return Timezone

@@ -51,4 +51,5 @@ function SolarCoordinates.new(julianDay)
   }
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.SolarCoordinates = SolarCoordinates end
 return SolarCoordinates

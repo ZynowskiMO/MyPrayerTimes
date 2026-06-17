@@ -92,4 +92,5 @@ function PrayerTimes.new(year, month, day, coordinates, params)
   return self
 end
 
+if PrayerTimesNS then PrayerTimesNS.modules.PrayerTimes = PrayerTimes end
 return PrayerTimes

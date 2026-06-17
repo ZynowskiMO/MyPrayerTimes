@@ -1,0 +1,31 @@
+## Interface: 120007
+## Title: PrayerTimes
+## Notes: Islamic prayer times calculated locally for European cities.
+## Author: Muhamed Basic
+## Version: 0.2.0-dev
+## SavedVariablesPerCharacter: PrayerTimesDB
+## X-License: MIT
+## X-Credits: Prayer-time math ported from adhan-js (batoulapps), MIT.
+
+# Loader shim first (defines require() for WoW).
+bootstrap.lua
+
+# Engine (pure Lua), in dependency order.
+engine/MathUtils.lua
+engine/Astronomical.lua
+engine/SolarCoordinates.lua
+engine/SolarTime.lua
+engine/Madhab.lua
+engine/HighLatitudeRule.lua
+engine/CalculationParameters.lua
+engine/CalculationMethod.lua
+engine/PrayerTimes.lua
+engine/Timezone.lua
+engine/Calculator.lua
+
+# Data + data-layer access.
+data/cities.lua
+engine/Cities.lua
+
+# Entry point.
+core/Main.lua
