@@ -18,6 +18,11 @@ function Picker.init(db)
   Picker.db = db
 end
 
+function Picker.selectedCityName()
+  local sel = Selection.get(Picker.db)
+  return sel and sel.kind == "city" and sel.name or nil
+end
+
 -- "Selected: ..." indicator text for the active selection.
 function Picker.currentSelectionText(db)
   local sel = Selection.get(db)
@@ -42,11 +47,12 @@ function Picker.updateSelected()
   end
 end
 
--- Choose a bundled city: persist, update the main window, refresh the indicator.
+-- Choose a bundled city: persist, update the main window + indicator + list.
 function Picker.selectCity(name)
   Selection.setCity(Picker.db, name)
   if Window.refresh then Window.refresh() end
   Picker.updateSelected()
+  Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
 end
 
 -- Apply manual coordinates. offsetText empty -> machine tz; a number -> fixed
@@ -63,32 +69,44 @@ function Picker.applyManual(latText, lonText, offsetText)
   end
   local ok, err = Selection.setManual(Picker.db, lat, lon, opts)
   if ok then
+    if Picker.errorLabel then Picker.errorLabel:SetText("") end
     if Window.refresh then Window.refresh() end
     Picker.updateSelected()
+    Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
   elseif Picker.errorLabel then
     Picker.errorLabel:SetText(err or "Invalid coordinates")
   end
   return ok, err
 end
 
--- Render the current query into the visible row pool (with scroll offset).
+-- Render the current query into the visible row pool, highlighting the
+-- selected city's row so the click is visible where it happened.
 function Picker.refreshList(query)
   Picker.displayRows = Cities.displayList(query)
   local maxOffset = math.max(0, #Picker.displayRows - VISIBLE_ROWS)
   Picker.scrollOffset = math.min(Picker.scrollOffset or 0, maxOffset)
   if not Picker.rows then return end
+  local selName = Picker.selectedCityName()
   for i = 1, VISIBLE_ROWS do
     local row = Picker.rows[i]
     local entry = Picker.displayRows[Picker.scrollOffset + i]
     if not entry then
+      row.cityName, row._selected = nil, false
+      if row.hl then row.hl:Hide() end
       row:Hide()
     elseif entry.kind == "header" then
       row.label:SetText("|cffffd100" .. entry.label .. "|r")
-      row.cityName = nil
+      row.cityName, row._selected = nil, false
+      if row.hl then row.hl:Hide() end
       row:Show()
     else
-      row.label:SetText("   " .. entry.city.name .. "  |cff888888" .. entry.city.country .. "|r")
-      row.cityName = entry.city.name
+      local name = entry.city.name
+      local isSel = (name == selName)
+      local mark = isSel and "> " or "   "
+      row.label:SetText(mark .. name .. "  |cff888888" .. entry.city.country .. "|r")
+      row.label:SetTextColor(isSel and 0.3 or 1, 1, isSel and 0.4 or 1)
+      row.cityName, row._selected = name, isSel
+      if row.hl then if isSel then row.hl:Show() else row.hl:Hide() end end
       row:Show()
     end
   end
@@ -103,8 +121,8 @@ function Picker.create()
   if Picker.frame then return Picker.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesPicker", UIParent)
-  f:SetSize(320, 420)
-  f:SetPoint("CENTER")
+  f:SetSize(320, 470)
+  f:SetPoint("CENTER", UIParent, "CENTER", 230, 0) -- offset from the main window
   f:SetFrameStrata("DIALOG")
   f:SetMovable(true)
   f:EnableMouse(true)
@@ -144,6 +162,11 @@ function Picker.create()
     local row = CreateFrame("Button", nil, list)
     row:SetSize(292, ROW_HEIGHT)
     row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_HEIGHT)
+    local hl = row:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints()
+    hl:SetColorTexture(0.15, 0.5, 0.25, 0.6)
+    hl:Hide()
+    row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 2, 0)
     label:SetJustifyH("LEFT")
@@ -154,32 +177,44 @@ function Picker.create()
     Picker.rows[i] = row
   end
 
-  -- Manual entry.
-  local manualY = -80 - VISIBLE_ROWS * ROW_HEIGHT - 14
+  -- Manual entry (labelled columns; no overlap).
+  local manualY = -80 - VISIBLE_ROWS * ROW_HEIGHT - 16
   local mlabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   mlabel:SetPoint("TOPLEFT", 14, manualY)
-  mlabel:SetText("Manual: lat / lon (uses your computer's timezone)")
+  mlabel:SetJustifyH("LEFT")
+  mlabel:SetText("Manual location (uses your computer's timezone):")
 
+  local function colLabel(text, x)
+    local fs = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    fs:SetPoint("TOPLEFT", x, manualY - 18)
+    fs:SetText(text)
+  end
+  colLabel("Lat", 18); colLabel("Lon", 98); colLabel("UTC+/- (opt)", 178)
+
+  local boxY = manualY - 32
   local latBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
-  latBox:SetSize(70, 20); latBox:SetPoint("TOPLEFT", 16, manualY - 18); latBox:SetAutoFocus(false)
+  latBox:SetSize(70, 20); latBox:SetPoint("TOPLEFT", 16, boxY); latBox:SetAutoFocus(false)
   local lonBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
-  lonBox:SetSize(70, 20); lonBox:SetPoint("TOPLEFT", 96, manualY - 18); lonBox:SetAutoFocus(false)
+  lonBox:SetSize(70, 20); lonBox:SetPoint("TOPLEFT", 96, boxY); lonBox:SetAutoFocus(false)
   local offBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
-  offBox:SetSize(50, 20); offBox:SetPoint("TOPLEFT", 176, manualY - 18); offBox:SetAutoFocus(false)
+  offBox:SetSize(60, 20); offBox:SetPoint("TOPLEFT", 176, boxY); offBox:SetAutoFocus(false)
   Picker.latBox, Picker.lonBox, Picker.offsetBox = latBox, lonBox, offBox
 
-  local offHint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  offHint:SetPoint("TOPLEFT", 176, manualY - 2); offHint:SetText("UTC+ (opt)")
-
   local setBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  setBtn:SetSize(60, 22); setBtn:SetPoint("TOPLEFT", 232, manualY - 17)
+  setBtn:SetSize(60, 22); setBtn:SetPoint("TOPLEFT", 244, boxY + 1)
   setBtn:SetText("Set")
   setBtn:SetScript("OnClick", function()
     Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
   end)
 
+  -- Tab order: search -> lat -> lon -> offset -> search.
+  local function tabTo(box, nextBox)
+    box:SetScript("OnTabPressed", function() nextBox:SetFocus() end)
+  end
+  tabTo(search, latBox); tabTo(latBox, lonBox); tabTo(lonBox, offBox); tabTo(offBox, search)
+
   Picker.errorLabel = f:CreateFontString(nil, "OVERLAY", "GameFontRed")
-  Picker.errorLabel:SetPoint("TOPLEFT", 16, manualY - 44)
+  Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 24)
 
   local close = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
   close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 12); close:SetText("Close")

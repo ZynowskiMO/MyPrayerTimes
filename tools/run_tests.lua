@@ -825,6 +825,19 @@ do
   Picker.refreshList("")
   Picker.scroll(-100) -- scroll way down; offset clamps, no error
   check("scroll offset clamps", Picker.scrollOffset <= (#Picker.displayRows - 14))
+
+  -- Selected row is highlighted in the list (visible feedback).
+  Picker.selectCity("Istanbul")
+  Picker.refreshList("istanbul") -- one row, the selected city
+  check("selected row marked in list", Picker.rows[1]._selected == true)
+  Picker.refreshList("berlin")
+  check("non-selected row not marked", Picker.rows[1]._selected == false)
+
+  -- Tab order wired across the input fields.
+  check("search has tab handler", Picker.searchBox:GetScript("OnTabPressed") ~= nil)
+  check("lat has tab handler", Picker.latBox:GetScript("OnTabPressed") ~= nil)
+  check("lon has tab handler", Picker.lonBox:GetScript("OnTabPressed") ~= nil)
+  check("offset has tab handler", Picker.offsetBox:GetScript("OnTabPressed") ~= nil)
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
