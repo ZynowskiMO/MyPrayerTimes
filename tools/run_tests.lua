@@ -7,7 +7,9 @@
 -- grows, later checkpoints add the fixture comparison (Rotterdam vs adhan-js)
 -- below; for now it exercises MathUtils.
 
-package.path = "engine/?.lua;" .. package.path
+-- engine/ for modules; root ?.lua so dotted tokens like "data.cities" resolve
+-- to data/cities.lua without colliding with engine/Cities.lua (case-insensitive FS).
+package.path = "engine/?.lua;?.lua;" .. package.path
 
 local passed, failed = 0, 0
 
@@ -285,6 +287,49 @@ check("EU: Amsterdam +60 on fall-back day", Timezone.offsetMinutes(amsterdam, 20
 -- Conversion + wrap: 23:30 UTC + 1h -> 00:30 next local day.
 check("toLocal wraps past midnight", Timezone.toLocalMinuteOfDay(23 * 60 + 30, 60) == 30)
 check("toLocal formats HH:MM", Timezone.formatHHMM(Timezone.toLocalMinuteOfDay(11 * 60, 120)) == "13:00")
+
+-- ---- 2b-3: city list + selection + selected-city -> local times ----------
+local Cities = require("Cities")
+
+check("city list has 42 entries", #Cities.all() == 42)
+
+-- Every city has the required fields and a known dstRule.
+local fieldsOk = true
+for _, c in ipairs(Cities.all()) do
+  if type(c.name) ~= "string" or type(c.country) ~= "string"
+      or type(c.latitude) ~= "number" or type(c.longitude) ~= "number"
+      or type(c.baseUtcOffset) ~= "number"
+      or not (c.dstRule == "EU" or c.dstRule == "none") then
+    fieldsOk = false
+  end
+end
+check("every city has valid fields + known dstRule", fieldsOk)
+
+-- Lookup (case-insensitive) and the signed-off fixed-offset cities.
+check("findByName Rotterdam", Cities.findByName("Rotterdam") ~= nil)
+check("findByName case-insensitive", Cities.findByName("rotterdam") ~= nil)
+for _, name in ipairs({ "Moscow", "Saint Petersburg", "Istanbul", "Ankara" }) do
+  local c = Cities.findByName(name)
+  check(name .. " is +180 / none", c and c.baseUtcOffset == 180 and c.dstRule == "none")
+end
+
+-- Search by substring over name and country.
+check("search 'ber' finds Berlin",
+  (function() for _, c in ipairs(Cities.search("ber")) do if c.name == "Berlin" then return true end end end)())
+check("search 'germany' finds multiple", #Cities.search("germany") >= 4)
+check("unknown city -> nil times", Cities.times("Atlantis", 2026, 6, 21) == nil)
+
+-- Selected-city -> local times: end-to-end through engine + Timezone.
+-- Rotterdam winter (EU, +60): Fajr UTC 342 -> 06:42 local.
+local rWinter = Cities.times("Rotterdam", 2026, 12, 21)
+check("Rotterdam winter Fajr local 06:42", rWinter.prayers.fajr.hhmm == "06:42")
+check("Rotterdam winter offset +60", rWinter.offsetMinutes == 60)
+-- Rotterdam summer (EU, +120) de-clamped: Isha 23:08 local.
+local rSummer = Cities.times("Rotterdam", 2026, 6, 21)
+check("Rotterdam summer offset +120", rSummer.offsetMinutes == 120)
+check("Rotterdam summer Isha local 23:08", rSummer.prayers.isha.hhmm == "23:08")
+-- Istanbul ("none") stays +180 in summer.
+check("Istanbul summer offset +180", Cities.times("Istanbul", 2026, 7, 1).offsetMinutes == 180)
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
