@@ -34,13 +34,14 @@ function Clock.cityNow(city, epoch)
     local days = floor(localEpoch / 86400)
     local secOfDay = localEpoch - days * 86400
     local y, m, d = Clock.civilFromDays(days)
-    return y, m, d, floor(secOfDay / 60)
+    return y, m, d, floor(secOfDay / 60), secOfDay
   end
 
   local y, m, d = partsFor(city.baseUtcOffset)          -- provisional (no DST)
   local offset = Timezone.offsetMinutes(city, y, m, d)  -- real offset for that date
-  local ly, lm, ld, lminute = partsFor(offset)
-  return { year = ly, month = lm, day = ld, minuteOfDay = lminute, offsetMinutes = offset }
+  local ly, lm, ld, lminute, lsecond = partsFor(offset)
+  return { year = ly, month = lm, day = ld, minuteOfDay = lminute,
+    secondOfDay = lsecond, offsetMinutes = offset }
 end
 
 if PrayerTimesNS then PrayerTimesNS.modules.Clock = Clock end

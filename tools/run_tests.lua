@@ -494,6 +494,43 @@ check("unlocked frame starts moving", win._moving == true)
 win:GetScript("OnDragStop")(win)
 check("drag stop ends moving", win._moving == false)
 
+-- ---- 2c-4: countdown logic + live ticker ---------------------------------
+-- Pure countdown (Schedule), driven by the injectable clock.
+local sCd = Schedule.compute(RW, 800) -- next Asr (857), untilMinutes 57
+check("untilSeconds subtracts seconds-into-minute",
+  Schedule.untilSeconds(sCd, 800 * 60 + 30) == 57 * 60 - 30)
+check("formatCountdown mm:ss", Schedule.formatCountdown(57 * 60 - 30) == "56:30")
+check("formatCountdown h:mm:ss", Schedule.formatCountdown(3661) == "1:01:01")
+check("formatCountdown clamps negative", Schedule.formatCountdown(-5) == "0:00")
+
+-- Clock now reports second-of-day too (vs os.date UTC for Istanbul +3).
+local istNow2 = Clock.cityNow(ist, 1766318400)
+local uS = os.date("!*t", 1766318400 + 180 * 60)
+check("cityNow second-of-day matches UTC+3",
+  istNow2.secondOfDay == uS.hour * 3600 + uS.min * 60 + uS.sec)
+
+-- Live ticker: a NewTicker was registered, and a tick updates the countdown.
+check("Window registered a 1s ticker", Window.ticker ~= nil)
+
+local PROPER = { fajr = "Fajr", sunrise = "Sunrise", dhuhr = "Dhuhr",
+  asr = "Asr", maghrib = "Maghrib", isha = "Isha" }
+
+local E1 = 1766318400
+WowMock.setNow(E1)
+Window.refresh()
+local sched1 = Window.lastSchedule
+local now1 = Clock.cityNow(Cities.findByName("Rotterdam"), E1)
+local untilSec1 = Schedule.untilSeconds(sched1, now1.secondOfDay)
+check("countdown text shows next prayer + time",
+  Window.frame.countdown:GetText()
+    == PROPER[sched1.nextKey] .. " in " .. Schedule.formatCountdown(untilSec1))
+
+-- Advance the clock just past the next prayer -> highlight must move on.
+WowMock.setNow(E1 + untilSec1 + 60)
+Window.tick()
+check("highlight advances after the prayer passes",
+  Window.lastSchedule.nextKey ~= sched1.nextKey)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

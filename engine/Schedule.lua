@@ -7,6 +7,8 @@
 
 local Schedule = {}
 
+local floor = math.floor
+
 local ORDER = { "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha" }
 Schedule.ORDER = ORDER
 
@@ -35,6 +37,25 @@ function Schedule.compute(times, nowMin)
   end
 
   return { order = order, nextKey = nextKey, nextMin = nextMin, untilMinutes = untilMinutes }
+end
+
+-- Seconds until the next prayer, given the schedule and the current
+-- second-of-day. Prayer times are minute-precise (seconds = 0), so this just
+-- subtracts how far we are into the current minute.
+function Schedule.untilSeconds(sched, secondOfDay)
+  return sched.untilMinutes * 60 - (secondOfDay % 60)
+end
+
+-- Human countdown: "1:23:45" with hours, "23:45" without. Clamps negatives.
+function Schedule.formatCountdown(totalSeconds)
+  if totalSeconds < 0 then totalSeconds = 0 end
+  local h = floor(totalSeconds / 3600)
+  local m = floor((totalSeconds % 3600) / 60)
+  local s = totalSeconds % 60
+  if h > 0 then
+    return string.format("%d:%02d:%02d", h, m, s)
+  end
+  return string.format("%d:%02d", m, s)
 end
 
 if PrayerTimesNS then PrayerTimesNS.modules.Schedule = Schedule end

@@ -29,7 +29,7 @@ function Window.create()
   if Window.frame then return Window.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesFrame", UIParent)
-  f:SetSize(190, 210)
+  f:SetSize(190, 234)
   f:SetFrameStrata("MEDIUM")
   f:SetClampedToScreen(true)
   f:SetMovable(true)
@@ -63,10 +63,18 @@ function Window.create()
     f.rows[key] = { label = label, time = timeText }
   end
 
+  local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  countdown:SetPoint("BOTTOM", 0, 12)
+  countdown:SetTextColor(0.85, 0.85, 0.35)
+  f.countdown = countdown
+
   Window.frame = f
   Window.restorePosition()
   Window.applyLock()
   Window.refresh()
+  if C_Timer and C_Timer.NewTicker then
+    Window.ticker = C_Timer.NewTicker(1, function() Window.tick() end)
+  end
   f:Show()
   return f
 end
@@ -115,7 +123,22 @@ function Window.toggleLock()
   Window.setLocked(not (Window.db and Window.db.locked))
 end
 
--- Recompute and render times + highlight for the current moment.
+-- Update highlight + countdown for the current moment, from the cached times.
+local function renderNow(now)
+  local f = Window.frame
+  local sched = Schedule.compute(Window.localTimes, now.minuteOfDay)
+  for _, key in ipairs(ORDER) do
+    local c = (key == sched.nextKey) and NEXT_COLOR or NORMAL_COLOR
+    f.rows[key].label:SetTextColor(c[1], c[2], c[3])
+    f.rows[key].time:SetTextColor(c[1], c[2], c[3])
+  end
+  local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
+  f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
+  Window.lastSchedule = sched -- exposed for tests
+  return sched
+end
+
+-- Full refresh: recompute the day's six times (cached), then render.
 function Window.refresh()
   local f = Window.frame
   if not f then return end
@@ -124,21 +147,26 @@ function Window.refresh()
   local now = Clock.cityNow(city, nowEpoch())
   local result = Cities.times(DEFAULT_CITY, now.year, now.month, now.day)
 
-  local localTimes = {}
-  for _, key in ipairs(ORDER) do localTimes[key] = result.prayers[key].localMin end
-  local sched = Schedule.compute(localTimes, now.minuteOfDay)
-
-  f.title:SetText(DEFAULT_CITY)
+  Window.localTimes = {}
   for _, key in ipairs(ORDER) do
-    local row = f.rows[key]
-    row.time:SetText(result.prayers[key].hhmm)
-    local c = (key == sched.nextKey) and NEXT_COLOR or NORMAL_COLOR
-    row.label:SetTextColor(c[1], c[2], c[3])
-    row.time:SetTextColor(c[1], c[2], c[3])
+    Window.localTimes[key] = result.prayers[key].localMin
+    f.rows[key].time:SetText(result.prayers[key].hhmm)
   end
+  f.title:SetText(DEFAULT_CITY)
+  Window.dayKey = string.format("%04d-%02d-%02d", now.year, now.month, now.day)
+  return renderNow(now)
+end
 
-  Window.lastSchedule = sched -- exposed for tests
-  return sched
+-- Light per-second update: re-highlight + recount from cached times; on a new
+-- local day, fall back to a full refresh so the times themselves update.
+function Window.tick()
+  local f = Window.frame
+  if not f then return end
+  local city = Cities.findByName(DEFAULT_CITY)
+  local now = Clock.cityNow(city, nowEpoch())
+  local dayKey = string.format("%04d-%02d-%02d", now.year, now.month, now.day)
+  if dayKey ~= Window.dayKey then return Window.refresh() end
+  return renderNow(now)
 end
 
 if PrayerTimesNS then PrayerTimesNS.modules.Window = Window end
