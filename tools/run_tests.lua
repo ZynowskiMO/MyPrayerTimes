@@ -291,7 +291,7 @@ check("toLocal formats HH:MM", Timezone.formatHHMM(Timezone.toLocalMinuteOfDay(1
 -- ---- 2b-3: city list + selection + selected-city -> local times ----------
 local Cities = require("Cities")
 
-check("city list has 42 entries", #Cities.all() == 42)
+check("city list has 65 entries", #Cities.all() == 65)
 
 -- Every city has the required fields and a known dstRule.
 local fieldsOk = true
@@ -330,6 +330,14 @@ check("Rotterdam summer offset +120", rSummer.offsetMinutes == 120)
 check("Rotterdam summer Isha local 23:08", rSummer.prayers.isha.hhmm == "23:08")
 -- Istanbul ("none") stays +180 in summer.
 check("Istanbul summer offset +180", Cities.times("Istanbul", 2026, 7, 1).offsetMinutes == 180)
+
+-- Eastern Russia fixed offsets (new zones, all "none" -> no summer change).
+for _, t in ipairs({ { "Kazan", 180 }, { "Ufa", 300 }, { "Yekaterinburg", 300 }, { "Novosibirsk", 420 } }) do
+  local c = Cities.findByName(t[1])
+  check(t[1] .. " is +" .. t[2] .. " / none", c and c.baseUtcOffset == t[2] and c.dstRule == "none")
+  check(t[1] .. " offset unchanged in summer",
+    Cities.times(t[1], 2026, 7, 1).offsetMinutes == t[2])
+end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
