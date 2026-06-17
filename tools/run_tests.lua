@@ -339,6 +339,43 @@ for _, t in ipairs({ { "Kazan", 180 }, { "Ufa", 300 }, { "Yekaterinburg", 300 },
     Cities.times(t[1], 2026, 7, 1).offsetMinutes == t[2])
 end
 
+-- ---- 2b-4 EXIT CRITERION: engine + Timezone vs ICU/IANA local times ------
+-- For a sample spanning every offset zone (+0..+7) and both DST observers and
+-- non-observers, verify Cities.times (engine UTC + our Timezone) reproduces
+-- the ICU/IANA reference LOCAL times within +/-1 min, on dates straddling both
+-- 2026 transitions plus solstice controls. Also cross-check that each sampled
+-- city's coordinates in data/cities.lua match the fixture (catches typos).
+print("\n=== Phase 2b exit criterion: engine + Timezone vs ICU/IANA ===")
+print("    (local minute-of-day, tolerance +/-1 min; * = DST transition day)\n")
+local TRANSITION = { ["2026-03-29"] = true, ["2026-10-25"] = true }
+
+for _, s in ipairs(dofile("fixtures/tz_local_reference.lua").samples) do
+  local city = Cities.findByName(s.name)
+  check(s.name .. " present in city list", city ~= nil)
+  -- Coordinate typo guard: data-file coords must equal the verified fixture.
+  check(s.name .. " coords match data/cities.lua",
+    city and city.latitude == s.lat and city.longitude == s.lon)
+  local off = city and city.baseUtcOffset or 0
+  print(string.format("%s  (UTC%+d %s)", s.name, off / 60, city and city.dstRule or "?"))
+  local hdr = string.format("  %-13s", "date")
+  for _, p in ipairs(PRAYERS) do hdr = hdr .. string.format("%-10s", p) end
+  print(hdr)
+  for _, row in ipairs(s.dates) do
+    local y, mo, d = row.date:match("(%d+)-(%d+)-(%d+)")
+    local res = Cities.times(s.name, tonumber(y), tonumber(mo), tonumber(d))
+    local label = row.date .. (TRANSITION[row.date] and " *" or "")
+    local cells = string.format("  %-13s", label)
+    for _, p in ipairs(PRAYERS) do
+      local diff = minuteDiff(res.prayers[p].localMin, row[p])
+      local ok = diff <= TOLERANCE
+      check(string.format("%s %s %s within +/-1 min (local)", s.name, row.date, p), ok)
+      cells = cells .. string.format("%-10s", ok and ("ok " .. diff) or ("FAIL " .. diff))
+    end
+    print(cells)
+  end
+  print("")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
