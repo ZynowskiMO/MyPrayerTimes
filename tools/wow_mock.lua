@@ -88,6 +88,7 @@ function M.install()
   -- Notification presentation stubs (2d-2). Record what was fired.
   M.lastSound, M.lastRaidNotice, M.raidNoticeCount = nil, nil, 0
   _G.PlaySound = function(id) M.lastSound = id end
+  _G.PlaySoundFile = function(file, channel) M.lastSound = file; M.lastSoundChannel = channel end
   _G.RaidNotice_AddMessage = function(_, text) M.lastRaidNotice = text; M.raidNoticeCount = M.raidNoticeCount + 1 end
   _G.RaidWarningFrame = makeFrame()
   _G.ChatTypeInfo = { RAID_WARNING = { r = 1, g = 0.28, b = 0.0 } }

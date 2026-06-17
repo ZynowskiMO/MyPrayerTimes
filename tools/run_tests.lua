@@ -641,7 +641,8 @@ check("messageFor at", Alerts.messageFor({ prayer = "fajr", type = "at" }) == "F
 -- fire() plays a sound and shows a center-screen notice.
 WowMock.resetAlerts()
 Alerts.fire({ prayer = "isha", type = "at" }, { sound = true })
-check("fire plays a sound", WowMock.lastSound ~= nil)
+check("fire plays the alert file on Master",
+  WowMock.lastSound == 561542 and WowMock.lastSoundChannel == "Master")
 check("fire shows raid notice text", WowMock.lastRaidNotice == "Isha - it's time")
 
 -- sound = false suppresses the sound but still shows the notice.

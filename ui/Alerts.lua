@@ -8,6 +8,10 @@ local LABELS = {
   fajr = "Fajr", dhuhr = "Dhuhr", asr = "Asr", maghrib = "Maghrib", isha = "Isha",
 }
 
+-- Wowhead FileDataID for the alert chime; played on the Master channel so it
+-- is audible regardless of the player's SFX volume. Swap this id to retune.
+local ALERT_SOUND_FILE = 561542
+
 local Alerts = {}
 
 -- Pure: event -> display string.
@@ -22,7 +26,7 @@ end
 -- WoW-side: play sound (unless muted), show center-screen alert, print chat.
 function Alerts.show(text, settings)
   if not settings or settings.sound ~= false then
-    PlaySound((SOUNDKIT and SOUNDKIT.READY_CHECK) or 8960)
+    PlaySoundFile(ALERT_SOUND_FILE, "Master")
   end
   if RaidNotice_AddMessage and RaidWarningFrame then
     local color = ChatTypeInfo and ChatTypeInfo["RAID_WARNING"] or { r = 1, g = 1, b = 1 }
