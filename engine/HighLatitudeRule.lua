@@ -11,4 +11,14 @@ local HighLatitudeRule = {
   TwilightAngle = "twilightangle",
 }
 
+-- adhan-js: above 48N/S use SeventhOfTheNight, otherwise MiddleOfTheNight.
+-- Threshold is strictly greater than 48 (latitude == 48 -> MiddleOfTheNight).
+function HighLatitudeRule.recommended(coordinates)
+  if coordinates.latitude > 48 then
+    return HighLatitudeRule.SeventhOfTheNight
+  else
+    return HighLatitudeRule.MiddleOfTheNight
+  end
+end
+
 return HighLatitudeRule

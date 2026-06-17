@@ -184,6 +184,40 @@ for _, row in ipairs(fixtureRows) do
   print(cells)
 end
 
+-- ---- 2a-1: HighLatitudeRule.recommended() + Calculator default ----------
+local HighLatitudeRule = require("HighLatitudeRule")
+local Calculator = require("Calculator")
+
+-- Rule selection: strictly > 48 -> SeventhOfTheNight, else MiddleOfTheNight.
+check("Cairo (30.0) -> MiddleOfTheNight",
+  HighLatitudeRule.recommended({ latitude = 30.0444, longitude = 31.2357 })
+    == HighLatitudeRule.MiddleOfTheNight)
+check("Rotterdam (51.9) -> SeventhOfTheNight",
+  HighLatitudeRule.recommended({ latitude = 51.9244, longitude = 4.4777 })
+    == HighLatitudeRule.SeventhOfTheNight)
+check("Stockholm (59.3) -> SeventhOfTheNight",
+  HighLatitudeRule.recommended({ latitude = 59.3293, longitude = 18.0686 })
+    == HighLatitudeRule.SeventhOfTheNight)
+check("boundary 48.0 -> MiddleOfTheNight (not > 48)",
+  HighLatitudeRule.recommended({ latitude = 48.0, longitude = 0 })
+    == HighLatitudeRule.MiddleOfTheNight)
+check("boundary 48.0001 -> SeventhOfTheNight",
+  HighLatitudeRule.recommended({ latitude = 48.0001, longitude = 0 })
+    == HighLatitudeRule.SeventhOfTheNight)
+
+-- Behavioural proof (fixture-free): the engine's bare default clamps summer
+-- Rotterdam Fajr == Isha (midnight), but the Calculator default (recommended
+-- -> SeventhOfTheNight) de-clamps them. adhan-js numeric match comes in 2a-3.
+local clamped = PrayerTimes.new(2026, 6, 21, ROTTERDAM, CalculationMethod.MuslimWorldLeague())
+check("raw default still clamps summer (Fajr == Isha)", clamped.fajr == clamped.isha)
+local declamped = Calculator.timesForLocation(2026, 6, 21, ROTTERDAM)
+check("Calculator default de-clamps summer (Fajr ~= Isha)", declamped.fajr ~= declamped.isha)
+
+-- Override must be honoured (rule stays user-changeable for Phase 3).
+local forced = Calculator.timesForLocation(2026, 6, 21, ROTTERDAM,
+  { highLatitudeRule = HighLatitudeRule.MiddleOfTheNight })
+check("explicit MiddleOfTheNight override re-clamps", forced.fajr == forced.isha)
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
