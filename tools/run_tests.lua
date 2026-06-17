@@ -877,6 +877,24 @@ do
   check("controls: at-time on -> Notifier fires", atFires == 1)
 end
 
+-- ---- 2d-5: slash command logic (city-by-name) + empty-manual fix --------
+do
+  local db5 = {}
+  Window.init(db5)
+  Picker.init(db5)
+
+  check("city <name> matches (case-insensitive)", Picker.selectCityByName("vienna") == "Vienna")
+  check("city <name> persists", db5.selectedCity.name == "Vienna")
+  check("city <name> handles multi-word", Picker.selectCityByName("saint petersburg") == "Saint Petersburg")
+  check("city <name> unknown -> nil", Picker.selectCityByName("Atlantis") == nil)
+  check("unknown city leaves selection", db5.selectedCity.name == "Saint Petersburg")
+
+  -- Empty manual entry is a no-op (the validation-error-on-empty fix).
+  local ok = Picker.applyManual("", "", "")
+  check("empty manual no-op, no selection change",
+    ok == false and db5.selectedCity.name == "Saint Petersburg")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

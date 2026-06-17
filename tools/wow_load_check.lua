@@ -78,6 +78,7 @@ expect("a next prayer was highlighted", win and win.lastSchedule and win.lastSch
 expect("Notifier + Alerts registered", ns.modules.Notifier ~= nil and ns.modules.Alerts ~= nil)
 expect("Picker registered + auto-opened on first run (no city)",
   ns.modules.Picker ~= nil and ns.modules.Picker.frame ~= nil)
+expect("slash command registered", _G.SlashCmdList and _G.SlashCmdList["PRAYERTIMES"] ~= nil)
 expect("/pt test fires an alert", (function()
   WowMock.resetAlerts()
   win.testNotification()

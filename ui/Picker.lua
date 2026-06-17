@@ -85,7 +85,16 @@ end
 
 -- Apply manual coordinates. offsetText empty -> machine tz; a number -> fixed
 -- UTC offset (hours) override. Returns ok, errorMessage.
+function Picker.clearError()
+  if Picker.errorLabel then Picker.errorLabel:SetText("") end
+end
+
 function Picker.applyManual(latText, lonText, offsetText)
+  -- Empty fields are not an error -- just clear and do nothing.
+  if (not latText or latText == "") and (not lonText or lonText == "") then
+    Picker.clearError()
+    return false
+  end
   local lat, lon = tonumber(latText), tonumber(lonText)
   local opts = {}
   if offsetText and offsetText ~= "" then
@@ -149,7 +158,7 @@ function Picker.create()
   if Picker.frame then return Picker.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesPicker", UIParent)
-  f:SetSize(320, 506)
+  f:SetSize(320, 548)
   f:SetPoint("CENTER", UIParent, "CENTER", 230, 0) -- offset from the main window
   f:SetFrameStrata("DIALOG")
   f:SetMovable(true)
@@ -228,6 +237,12 @@ function Picker.create()
   offBox:SetSize(60, 20); offBox:SetPoint("TOPLEFT", 176, boxY); offBox:SetAutoFocus(false)
   Picker.latBox, Picker.lonBox, Picker.offsetBox = latBox, lonBox, offBox
 
+  -- Clear a stale validation error as soon as the user edits a field.
+  local function clearErr() Picker.clearError() end
+  latBox:SetScript("OnTextChanged", clearErr)
+  lonBox:SetScript("OnTextChanged", clearErr)
+  offBox:SetScript("OnTextChanged", clearErr)
+
   local setBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
   setBtn:SetSize(60, 22); setBtn:SetPoint("TOPLEFT", 244, boxY + 1)
   setBtn:SetText("Set")
@@ -276,7 +291,7 @@ function Picker.create()
   sText:SetText("Play sound")
 
   local close = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 12); close:SetText("Close")
+  close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 16); close:SetText("Close")
   close:SetScript("OnClick", function() Picker.close() end)
 
   Picker.frame = f
@@ -289,10 +304,20 @@ end
 
 function Picker.open()
   Picker.create()
+  Picker.clearError()
   Picker.updateSelected()
   Picker.updateNotifyControls()
   Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
   Picker.frame:Show()
+end
+
+-- Select a bundled city by (case-insensitive) name. Returns the matched
+-- city name, or nil if not found. Used by the /pt city <name> command.
+function Picker.selectCityByName(name)
+  local city = Cities.findByName(name)
+  if not city then return nil end
+  Picker.selectCity(city.name)
+  return city.name
 end
 
 function Picker.close()

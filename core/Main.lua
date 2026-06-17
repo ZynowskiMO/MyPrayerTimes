@@ -22,24 +22,44 @@ loader:SetScript("OnEvent", function()
   end
 end)
 
--- Temporary slash scaffold for 2c testing; the full command set is 2d.
+-- Slash commands.
 SLASH_PRAYERTIMES1 = "/pt"
+SLASH_PRAYERTIMES2 = "/prayertimes"
 SlashCmdList["PRAYERTIMES"] = function(msg)
-  msg = (msg or ""):lower():gsub("%s+", "")
-  if msg == "lock" then
-    Window.setLocked(true); print("PrayerTimes: window locked")
-  elseif msg == "unlock" then
-    Window.setLocked(false); print("PrayerTimes: window unlocked")
-  elseif msg == "show" then
+  local cmd, rest = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
+  cmd = (cmd or ""):lower()
+
+  if cmd == "" or cmd == "help" then
+    print("|cff33ff99PrayerTimes|r commands:")
+    print("  |cffffd100/pt show|r / |cffffd100hide|r - show or hide the window")
+    print("  |cffffd100/pt lock|r / |cffffd100unlock|r - lock or free its position")
+    print("  |cffffd100/pt settings|r - open the city / settings window")
+    print("  |cffffd100/pt city <name>|r - select a city by name")
+    print("  |cffffd100/pt test|r - preview a notification")
+  elseif cmd == "show" then
     if Window.frame then Window.frame:Show() end
-  elseif msg == "hide" then
+  elseif cmd == "hide" then
     if Window.frame then Window.frame:Hide() end
-  elseif msg == "test" then
-    Window.testNotification()
-  elseif msg == "settings" or msg == "city" then
+  elseif cmd == "lock" then
+    Window.setLocked(true); print("|cff33ff99PrayerTimes|r: window locked")
+  elseif cmd == "unlock" then
+    Window.setLocked(false); print("|cff33ff99PrayerTimes|r: window unlocked")
+  elseif cmd == "settings" or cmd == "config" or cmd == "options" then
     Picker.toggle()
+  elseif cmd == "city" then
+    if rest == "" then
+      Picker.open()
+    else
+      local matched = Picker.selectCityByName(rest)
+      if matched then
+        print("|cff33ff99PrayerTimes|r: city set to " .. matched)
+      else
+        print("|cffff5555PrayerTimes|r: unknown city '" .. rest .. "' - try /pt settings")
+      end
+    end
+  elseif cmd == "test" then
+    Window.testNotification()
   else
-    Window.toggleLock()
-    print("PrayerTimes: window " .. (PrayerTimesDB.locked and "locked" or "unlocked"))
+    print("|cffff5555PrayerTimes|r: unknown command - try |cffffd100/pt help|r")
   end
 end
