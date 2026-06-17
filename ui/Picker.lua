@@ -16,6 +16,34 @@ local Picker = {}
 
 function Picker.init(db)
   Picker.db = db
+  if db and not db.notify then
+    db.notify = { beforeMinutes = 10, atTime = true, sound = true, fired = {} }
+  end
+end
+
+-- Notification settings (wired to db.notify, which the Notifier reads live).
+function Picker.setBeforeMinutes(n)
+  if not (Picker.db and Picker.db.notify) then return end
+  Picker.db.notify.beforeMinutes = math.max(0, math.floor(tonumber(n) or 0))
+end
+
+function Picker.setAtTime(on)
+  if not (Picker.db and Picker.db.notify) then return end
+  Picker.db.notify.atTime = on and true or false
+end
+
+function Picker.setSound(on)
+  if not (Picker.db and Picker.db.notify) then return end
+  Picker.db.notify.sound = on and true or false
+end
+
+-- Sync widget states from db.notify (on build / reopen).
+function Picker.updateNotifyControls()
+  local n = Picker.db and Picker.db.notify
+  if not n then return end
+  if Picker.beforeBox then Picker.beforeBox:SetText(tostring(n.beforeMinutes or 0)) end
+  if Picker.atCheck then Picker.atCheck:SetChecked(n.atTime and true or false) end
+  if Picker.soundCheck then Picker.soundCheck:SetChecked(n.sound ~= false) end
 end
 
 function Picker.selectedCityName()
@@ -121,7 +149,7 @@ function Picker.create()
   if Picker.frame then return Picker.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesPicker", UIParent)
-  f:SetSize(320, 470)
+  f:SetSize(320, 506)
   f:SetPoint("CENTER", UIParent, "CENTER", 230, 0) -- offset from the main window
   f:SetFrameStrata("DIALOG")
   f:SetMovable(true)
@@ -216,6 +244,37 @@ function Picker.create()
   Picker.errorLabel = f:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 24)
 
+  -- Notification controls (wired to db.notify).
+  local notifY = boxY - 48
+  local nlabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  nlabel:SetPoint("TOPLEFT", 14, notifY)
+  nlabel:SetText("Notifications:")
+
+  local beforeBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  beforeBox:SetSize(40, 20); beforeBox:SetPoint("TOPLEFT", 20, notifY - 22)
+  beforeBox:SetAutoFocus(false); beforeBox:SetNumeric(true)
+  beforeBox:SetScript("OnTextChanged", function(self) Picker.setBeforeMinutes(self:GetText()) end)
+  Picker.beforeBox = beforeBox
+  local bLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  bLabel:SetPoint("LEFT", beforeBox, "RIGHT", 6, 0)
+  bLabel:SetText("minutes before (0 = off)")
+
+  local atCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+  atCheck:SetPoint("TOPLEFT", 18, notifY - 46)
+  atCheck:SetScript("OnClick", function(self) Picker.setAtTime(self:GetChecked() and true or false) end)
+  Picker.atCheck = atCheck
+  local atText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  atText:SetPoint("LEFT", atCheck, "RIGHT", 2, 0)
+  atText:SetText("Alert at prayer time")
+
+  local soundCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+  soundCheck:SetPoint("TOPLEFT", 18, notifY - 70)
+  soundCheck:SetScript("OnClick", function(self) Picker.setSound(self:GetChecked() and true or false) end)
+  Picker.soundCheck = soundCheck
+  local sText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  sText:SetPoint("LEFT", soundCheck, "RIGHT", 2, 0)
+  sText:SetText("Play sound")
+
   local close = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
   close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 12); close:SetText("Close")
   close:SetScript("OnClick", function() Picker.close() end)
@@ -223,6 +282,7 @@ function Picker.create()
   Picker.frame = f
   Picker.scrollOffset = 0
   Picker.updateSelected()
+  Picker.updateNotifyControls()
   Picker.refreshList("")
   return f
 end
@@ -230,6 +290,7 @@ end
 function Picker.open()
   Picker.create()
   Picker.updateSelected()
+  Picker.updateNotifyControls()
   Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
   Picker.frame:Show()
 end

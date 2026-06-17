@@ -840,6 +840,43 @@ do
   check("offset has tab handler", Picker.offsetBox:GetScript("OnTabPressed") ~= nil)
 end
 
+-- ---- 2d-4b: notification controls wired into the picker ------------------
+do
+  local ndb = {}
+  Window.init(ndb)
+  Picker.init(ndb)
+  Picker.frame = nil -- force a fresh build with the new controls
+  Picker.create()
+
+  check("notif controls built", Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
+
+  -- before-minutes parsing.
+  Picker.setBeforeMinutes("15")
+  check("setBeforeMinutes accepts 15", ndb.notify.beforeMinutes == 15)
+  Picker.setBeforeMinutes("-3")
+  check("setBeforeMinutes clamps negative to 0", ndb.notify.beforeMinutes == 0)
+  Picker.setBeforeMinutes("abc")
+  check("setBeforeMinutes non-number -> 0", ndb.notify.beforeMinutes == 0)
+
+  -- toggles.
+  Picker.setAtTime(false); check("setAtTime false", ndb.notify.atTime == false)
+  Picker.setAtTime(true); check("setAtTime true", ndb.notify.atTime == true)
+  Picker.setSound(false); check("setSound false", ndb.notify.sound == false)
+  Picker.setSound(true); check("setSound true", ndb.notify.sound == true)
+
+  -- The Notifier reads these settings live: both-off -> no alerts; at -> fires.
+  local five = { fajr = 402, dhuhr = 761, asr = 857, maghrib = 993, isha = 1112 }
+  Picker.setBeforeMinutes("0"); Picker.setAtTime(false)
+  local fired1, any1 = {}, false
+  for m = 0, 1439 do if #Notifier.check(five, m, ndb.notify, "D", fired1) > 0 then any1 = true end end
+  check("controls: both off -> Notifier silent", any1 == false)
+
+  Picker.setAtTime(true)
+  local fired2 = {}
+  local atFires = #Notifier.check(five, 993, ndb.notify, "D", fired2)
+  check("controls: at-time on -> Notifier fires", atFires == 1)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
