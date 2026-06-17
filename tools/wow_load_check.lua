@@ -53,18 +53,28 @@ _G.print = realPrint
 local fail = 0
 local function expect(name, cond) if not cond then fail = fail + 1; print("  FAIL: " .. name) end end
 
-expect("loaded " .. #files .. " toc files", #files >= 15)
+expect("loaded " .. #files .. " toc files", #files >= 17)
 expect("PrayerTimesNS.modules populated", ns.modules and ns.modules.Cities ~= nil)
 expect("data.cities registered", ns.modules.cities ~= nil and #ns.modules.cities == 65)
 
--- Same call core/Main makes, via the WoW require() shim.
+-- WoW-path engine call via the require() shim.
 local Cities = ns.modules.Cities
 local res = Cities.times("Rotterdam", 2026, 12, 21)
 expect("WoW-path Rotterdam winter Fajr 06:42", res and res.prayers.fajr.hhmm == "06:42")
 
-local sixLines = 0
-for _, l in ipairs(printed) do if l:match("%d%d:%d%d") then sixLines = sixLines + 1 end end
-expect("Main printed six prayer lines", sixLines == 6)
+-- core/Main built the window on PLAYER_LOGIN: six rows with HH:MM times.
+local win = ns.modules.Window
+expect("Window created on login", win and win.frame ~= nil)
+local rowsOk, rowCount = true, 0
+if win and win.frame and win.frame.rows then
+  for _, key in ipairs({ "fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha" }) do
+    local row = win.frame.rows[key]
+    rowCount = rowCount + 1
+    if not (row and row.time:GetText():match("%d%d:%d%d")) then rowsOk = false end
+  end
+end
+expect("window has six rows with HH:MM", rowCount == 6 and rowsOk)
+expect("a next prayer was highlighted", win and win.lastSchedule and win.lastSchedule.nextKey ~= nil)
 
 print(string.format("\nWoW load-path check: %d files loaded, %d failure(s)",
   #files, fail))

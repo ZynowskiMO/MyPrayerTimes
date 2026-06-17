@@ -9,7 +9,7 @@
 
 -- engine/ for modules; root ?.lua so dotted tokens like "data.cities" resolve
 -- to data/cities.lua without colliding with engine/Cities.lua (case-insensitive FS).
-package.path = "engine/?.lua;?.lua;" .. package.path
+package.path = "engine/?.lua;ui/?.lua;?.lua;" .. package.path
 
 local passed, failed = 0, 0
 
@@ -399,6 +399,58 @@ ticker:Cancel(); check("mock ticker cancellable", ticker._cancelled == true)
 WowMock.setNow(1750000000)
 check("mock clock injectable (GetServerTime)", GetServerTime() == 1750000000)
 check("mock clock injectable (time)", time() == 1750000000)
+
+-- ---- 2c-2: Schedule (pure) -----------------------------------------------
+local Schedule = require("Schedule")
+-- Rotterdam winter local minute-of-day (UTC fixture + 60).
+local RW = { fajr = 402, sunrise = 527, dhuhr = 761, asr = 857, maghrib = 993, isha = 1112 }
+local sBefore = Schedule.compute(RW, 0)
+check("Schedule 00:00 -> next Fajr, until 402", sBefore.nextKey == "fajr" and sBefore.untilMinutes == 402)
+local sGap = Schedule.compute(RW, 510)  -- 08:30, between Fajr and Sunrise
+check("Schedule 08:30 -> next Sunrise", sGap.nextKey == "sunrise" and sGap.untilMinutes == 17)
+local sMid = Schedule.compute(RW, 800)  -- 13:20, between Dhuhr and Asr
+check("Schedule 13:20 -> next Asr, until 57", sMid.nextKey == "asr" and sMid.untilMinutes == 57)
+local sWrap = Schedule.compute(RW, 1200) -- 20:00, after Isha
+check("Schedule after Isha -> wrap to Fajr", sWrap.nextKey == "fajr"
+  and sWrap.untilMinutes == (1440 - 1200) + 402)
+local nextCount = 0
+for _, r in ipairs(sMid.order) do if r.isNext then nextCount = nextCount + 1 end end
+check("Schedule flags exactly one isNext", nextCount == 1)
+check("Schedule order has six entries", #sMid.order == 6)
+
+-- ---- 2c-2: Clock helper vs os.date (UTC authoritative) -------------------
+local Clock = require("Clock")
+for _, ep in ipairs({ 0, 1640995200, 1750000000, 1766318400 }) do
+  local y, m, d = Clock.civilFromDays(math.floor(ep / 86400))
+  local u = os.date("!*t", ep)
+  check("civilFromDays matches os.date @" .. ep, y == u.year and m == u.month and d == u.day)
+end
+-- Istanbul (+180 "none"): city-local = UTC+3, year-round.
+local ist = Cities.findByName("Istanbul")
+local istNow = Clock.cityNow(ist, 1766318400)
+local uShift = os.date("!*t", 1766318400 + 180 * 60)
+check("cityNow Istanbul date == UTC+3 date",
+  istNow.year == uShift.year and istNow.month == uShift.month and istNow.day == uShift.day)
+check("cityNow Istanbul minute == UTC+3 minute",
+  istNow.minuteOfDay == uShift.hour * 60 + uShift.min)
+
+-- ---- 2c-2: static Window builds + renders + highlights (under the mock) --
+local Window = require("Window")
+WowMock.setNow(1766318400)
+local win = Window.create()
+check("Window is shown", win:IsShown() == true)
+check("Window create is idempotent", Window.create() == win)
+
+-- Window renders the same times the engine produces for the city's "today".
+local rCity = Cities.findByName("Rotterdam")
+local rNow = Clock.cityNow(rCity, 1766318400)
+local rRes = Cities.times("Rotterdam", rNow.year, rNow.month, rNow.day)
+check("Window Fajr text matches engine", win.rows.fajr.time:GetText() == rRes.prayers.fajr.hhmm)
+check("Window Isha text matches engine", win.rows.isha.time:GetText() == rRes.prayers.isha.hhmm)
+local rTimes = {}
+for _, k in ipairs(Schedule.ORDER) do rTimes[k] = rRes.prayers[k].localMin end
+check("Window highlights the schedule's next prayer",
+  Window.lastSchedule.nextKey == Schedule.compute(rTimes, rNow.minuteOfDay).nextKey)
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 

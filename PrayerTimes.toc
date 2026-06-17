@@ -22,10 +22,13 @@ engine/CalculationMethod.lua
 engine/PrayerTimes.lua
 engine/Timezone.lua
 engine/Calculator.lua
+engine/Schedule.lua
+engine/Clock.lua
 
 # Data + data-layer access.
 data/cities.lua
 engine/Cities.lua
 
-# Entry point.
+# UI + entry point.
+ui/Window.lua
 core/Main.lua
