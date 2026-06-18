@@ -10,6 +10,7 @@ local Clock = require("Clock")
 local Notifier = require("Notifier")
 local Alerts = require("Alerts")
 local Selection = require("Selection")
+local Methods = require("Methods")
 
 local LABELS = {
   fajr = "Fajr", sunrise = "Sunrise", dhuhr = "Dhuhr",
@@ -97,6 +98,8 @@ end
 function Window.init(db)
   Window.db = db
   db.locked = db.locked or false
+  db.method = Methods.resolveMethod(db.method) -- default MWL; sanitise stale keys
+  db.madhab = Methods.resolveMadhab(db.madhab) -- default Standard (Shafi)
   local n = db.notify or {}
   if n.beforeMinutes == nil then n.beforeMinutes = 10 end
   if n.atTime == nil then n.atTime = true end
@@ -190,7 +193,9 @@ function Window.refresh()
 
   local city = Selection.resolve(Window.db, Window.machineOffset)
   local now = Clock.cityNow(city, nowEpoch())
-  local result = Cities.times(city, now.year, now.month, now.day)
+  local db = Window.db or {} -- create() may run before init; Methods handles nil
+  local result = Cities.times(city, now.year, now.month, now.day,
+    { method = db.method, madhab = db.madhab })
 
   Window.localTimes = {}
   for _, key in ipairs(ORDER) do

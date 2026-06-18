@@ -1143,6 +1143,71 @@ do
   end
 end
 
+-- ---- 3-4: method/Asr registry + wiring through Cities.times --------------
+do
+  local Methods = require("Methods")
+  local Cities = require("Cities")
+
+  -- Registry shape + ordering (default first).
+  check("Methods.list first entry is MWL", Methods.list()[1].key == "MuslimWorldLeague")
+  check("Methods.list has all 12 methods", #Methods.list() == 12)
+  check("Methods.asrList has 2 schools", #Methods.asrList() == 2)
+  check("DEFAULT_METHOD/MADHAB are MWL/shafi",
+    Methods.DEFAULT_METHOD == "MuslimWorldLeague" and Methods.DEFAULT_MADHAB == "shafi")
+
+  -- Safe fallback for unknown / nil / stale keys.
+  check("resolveMethod(nil) -> MWL", Methods.resolveMethod(nil) == "MuslimWorldLeague")
+  check("resolveMethod('Bogus') -> MWL", Methods.resolveMethod("Bogus") == "MuslimWorldLeague")
+  check("resolveMethod('Tehran') -> Tehran", Methods.resolveMethod("Tehran") == "Tehran")
+  check("resolveMadhab(nil) -> shafi", Methods.resolveMadhab(nil) == "shafi")
+  check("resolveMadhab('bogus') -> shafi", Methods.resolveMadhab("bogus") == "shafi")
+  check("resolveMadhab('hanafi') -> hanafi", Methods.resolveMadhab("hanafi") == "hanafi")
+
+  -- params() builds the right CalculationParameters with the madhab applied.
+  local pDef = Methods.params(nil, nil)
+  check("params(nil,nil) == MWL/shafi",
+    pDef.method == "MuslimWorldLeague" and pDef.fajrAngle == 18 and pDef.madhab == "shafi")
+  local pTeh = Methods.params("Tehran", "hanafi")
+  check("params('Tehran','hanafi') carries angle + madhab",
+    pTeh.fajrAngle == 17.7 and pTeh.maghribAngle == 4.5 and pTeh.madhab == "hanafi")
+  local pBad = Methods.params("Bogus", "bogus")
+  check("params(bad,bad) -> MWL/shafi", pBad.method == "MuslimWorldLeague" and pBad.madhab == "shafi")
+
+  -- Wiring: omitting opts must reproduce explicit MWL/Standard exactly.
+  local dflt = Cities.times("Rotterdam", 2026, 6, 21)
+  local mwl = Cities.times("Rotterdam", 2026, 6, 21, { method = "MuslimWorldLeague", madhab = "shafi" })
+  local sameAsDefault = true
+  for _, p in ipairs(PRAYERS) do
+    if dflt.prayers[p].localMin ~= mwl.prayers[p].localMin then sameAsDefault = false end
+  end
+  check("Cities.times default == explicit MWL/Standard (default unchanged)", sameAsDefault)
+
+  -- Asr school moves Asr: Hanafi (shadow factor 2) is later than Standard.
+  local shafi = Cities.times("Istanbul", 2026, 1, 15, { madhab = "shafi" })
+  local hanafi = Cities.times("Istanbul", 2026, 1, 15, { madhab = "hanafi" })
+  check("Hanafi Asr later than Standard Asr",
+    hanafi.prayers.asr.localMin > shafi.prayers.asr.localMin)
+
+  -- Method moves Fajr: ISNA (15 deg) Fajr is later than MWL (18 deg) in winter.
+  local isna = Cities.times("Istanbul", 2026, 1, 15, { method = "NorthAmerica" })
+  local mwlIst = Cities.times("Istanbul", 2026, 1, 15, { method = "MuslimWorldLeague" })
+  check("ISNA Fajr differs from MWL Fajr (shallower angle, later)",
+    isna.prayers.fajr.localMin ~= mwlIst.prayers.fajr.localMin
+    and isna.prayers.fajr.localMin > mwlIst.prayers.fajr.localMin)
+
+  -- Window.init seeds + sanitises the persisted settings.
+  do
+    local db = { method = "Bogus", madhab = "bogus" }
+    Window.init(db)
+    check("Window.init sanitises stale method/madhab to defaults",
+      db.method == "MuslimWorldLeague" and db.madhab == "shafi")
+    local db2 = {}
+    Window.init(db2)
+    check("Window.init defaults method/madhab when absent",
+      db2.method == "MuslimWorldLeague" and db2.madhab == "shafi")
+  end
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

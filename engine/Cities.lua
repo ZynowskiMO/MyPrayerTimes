@@ -7,6 +7,7 @@
 
 local Calculator = require("Calculator")
 local Timezone = require("Timezone")
+local Methods = require("Methods")
 
 -- Directory-qualified token avoids a case-insensitive-filesystem clash
 -- between data/cities.lua and engine/Cities.lua in the test harness.
@@ -82,14 +83,19 @@ function Cities.displayList(query)
 end
 
 -- Prayer times for a city (table or name) on a date, in the city's local time.
--- Returns nil for an unknown name. Result:
+-- Returns nil for an unknown name. opts.method / opts.madhab select the
+-- calculation method + Asr school (keys from Methods); unknown/nil fall back to
+-- the defaults (MWL / Standard), so omitting opts preserves the original
+-- behaviour exactly. Result:
 --   { city, offsetMinutes, prayers = { <prayer> = { utc, localMin, hhmm } } }
-function Cities.times(cityOrName, year, month, day)
+function Cities.times(cityOrName, year, month, day, opts)
   local city = type(cityOrName) == "table" and cityOrName or Cities.findByName(cityOrName)
   if not city then return nil end
 
+  opts = opts or {}
   local coords = { latitude = city.latitude, longitude = city.longitude }
-  local utc = Calculator.timesForLocation(year, month, day, coords)
+  local params = Methods.params(opts.method, opts.madhab)
+  local utc = Calculator.timesForLocation(year, month, day, coords, { params = params })
   local offset = Timezone.offsetMinutes(city, year, month, day)
 
   local prayers = {}

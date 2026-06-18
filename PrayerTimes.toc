@@ -22,6 +22,7 @@ engine/CalculationMethod.lua
 engine/PrayerTimes.lua
 engine/Timezone.lua
 engine/Calculator.lua
+engine/Methods.lua
 engine/Schedule.lua
 engine/Clock.lua
 engine/Notifier.lua
