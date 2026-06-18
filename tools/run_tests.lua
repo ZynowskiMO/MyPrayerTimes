@@ -1086,15 +1086,9 @@ do
   print(string.format("    (%d rows, tolerance +/-1 min, recommended high-lat rule)\n",
     matrix.meta.count))
 
-  -- Known engine gap, tracked openly so the suite stays green while 3-3 lands.
-  -- adhan-js Tehran defines Maghrib by a 4.5-deg twilight angle; our engine
-  -- still returns sunset, so Maghrib is off by minutes. 3-3 ports the Maghrib
-  -- angle, after which this predicate is deleted and these cells pass normally.
-  -- (Singapore's round-up vs our round-nearest never exceeds 1 min, so it is
-  -- absorbed by the +/-1 tolerance and is NOT quarantined.)
-  local function knownPending(method, prayer)
-    return method == "Tehran" and prayer == "maghrib"
-  end
+  -- 3-3 closed the Tehran Maghrib-angle and Singapore round-up gaps, so there
+  -- is no quarantine: every method must now match adhan-js at exactly 0 min.
+  local function knownPending() return false end
 
   -- Per-method aggregate across both madhabs / all cities / all dates.
   local order, stats = {}, {}

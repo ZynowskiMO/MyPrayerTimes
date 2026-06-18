@@ -32,16 +32,30 @@ local function nextDay(year, month, day)
   return year, month, day
 end
 
--- Fractional UTC hours (+ whole-minute adjustment) -> minute-of-day [0,1440).
--- floor(x + 0.5) reproduces adhan-js roundedMinute (round half up at 30s).
+-- Fractional UTC hours (+ whole-minute adjustment) -> minute-of-day [0,1440),
+-- with the rounding mode from adhan-js DateUtils.roundedMinute:
+--   "nearest" (default) -- round half up at 30s; seconds>=30 <=> frac>=0.5,
+--                          the exact same boundary as floor(x + 0.5).
+--   "up"                -- advance to the next minute boundary (Singapore).
+--   "none"              -- truncate to the minute.
 -- Returns nil for a non-finite time (e.g. polar latitudes where the sun never
 -- crosses the horizon) so callers can fail safe instead of storing NaN.
-local function toMinuteOfDay(hours, adjustmentMinutes)
+local function toMinuteOfDay(hours, adjustmentMinutes, rounding)
   if hours ~= hours or hours == math.huge or hours == -math.huge then
     return nil
   end
-  local mins = floor(hours * 60 + adjustmentMinutes + 0.5)
-  return mins % 1440
+  local m = hours * 60 + adjustmentMinutes
+  local whole = floor(m)
+  local seconds = (m - whole) * 60 -- [0, 60)
+  local delta
+  if rounding == "up" then
+    delta = 1
+  elseif rounding == "none" then
+    delta = 0
+  else -- "nearest"
+    delta = (seconds >= 30) and 1 or 0
+  end
+  return (whole + delta) % 1440
 end
 
 local PrayerTimes = {}
@@ -79,7 +93,17 @@ function PrayerTimes.new(year, month, day, coordinates, params)
     if isNaN(isha) or safeIsha < isha then isha = safeIsha end
   end
 
+  -- Maghrib is sunset, unless the method defines a Maghrib twilight angle
+  -- (Tehran, 4.5 deg): then use the angle-based time when it falls strictly
+  -- after sunset and before Isha. NaN at high latitudes (angle unreached) fails
+  -- both comparisons, so Maghrib correctly stays at sunset.
   local maghrib = sunset
+  if params.maghribAngle and params.maghribAngle > 0 then
+    local angleBasedMaghrib = solarTime:hourAngle(-1 * params.maghribAngle, true)
+    if sunset < angleBasedMaghrib and isha > angleBasedMaghrib then
+      maghrib = angleBasedMaghrib
+    end
+  end
 
   local adj = params.adjustments
   local madj = params.methodAdjustments
@@ -87,12 +111,13 @@ function PrayerTimes.new(year, month, day, coordinates, params)
     return (adj[prayer] or 0) + (madj[prayer] or 0)
   end
 
-  self.fajr = toMinuteOfDay(fajr, totalAdjustment("fajr"))
-  self.sunrise = toMinuteOfDay(sunrise, totalAdjustment("sunrise"))
-  self.dhuhr = toMinuteOfDay(transit, totalAdjustment("dhuhr"))
-  self.asr = toMinuteOfDay(asr, totalAdjustment("asr"))
-  self.maghrib = toMinuteOfDay(maghrib, totalAdjustment("maghrib"))
-  self.isha = toMinuteOfDay(isha, totalAdjustment("isha"))
+  local rounding = params.rounding
+  self.fajr = toMinuteOfDay(fajr, totalAdjustment("fajr"), rounding)
+  self.sunrise = toMinuteOfDay(sunrise, totalAdjustment("sunrise"), rounding)
+  self.dhuhr = toMinuteOfDay(transit, totalAdjustment("dhuhr"), rounding)
+  self.asr = toMinuteOfDay(asr, totalAdjustment("asr"), rounding)
+  self.maghrib = toMinuteOfDay(maghrib, totalAdjustment("maghrib"), rounding)
+  self.isha = toMinuteOfDay(isha, totalAdjustment("isha"), rounding)
 
   return self
 end
