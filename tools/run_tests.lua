@@ -1007,6 +1007,72 @@ do
   check("name field has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
 end
 
+-- ---- 3-1: all method factories carry the adhan-js parameters -------------
+-- Structural checks only (parameters, not times -- the +/-1 min time gate is
+-- the 3-2 fixture matrix). Verifies every factory ports the exact angles,
+-- intervals, method adjustments, and the inert maghribAngle/rounding fields
+-- from adhan-js 4.4.4. CalculationMethod is already required above.
+do
+  local function adj(p) return p.methodAdjustments end
+
+  local mwl = CalculationMethod.MuslimWorldLeague()
+  check("MWL 18/17, dhuhr +1, no maghribAngle, nearest",
+    mwl.fajrAngle == 18 and mwl.ishaAngle == 17 and adj(mwl).dhuhr == 1
+    and mwl.maghribAngle == 0 and mwl.rounding == "nearest")
+
+  local eg = CalculationMethod.Egyptian()
+  check("Egyptian 19.5/17.5, dhuhr +1",
+    eg.fajrAngle == 19.5 and eg.ishaAngle == 17.5 and adj(eg).dhuhr == 1)
+
+  local ka = CalculationMethod.Karachi()
+  check("Karachi 18/18, dhuhr +1",
+    ka.fajrAngle == 18 and ka.ishaAngle == 18 and adj(ka).dhuhr == 1)
+
+  local uq = CalculationMethod.UmmAlQura()
+  check("UmmAlQura 18.5, isha interval 90, no isha angle",
+    uq.fajrAngle == 18.5 and uq.ishaAngle == 0 and uq.ishaInterval == 90)
+
+  local du = CalculationMethod.Dubai()
+  check("Dubai 18.2/18.2, adj sunrise -3 dhuhr/asr/maghrib +3",
+    du.fajrAngle == 18.2 and du.ishaAngle == 18.2 and adj(du).sunrise == -3
+    and adj(du).dhuhr == 3 and adj(du).asr == 3 and adj(du).maghrib == 3)
+
+  local na = CalculationMethod.NorthAmerica()
+  check("NorthAmerica/ISNA 15/15, dhuhr +1",
+    na.fajrAngle == 15 and na.ishaAngle == 15 and adj(na).dhuhr == 1)
+
+  local kw = CalculationMethod.Kuwait()
+  check("Kuwait 18/17.5, no adjustments",
+    kw.fajrAngle == 18 and kw.ishaAngle == 17.5 and adj(kw).dhuhr == 0)
+
+  local qa = CalculationMethod.Qatar()
+  check("Qatar 18, isha interval 90, no isha angle",
+    qa.fajrAngle == 18 and qa.ishaAngle == 0 and qa.ishaInterval == 90)
+
+  local sg = CalculationMethod.Singapore()
+  check("Singapore 20/18, dhuhr +1, rounding up",
+    sg.fajrAngle == 20 and sg.ishaAngle == 18 and adj(sg).dhuhr == 1
+    and sg.rounding == "up")
+
+  local te = CalculationMethod.Tehran()
+  check("Tehran 17.7/14, maghribAngle 4.5, no isha interval",
+    te.fajrAngle == 17.7 and te.ishaAngle == 14 and te.maghribAngle == 4.5
+    and te.ishaInterval == 0)
+
+  local tr = CalculationMethod.Turkey()
+  check("Turkey 18/17, adj sunrise -7 dhuhr +5 asr +4 maghrib +7",
+    tr.fajrAngle == 18 and tr.ishaAngle == 17 and adj(tr).sunrise == -7
+    and adj(tr).dhuhr == 5 and adj(tr).asr == 4 and adj(tr).maghrib == 7)
+
+  local ot = CalculationMethod.Other()
+  check("Other 0/0, no interval/angle",
+    ot.fajrAngle == 0 and ot.ishaAngle == 0 and ot.ishaInterval == 0
+    and ot.maghribAngle == 0)
+
+  -- Shafi default carried through every factory; Asr school is set separately.
+  check("factory default madhab is Shafi", mwl.madhab == require("Madhab").Shafi)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

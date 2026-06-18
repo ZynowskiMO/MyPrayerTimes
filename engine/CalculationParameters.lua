@@ -11,14 +11,22 @@ local HighLatitudeRule = require("HighLatitudeRule")
 local CalculationParameters = {}
 CalculationParameters.__index = CalculationParameters
 
-function CalculationParameters.new(method, fajrAngle, ishaAngle, ishaInterval)
+-- Constructor mirrors adhan-js: (method, fajrAngle, ishaAngle, ishaInterval,
+-- maghribAngle). maghribAngle and rounding are carried for faithful method
+-- ports (Tehran sets a Maghrib angle; Singapore rounds up) but are NOT yet
+-- consumed by PrayerTimes.lua -- that engine wiring lands in Phase 3-3. Until
+-- then they are inert defaults (maghribAngle = 0, rounding = "nearest"), which
+-- matches today's behaviour exactly.
+function CalculationParameters.new(method, fajrAngle, ishaAngle, ishaInterval, maghribAngle)
   local self = setmetatable({}, CalculationParameters)
   self.method = method or "Other"
   self.fajrAngle = fajrAngle or 0
   self.ishaAngle = ishaAngle or 0
   self.ishaInterval = ishaInterval or 0
+  self.maghribAngle = maghribAngle or 0
   self.madhab = Madhab.Shafi
   self.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight
+  self.rounding = "nearest" -- "nearest" | "up" | "none"; consumed in 3-3
   self.adjustments = { fajr = 0, sunrise = 0, dhuhr = 0, asr = 0, maghrib = 0, isha = 0 }
   self.methodAdjustments = { fajr = 0, sunrise = 0, dhuhr = 0, asr = 0, maghrib = 0, isha = 0 }
   return self
