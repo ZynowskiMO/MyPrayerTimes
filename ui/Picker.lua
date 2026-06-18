@@ -282,6 +282,29 @@ local function makeColLabel(f, text, x, y)
   fs:SetText(text)
 end
 
+-- Three-tab layout (ADR-0004 redesign). 3R-1 introduces the scaffold and moves
+-- the EXISTING controls into per-tab panels unchanged (re-parent + re-anchor
+-- only -- no logic or widget rebuild). Subsequent checkpoints rebuild each tab.
+local TABS = {
+  { key = "location",      label = "Location" },
+  { key = "calculation",   label = "Calculation" },
+  { key = "notifications", label = "Notifications" },
+}
+
+-- Switch tabs: show one panel, hide the others, and mark the active tab button
+-- (disabled = current). Pure enough for the runner to drive via IsShown().
+function Picker.showTab(name)
+  if not Picker.panels then return end
+  if not Picker.panels[name] then name = "location" end
+  Picker.activeTab = name
+  for key, panel in pairs(Picker.panels) do
+    if key == name then panel:Show() else panel:Hide() end
+  end
+  for key, btn in pairs(Picker.tabButtons) do
+    if key == name then btn:Disable() else btn:Enable() end
+  end
+end
+
 function Picker.create()
   if Picker.frame then return Picker.frame end
 
@@ -301,13 +324,32 @@ function Picker.create()
 
   local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("TOP", 0, -10)
-  title:SetText("PrayerTimes - Select City")
+  title:SetText("PrayerTimes - Settings")
 
-  Picker.selectedLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  Picker.selectedLabel:SetPoint("TOP", 0, -32)
+  -- Tab bar + content panels.
+  Picker.tabButtons, Picker.panels = {}, {}
+  local tabW = 100
+  for i, t in ipairs(TABS) do
+    local btn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    btn:SetSize(tabW, 22)
+    btn:SetPoint("TOPLEFT", 14 + (i - 1) * (tabW + 2), -34)
+    btn:SetText(t.label)
+    btn:SetScript("OnClick", function() Picker.showTab(t.key) end)
+    Picker.tabButtons[t.key] = btn
 
-  local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", f, "InputBoxTemplate")
-  search:SetSize(290, 20); search:SetPoint("TOP", 0, -54); search:SetAutoFocus(false)
+    local panel = CreateFrame("Frame", nil, f)
+    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -60)
+    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 44)
+    Picker.panels[t.key] = panel
+  end
+  local locP, calcP, notifP = Picker.panels.location, Picker.panels.calculation, Picker.panels.notifications
+
+  -- ===== Location tab (city list + search + manual/My Cities, unchanged) =====
+  Picker.selectedLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  Picker.selectedLabel:SetPoint("TOP", locP, "TOP", 0, -2)
+
+  local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP, "InputBoxTemplate")
+  search:SetSize(290, 20); search:SetPoint("TOP", locP, "TOP", 0, -24); search:SetAutoFocus(false)
   search:SetScript("OnTextChanged", function(self)
     Picker.scrollOffset = 0
     Picker.refreshList(self:GetText())
@@ -315,8 +357,8 @@ function Picker.create()
   Picker.searchBox = search
 
   -- Scrollable row pool (with per-row delete button for saved rows).
-  local list = CreateFrame("Frame", nil, f)
-  list:SetPoint("TOPLEFT", 14, -80)
+  local list = CreateFrame("Frame", nil, locP)
+  list:SetPoint("TOPLEFT", 14, -48)
   list:SetSize(302, VISIBLE_ROWS * ROW_HEIGHT)
   list:EnableMouseWheel(true)
   list:SetScript("OnMouseWheel", function(_, delta) Picker.scroll(delta) end)
@@ -342,30 +384,30 @@ function Picker.create()
   end
 
   -- Manual / save section.
-  local mY = -80 - VISIBLE_ROWS * ROW_HEIGHT - 14
-  local mlabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  local mY = -48 - VISIBLE_ROWS * ROW_HEIGHT - 14
+  local mlabel = locP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   mlabel:SetPoint("TOPLEFT", 14, mY); mlabel:SetText("Add a location (your computer's timezone unless UTC set):")
 
-  makeColLabel(f, "Name", 18, mY - 18)
-  makeColLabel(f, "Lat", 124, mY - 18)
-  makeColLabel(f, "Lon", 176, mY - 18)
-  makeColLabel(f, "UTC+/-", 228, mY - 18)
+  makeColLabel(locP, "Name", 18, mY - 18)
+  makeColLabel(locP, "Lat", 124, mY - 18)
+  makeColLabel(locP, "Lon", 176, mY - 18)
+  makeColLabel(locP, "UTC+/-", 228, mY - 18)
 
   local boxY = mY - 32
-  local nameBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  local nameBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
   nameBox:SetSize(96, 20); nameBox:SetPoint("TOPLEFT", 16, boxY); nameBox:SetAutoFocus(false)
-  local latBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  local latBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
   latBox:SetSize(46, 20); latBox:SetPoint("TOPLEFT", 122, boxY); latBox:SetAutoFocus(false)
-  local lonBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  local lonBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
   lonBox:SetSize(46, 20); lonBox:SetPoint("TOPLEFT", 174, boxY); lonBox:SetAutoFocus(false)
-  local offBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  local offBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
   offBox:SetSize(40, 20); offBox:SetPoint("TOPLEFT", 226, boxY); offBox:SetAutoFocus(false)
   Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
 
-  local euCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+  local euCheck = CreateFrame("CheckButton", nil, locP, "UICheckButtonTemplate")
   euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 272, boxY + 1)
   Picker.euCheck = euCheck
-  local euText = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  local euText = locP:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   euText:SetPoint("LEFT", euCheck, "RIGHT", 0, 0); euText:SetText("EU DST")
 
   local clearErr = function() Picker.clearError() end
@@ -375,12 +417,12 @@ function Picker.create()
   offBox:SetScript("OnTextChanged", clearErr)
 
   -- Buttons: use once (not saved) and save as a named My City.
-  local useBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+  local useBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
   useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 16, boxY - 26); useBtn:SetText("Use once")
   useBtn:SetScript("OnClick", function()
     Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
   end)
-  local saveBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+  local saveBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
   saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 104, boxY - 26); saveBtn:SetText("Save as My City")
   saveBtn:SetScript("OnClick", function()
     Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
@@ -392,62 +434,62 @@ function Picker.create()
   tabTo(search, nameBox); tabTo(nameBox, latBox); tabTo(latBox, lonBox)
   tabTo(lonBox, offBox); tabTo(offBox, search)
 
-  Picker.errorLabel = f:CreateFontString(nil, "OVERLAY", "GameFontRed")
+  Picker.errorLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 52)
 
-  -- Calculation method (prev/next selector) + Asr school toggle.
-  local cY = boxY - 74
-  local clabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  clabel:SetPoint("TOPLEFT", 14, cY); clabel:SetText("Calculation method:")
+  -- ===== Calculation tab (method prev/next selector + Asr toggle) =====
+  local clabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  clabel:SetPoint("TOPLEFT", 14, -10); clabel:SetText("Calculation method:")
 
-  local prevBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  prevBtn:SetSize(26, 22); prevBtn:SetPoint("TOPLEFT", 18, cY - 22); prevBtn:SetText("<")
+  local prevBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
+  prevBtn:SetSize(26, 22); prevBtn:SetPoint("TOPLEFT", 18, -32); prevBtn:SetText("<")
   prevBtn:SetScript("OnClick", function() Picker.cycleMethod(-1) end)
-  local nextBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  nextBtn:SetSize(26, 22); nextBtn:SetPoint("TOPRIGHT", -18, cY - 22); nextBtn:SetText(">")
+  local nextBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
+  nextBtn:SetSize(26, 22); nextBtn:SetPoint("TOPRIGHT", -18, -32); nextBtn:SetText(">")
   nextBtn:SetScript("OnClick", function() Picker.cycleMethod(1) end)
-  local methodLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  methodLabel:SetPoint("TOP", 0, cY - 26); methodLabel:SetWidth(232); methodLabel:SetJustifyH("CENTER")
+  local methodLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  methodLabel:SetPoint("TOP", 0, -36); methodLabel:SetWidth(232); methodLabel:SetJustifyH("CENTER")
   Picker.methodLabelFS = methodLabel
 
-  local asrBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  asrBtn:SetSize(294, 22); asrBtn:SetPoint("TOPLEFT", 18, cY - 48); asrBtn:SetText("Asr school: Standard (Shafi)")
+  local asrBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
+  asrBtn:SetSize(294, 22); asrBtn:SetPoint("TOPLEFT", 18, -58); asrBtn:SetText("Asr school: Standard (Shafi)")
   asrBtn:SetScript("OnClick", function() Picker.toggleMadhab() end)
   Picker.asrBtn = asrBtn
 
-  -- Notification controls.
-  local nY = cY - 74
-  local nlabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  nlabel:SetPoint("TOPLEFT", 14, nY); nlabel:SetText("Notifications:")
+  -- ===== Notifications tab =====
+  local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  nlabel:SetPoint("TOPLEFT", 14, -10); nlabel:SetText("Notifications:")
 
-  local beforeBox = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
-  beforeBox:SetSize(40, 20); beforeBox:SetPoint("TOPLEFT", 20, nY - 22)
+  local beforeBox = CreateFrame("EditBox", nil, notifP, "InputBoxTemplate")
+  beforeBox:SetSize(40, 20); beforeBox:SetPoint("TOPLEFT", 20, -32)
   beforeBox:SetAutoFocus(false); beforeBox:SetNumeric(true)
   beforeBox:SetScript("OnTextChanged", function(self) Picker.setBeforeMinutes(self:GetText()) end)
   Picker.beforeBox = beforeBox
-  local bLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local bLabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   bLabel:SetPoint("LEFT", beforeBox, "RIGHT", 6, 0); bLabel:SetText("minutes before (0 = off)")
 
-  local atCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
-  atCheck:SetPoint("TOPLEFT", 18, nY - 46)
+  local atCheck = CreateFrame("CheckButton", nil, notifP, "UICheckButtonTemplate")
+  atCheck:SetPoint("TOPLEFT", 18, -56)
   atCheck:SetScript("OnClick", function(self) Picker.setAtTime(self:GetChecked() and true or false) end)
   Picker.atCheck = atCheck
-  local atText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local atText = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   atText:SetPoint("LEFT", atCheck, "RIGHT", 2, 0); atText:SetText("Alert at prayer time")
 
-  local soundCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
-  soundCheck:SetPoint("TOPLEFT", 18, nY - 70)
+  local soundCheck = CreateFrame("CheckButton", nil, notifP, "UICheckButtonTemplate")
+  soundCheck:SetPoint("TOPLEFT", 18, -80)
   soundCheck:SetScript("OnClick", function(self) Picker.setSound(self:GetChecked() and true or false) end)
   Picker.soundCheck = soundCheck
-  local sText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local sText = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   sText:SetPoint("LEFT", soundCheck, "RIGHT", 2, 0); sText:SetText("Play sound")
 
+  -- Close button (shared, always visible).
   local close = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
   close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 16); close:SetText("Close")
   close:SetScript("OnClick", function() Picker.close() end)
 
   Picker.frame = f
   Picker.scrollOffset = 0
+  Picker.showTab("location")
   Picker.updateSelected()
   Picker.updateNotifyControls()
   Picker.updateCalcControls()
@@ -458,6 +500,7 @@ end
 function Picker.open()
   Picker.create()
   Picker.clearError()
+  Picker.showTab(Picker.activeTab or "location")
   Picker.updateSelected()
   Picker.updateNotifyControls()
   Picker.updateCalcControls()

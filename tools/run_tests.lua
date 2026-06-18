@@ -1261,6 +1261,56 @@ do
   Window.refresh = realRefresh
 end
 
+-- ---- 3R-1: tabbed settings scaffold (navigation only, under the mock) ----
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- Three tabs + three panels exist.
+  check("three tab buttons created",
+    Picker.tabButtons.location and Picker.tabButtons.calculation and Picker.tabButtons.notifications ~= nil)
+  check("three panels created",
+    Picker.panels.location and Picker.panels.calculation and Picker.panels.notifications ~= nil)
+
+  -- Default tab is Location: its panel shown, the others hidden.
+  check("default active tab is location", Picker.activeTab == "location")
+  check("location panel shown by default", Picker.panels.location:IsShown() == true)
+  check("calculation panel hidden by default", Picker.panels.calculation:IsShown() == false)
+  check("notifications panel hidden by default", Picker.panels.notifications:IsShown() == false)
+
+  -- Switching tabs flips visibility (one shown at a time).
+  Picker.showTab("calculation")
+  check("showTab(calculation) shows calc panel", Picker.panels.calculation:IsShown() == true)
+  check("showTab(calculation) hides location panel", Picker.panels.location:IsShown() == false)
+  check("showTab(calculation) hides notifications panel", Picker.panels.notifications:IsShown() == false)
+  check("active tab updated to calculation", Picker.activeTab == "calculation")
+
+  Picker.showTab("notifications")
+  check("showTab(notifications) shows notif panel", Picker.panels.notifications:IsShown() == true)
+  check("only one panel shown at a time",
+    Picker.panels.location:IsShown() == false and Picker.panels.calculation:IsShown() == false)
+
+  -- Unknown tab name falls back to location (never blank).
+  Picker.showTab("bogus")
+  check("unknown tab falls back to location", Picker.activeTab == "location")
+
+  -- Existing controls survived the move into panels (still present + wired).
+  check("search box still present", Picker.searchBox ~= nil)
+  check("name box still has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
+  check("method label + Asr button still present", Picker.methodLabelFS ~= nil and Picker.asrBtn ~= nil)
+  check("notification controls still present",
+    Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
+
+  -- And still functional after the re-parent: city select + method set work.
+  Picker.selectCityByName("Istanbul")
+  check("city selection still works through tabs", db.selectedCity and db.selectedCity.name == "Istanbul")
+  Picker.setMethod("Tehran")
+  check("method selection still works through tabs", db.method == "Tehran")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
