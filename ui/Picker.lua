@@ -7,6 +7,7 @@
 local Cities = require("Cities")
 local Selection = require("Selection")
 local Window = require("Window")
+local Methods = require("Methods")
 
 local VISIBLE_ROWS = 14
 local ROW_HEIGHT = 16
@@ -230,6 +231,51 @@ function Picker.updateNotifyControls()
   if Picker.soundCheck then Picker.soundCheck:SetChecked(n.sound ~= false) end
 end
 
+-- Calculation method + Asr school (persisted in the shared DB, read live by
+-- Cities.times via the Methods registry). All pure; the widgets just call these
+-- and re-render. Changing either re-runs the engine and refreshes the window.
+local function afterCalcChange()
+  if Window.refresh then Window.refresh() end
+  Picker.updateCalcControls()
+end
+
+function Picker.setMethod(key)
+  if not Picker.db then return end
+  Picker.db.method = Methods.resolveMethod(key)
+  afterCalcChange()
+end
+
+-- Step through the ordered method list (dir = +1 next / -1 prev), wrapping.
+function Picker.cycleMethod(dir)
+  local list = Methods.list()
+  local cur = Methods.resolveMethod(Picker.db and Picker.db.method)
+  local idx = 1
+  for i, m in ipairs(list) do if m.key == cur then idx = i; break end end
+  idx = ((idx - 1 + (dir or 1)) % #list) + 1
+  Picker.setMethod(list[idx].key)
+end
+
+function Picker.setMadhab(key)
+  if not Picker.db then return end
+  Picker.db.madhab = Methods.resolveMadhab(key)
+  afterCalcChange()
+end
+
+function Picker.toggleMadhab()
+  local cur = Methods.resolveMadhab(Picker.db and Picker.db.madhab)
+  Picker.setMadhab(cur == "hanafi" and "shafi" or "hanafi")
+end
+
+function Picker.updateCalcControls()
+  local db = Picker.db
+  if Picker.methodLabelFS then
+    Picker.methodLabelFS:SetText(Methods.methodLabel(db and db.method))
+  end
+  if Picker.asrBtn then
+    Picker.asrBtn:SetText("Asr school: " .. Methods.madhabLabel(db and db.madhab))
+  end
+end
+
 local function makeColLabel(f, text, x, y)
   local fs = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   fs:SetPoint("TOPLEFT", x, y)
@@ -240,7 +286,7 @@ function Picker.create()
   if Picker.frame then return Picker.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesPicker", UIParent)
-  f:SetSize(330, 580)
+  f:SetSize(330, 660)
   f:SetPoint("CENTER", UIParent, "CENTER", 235, 0) -- offset from the main window
   f:SetFrameStrata("DIALOG")
   f:SetMovable(true)
@@ -349,8 +395,28 @@ function Picker.create()
   Picker.errorLabel = f:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 52)
 
+  -- Calculation method (prev/next selector) + Asr school toggle.
+  local cY = boxY - 74
+  local clabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  clabel:SetPoint("TOPLEFT", 14, cY); clabel:SetText("Calculation method:")
+
+  local prevBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+  prevBtn:SetSize(26, 22); prevBtn:SetPoint("TOPLEFT", 18, cY - 22); prevBtn:SetText("<")
+  prevBtn:SetScript("OnClick", function() Picker.cycleMethod(-1) end)
+  local nextBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+  nextBtn:SetSize(26, 22); nextBtn:SetPoint("TOPRIGHT", -18, cY - 22); nextBtn:SetText(">")
+  nextBtn:SetScript("OnClick", function() Picker.cycleMethod(1) end)
+  local methodLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  methodLabel:SetPoint("TOP", 0, cY - 26); methodLabel:SetWidth(232); methodLabel:SetJustifyH("CENTER")
+  Picker.methodLabelFS = methodLabel
+
+  local asrBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+  asrBtn:SetSize(294, 22); asrBtn:SetPoint("TOPLEFT", 18, cY - 48); asrBtn:SetText("Asr school: Standard (Shafi)")
+  asrBtn:SetScript("OnClick", function() Picker.toggleMadhab() end)
+  Picker.asrBtn = asrBtn
+
   -- Notification controls.
-  local nY = boxY - 74
+  local nY = cY - 74
   local nlabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   nlabel:SetPoint("TOPLEFT", 14, nY); nlabel:SetText("Notifications:")
 
@@ -384,6 +450,7 @@ function Picker.create()
   Picker.scrollOffset = 0
   Picker.updateSelected()
   Picker.updateNotifyControls()
+  Picker.updateCalcControls()
   Picker.refreshList("")
   return f
 end
@@ -393,6 +460,7 @@ function Picker.open()
   Picker.clearError()
   Picker.updateSelected()
   Picker.updateNotifyControls()
+  Picker.updateCalcControls()
   Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
   Picker.frame:Show()
 end

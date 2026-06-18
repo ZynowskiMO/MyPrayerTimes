@@ -1208,6 +1208,59 @@ do
   end
 end
 
+-- ---- 3-5: method/Asr settings controls in the picker (under the mock) ----
+do
+  local Picker = require("Picker")
+  local Methods = require("Methods")
+
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- Spy on Window.refresh to prove the controls trigger a live recompute.
+  local realRefresh = Window.refresh
+  local refreshes = 0
+  Window.refresh = function(...) refreshes = refreshes + 1; return realRefresh(...) end
+
+  -- Default reflects MWL / Standard.
+  check("method label shows MWL by default",
+    Picker.methodLabelFS:GetText() == Methods.methodLabel("MuslimWorldLeague"))
+  check("Asr button shows Standard by default",
+    Picker.asrBtn:GetText() == "Asr school: " .. Methods.madhabLabel("shafi"))
+
+  -- setMethod persists, refreshes, and updates the label.
+  Picker.setMethod("Tehran")
+  check("setMethod persists to db", db.method == "Tehran")
+  check("setMethod updates the label", Picker.methodLabelFS:GetText() == Methods.methodLabel("Tehran"))
+  check("setMethod triggers a window refresh", refreshes >= 1)
+
+  -- Bogus key falls back to MWL via the registry.
+  Picker.setMethod("Nonsense")
+  check("setMethod sanitises unknown key -> MWL", db.method == "MuslimWorldLeague")
+
+  -- Prev from MWL (first) wraps to the last method; next wraps back to first.
+  local list = Methods.list()
+  Picker.setMethod(list[1].key)
+  Picker.cycleMethod(-1)
+  check("cycleMethod(-1) wraps to last method", db.method == list[#list].key)
+  Picker.cycleMethod(1)
+  check("cycleMethod(1) wraps back to first (MWL)", db.method == list[1].key)
+  Picker.cycleMethod(1)
+  check("cycleMethod(1) advances to second method", db.method == list[2].key)
+
+  -- Asr toggle flips Standard <-> Hanafi and updates the button text.
+  db.madhab = "shafi"
+  Picker.toggleMadhab()
+  check("toggleMadhab shafi -> hanafi", db.madhab == "hanafi")
+  check("Asr button text reflects Hanafi",
+    Picker.asrBtn:GetText() == "Asr school: " .. Methods.madhabLabel("hanafi"))
+  Picker.toggleMadhab()
+  check("toggleMadhab hanafi -> shafi", db.madhab == "shafi")
+
+  Window.refresh = realRefresh
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
