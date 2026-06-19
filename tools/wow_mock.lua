@@ -41,8 +41,10 @@ local function makeTexture()
 end
 
 local function makeFrame()
+  -- _level initialised so GetFrameLevel reads a raw value (an unset field would
+  -- hit NOOP_INDEX and return a no-op function, not nil).
   local f = setmetatable({ _shown = true, _scripts = {}, _movable = false, _mouse = false,
-    _points = {}, _text = "" }, NOOP_INDEX)
+    _points = {}, _text = "", _level = 0 }, NOOP_INDEX)
   -- EditBox-style text (search/lat/lon boxes).
   function f:SetText(t) self._text = t end
   function f:GetText() return self._text end
@@ -78,6 +80,8 @@ local function makeFrame()
   function f:StartMoving() self._moving = true end
   function f:StopMovingOrSizing() self._moving = false end
   function f:SetFrameStrata() end
+  function f:SetFrameLevel(n) self._level = n end
+  function f:GetFrameLevel() return self._level end
   function f:SetBackdrop() end
   function f:SetBackdropColor() end
   function f:CreateFontString() return makeFontString() end

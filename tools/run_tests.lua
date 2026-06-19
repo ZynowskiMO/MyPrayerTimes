@@ -1502,12 +1502,25 @@ do
   check("card shows the selected city + country",
     Picker.cardCity:GetText() == "Paris" and Picker.cardCountry:GetText() == "France")
 
-  -- "Add custom location" opens the overlay; Back/closeAddPanel hides it.
-  check("add panel hidden by default", Picker.addPanel:IsShown() == false)
+  -- "Add custom location" opens the overlay and hides the browse view (so
+  -- nothing shows through); Back/closeAddPanel restores it.
+  check("add panel hidden + browse shown by default",
+    Picker.addPanel:IsShown() == false and Picker.browse:IsShown() == true)
   Picker.openAddPanel()
-  check("openAddPanel shows the form", Picker.addPanel:IsShown() == true)
+  check("openAddPanel shows form + hides browse",
+    Picker.addPanel:IsShown() == true and Picker.browse:IsShown() == false)
   Picker.closeAddPanel()
-  check("closeAddPanel hides the form", Picker.addPanel:IsShown() == false)
+  check("closeAddPanel hides form + restores browse",
+    Picker.addPanel:IsShown() == false and Picker.browse:IsShown() == true)
+
+  -- Saving persists; closing the form (as the Save button does) restores browse.
+  Picker.openAddPanel()
+  Picker.nameBox:SetText("Sklep"); Picker.latBox:SetText("46.0"); Picker.lonBox:SetText("14.5")
+  local sOk = Picker.saveManual(Picker.nameBox:GetText(), Picker.latBox:GetText(),
+    Picker.lonBox:GetText(), "", false)
+  Picker.closeAddPanel()
+  check("save persists + form close restores browse",
+    sOk == true and Picker.browse:IsShown() == true and Selection.findSaved(db, "Sklep") ~= nil)
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------

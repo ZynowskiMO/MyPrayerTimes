@@ -314,14 +314,17 @@ function Picker.scrollDetail(delta)
   Picker.refreshDetail()
 end
 
--- The "Add custom location" form overlays the master-detail when open.
+-- The "Add custom location" form replaces the master-detail browse view while
+-- open (browse hidden so nothing shows through behind the cream form).
 function Picker.openAddPanel()
   Picker.clearError()
+  if Picker.browse then Picker.browse:Hide() end
   if Picker.addPanel then Picker.addPanel:Show() end
 end
 
 function Picker.closeAddPanel()
   if Picker.addPanel then Picker.addPanel:Hide() end
+  if Picker.browse then Picker.browse:Show() end
 end
 
 -- Notification settings (wired to db.notify, read live by the Notifier).
@@ -655,8 +658,14 @@ function Picker.create()
   search:SetScript("OnTextChanged", function(self) Picker.dScroll = 0; Picker.refreshLocation(self:GetText()) end)
   Picker.searchBox = search
 
+  -- Browse container (master + detail). Hidden as a unit when the add-custom
+  -- form is open, so nothing shows through behind the form.
+  local browse = CreateFrame("Frame", nil, locP)
+  browse:SetAllPoints(locP)
+  Picker.browse = browse
+
   -- Master column: My Cities + countries (with counts).
-  local mlist = CreateFrame("Frame", nil, locP)
+  local mlist = CreateFrame("Frame", nil, browse)
   mlist:SetPoint("TOPLEFT", 8, -90); mlist:SetSize(196, MVIS * RH)
   mlist:EnableMouseWheel(true); mlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollMaster(d) end)
   Picker.masterPool = {}
@@ -679,14 +688,14 @@ function Picker.create()
   end
 
   -- Divider.
-  local divider = locP:CreateTexture(nil, "ARTWORK")
+  local divider = browse:CreateTexture(nil, "ARTWORK")
   divider:SetPoint("TOPLEFT", 208, -88); divider:SetPoint("BOTTOMLEFT", 208, 40)
   divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
 
   -- Detail column: cities of the selected country (or search results).
-  Picker.detailHeader = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  Picker.detailHeader = browse:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   Picker.detailHeader:SetPoint("TOPLEFT", 216, -92)
-  local dlist = CreateFrame("Frame", nil, locP)
+  local dlist = CreateFrame("Frame", nil, browse)
   dlist:SetPoint("TOPLEFT", 214, -110); dlist:SetSize(232, DVIS * RH)
   dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollDetail(d) end)
   Picker.detailPool = {}
@@ -703,13 +712,15 @@ function Picker.create()
     Picker.detailPool[i] = row
   end
 
-  local addBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
+  local addBtn = CreateFrame("Button", nil, browse, "UIPanelButtonTemplate")
   addBtn:SetSize(232, 22); addBtn:SetPoint("BOTTOMLEFT", 214, 10); addBtn:SetText("+ Add custom location")
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
 
-  -- Add-custom-location form (overlay; logic unchanged from 3R-3).
+  -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
+  -- background, raised above the browse container so nothing shows through.
   local addPanel = CreateFrame("Frame", nil, locP)
-  addPanel:SetPoint("TOPLEFT", 8, -86); addPanel:SetPoint("BOTTOMRIGHT", -8, 8)
+  addPanel:SetPoint("TOPLEFT", 6, -86); addPanel:SetPoint("BOTTOMRIGHT", -6, 8)
+  addPanel:SetFrameLevel(locP:GetFrameLevel() + 10)
   local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(COL.content))
   addPanel:Hide(); Picker.addPanel = addPanel
 
