@@ -83,13 +83,28 @@ function Picker.updateSelected()
   if Picker.headerLoc then
     Picker.headerLoc:SetText(Picker.headerLocationText(Picker.db))
   end
+  -- Current-location card (city big, country/source on the right).
+  local sel = Selection.get(Picker.db)
+  local city, country = "Rotterdam", ""
+  if sel then
+    if sel.kind == "city" then
+      local c = Cities.findByName(sel.name)
+      if c then city, country = c.name, c.country else city = sel.name end
+    elseif sel.kind == "saved" then
+      city, country = sel.name, "saved"
+    else
+      city, country = "Manual location", ""
+    end
+  end
+  if Picker.cardCity then Picker.cardCity:SetText(city) end
+  if Picker.cardCountry then Picker.cardCountry:SetText(country) end
 end
 
 -- Selection actions (persist + update main window + indicator + list).
 local function afterSelectionChange()
   if Window.refresh then Window.refresh() end
   Picker.updateSelected()
-  Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
+  if Picker.refreshLocation then Picker.refreshLocation() end
 end
 
 function Picker.selectCity(name)
@@ -160,59 +175,153 @@ function Picker.saveManual(name, latText, lonText, offsetText, euDst)
   return ok, err
 end
 
--- Render the current query into the visible row pool, with selection highlight
--- and delete buttons on saved rows.
-function Picker.refreshList(query)
-  Picker.displayRows = Picker.buildRows(Picker.db, query)
-  local maxOffset = math.max(0, #Picker.displayRows - VISIBLE_ROWS)
-  Picker.scrollOffset = math.min(Picker.scrollOffset or 0, maxOffset)
-  if not Picker.rows then return end
-  local sel = Selection.get(Picker.db)
-  local selCity = sel and sel.kind == "city" and sel.name or nil
-  local selSaved = sel and sel.kind == "saved" and sel.name or nil
+-- ===== Master-detail city picker (3S-2) ===================================
+-- Pure row builders (no widgets): the master column lists My Cities + countries
+-- (with counts); the detail column lists the selected country's cities, or flat
+-- search matches when the search box has text. The old buildRows (combined list)
+-- is kept above for callers/tests that still use it.
 
-  for i = 1, VISIBLE_ROWS do
-    local row = Picker.rows[i]
-    local entry = Picker.displayRows[Picker.scrollOffset + i]
-    if row.delBtn then row.delBtn:Hide() end
-    if not entry then
-      row.kind, row.cityName, row.entryName, row._selected = nil, nil, nil, false
-      if row.hl then row.hl:Hide() end
+local function citiesInCountry(country)
+  local out = {}
+  for _, c in ipairs(Cities.all()) do
+    if c.country == country then out[#out + 1] = c end
+  end
+  table.sort(out, function(a, b) return a.name < b.name end)
+  return out
+end
+
+function Picker.masterRows(db)
+  local rows = {}
+  local saved = Selection.getSavedCities(db)
+  if #saved > 0 then
+    rows[#rows + 1] = { kind = "myheader", label = "MY CITIES" }
+    for _, c in ipairs(saved) do rows[#rows + 1] = { kind = "saved", city = c } end
+  end
+  rows[#rows + 1] = { kind = "cheader", label = "COUNTRIES" }
+  for _, g in ipairs(Cities.byCountry()) do
+    rows[#rows + 1] = { kind = "country", country = g.country, count = #g.cities }
+  end
+  return rows
+end
+
+-- Returns (rows, searching). Searching = the query drove a flat cross-city list.
+function Picker.detailRows(db, query, country)
+  local rows = {}
+  if query and query ~= "" then
+    for _, c in ipairs(Cities.search(query)) do rows[#rows + 1] = { kind = "city", city = c } end
+    return rows, true
+  end
+  if country then
+    for _, c in ipairs(citiesInCountry(country)) do rows[#rows + 1] = { kind = "city", city = c } end
+  end
+  return rows, false
+end
+
+-- Country to pre-select: the current city's country, else the first country.
+function Picker.defaultCountry(db)
+  local sel = Selection.get(db)
+  if sel and sel.kind == "city" then
+    local c = Cities.findByName(sel.name)
+    if c then return c.country end
+  end
+  local g = Cities.byCountry()[1]
+  return g and g.country
+end
+
+-- Recompute + render both columns from the current query/selected country.
+function Picker.refreshLocation(query)
+  query = query or (Picker.searchBox and Picker.searchBox:GetText()) or ""
+  if not Picker.selectedCountry then Picker.selectedCountry = Picker.defaultCountry(Picker.db) end
+  Picker.masterData = Picker.masterRows(Picker.db)
+  local rows, searching = Picker.detailRows(Picker.db, query, Picker.selectedCountry)
+  Picker.detailData, Picker.detailSearching = rows, searching
+  Picker.refreshMaster()
+  Picker.refreshDetail()
+  Picker.updateSelected()
+end
+
+function Picker.selectCountry(country)
+  Picker.selectedCountry = country
+  Picker.dScroll = 0
+  if Picker.searchBox then Picker.searchBox:SetText("") end -- fires refreshLocation
+  Picker.refreshLocation("")
+end
+
+function Picker.refreshMaster()
+  if not Picker.masterPool then return end
+  local data, vis = Picker.masterData or {}, #Picker.masterPool
+  Picker.mScroll = math.min(Picker.mScroll or 0, math.max(0, #data - vis))
+  local sel = Selection.get(Picker.db)
+  local selSaved = sel and sel.kind == "saved" and sel.name or nil
+  for i = 1, vis do
+    local row = Picker.masterPool[i]
+    local e = data[Picker.mScroll + i]
+    row.delBtn:Hide(); row.count:SetText(""); row.hl:Hide()
+    row.kind, row.country, row.name, row._selected = nil, nil, nil, false
+    if not e then
       row:Hide()
-    elseif entry.kind == "header" then
-      row.label:SetText("|cffffd100" .. entry.label .. "|r")
-      row.kind, row.cityName, row.entryName, row._selected = "header", nil, nil, false
-      if row.hl then row.hl:Hide() end
+    elseif e.kind == "myheader" or e.kind == "cheader" then
+      row.label:SetText("|cff8a8275" .. e.label .. "|r"); row.kind = "header"; row:Show()
+    elseif e.kind == "saved" then
+      local isSel = (e.city.name == selSaved)
+      row.label:SetText(e.city.name); row.kind, row.name, row._selected = "saved", e.city.name, isSel
+      if isSel then row.hl:Show() end
+      row.delBtn:SetScript("OnClick", function() Picker.deleteSaved(e.city.name) end); row.delBtn:Show()
       row:Show()
-    elseif entry.kind == "saved" then
-      local c = entry.city
-      local isSel = (c.name == selSaved)
-      local mark = isSel and "> " or "   "
-      row.label:SetText(mark .. c.name .. "  |cff888888(" .. tzText(c) .. ")|r")
-      row.label:SetTextColor(isSel and 0.3 or 1, 1, isSel and 0.4 or 1)
-      row.kind, row.cityName, row.entryName, row._selected = "saved", nil, c.name, isSel
-      if row.hl then if isSel then row.hl:Show() else row.hl:Hide() end end
-      if row.delBtn then
-        row.delBtn:SetScript("OnClick", function() Picker.deleteSaved(c.name) end)
-        row.delBtn:Show()
-      end
-      row:Show()
-    else
-      local name = entry.city.name
-      local isSel = (name == selCity)
-      local mark = isSel and "> " or "   "
-      row.label:SetText(mark .. name .. "  |cff888888" .. entry.city.country .. "|r")
-      row.label:SetTextColor(isSel and 0.3 or 1, 1, isSel and 0.4 or 1)
-      row.kind, row.cityName, row.entryName, row._selected = "city", name, nil, isSel
-      if row.hl then if isSel then row.hl:Show() else row.hl:Hide() end end
+    elseif e.kind == "country" then
+      local isSel = (e.country == Picker.selectedCountry)
+      row.label:SetText(e.country); row.count:SetText("|cff8a8275" .. e.count .. "|r")
+      row.kind, row.country, row._selected = "country", e.country, isSel
+      if isSel then row.hl:Show() end
       row:Show()
     end
   end
 end
 
-function Picker.scroll(delta)
-  Picker.scrollOffset = math.max(0, (Picker.scrollOffset or 0) - delta)
-  Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
+function Picker.refreshDetail()
+  if not Picker.detailPool then return end
+  local data, vis = Picker.detailData or {}, #Picker.detailPool
+  Picker.dScroll = math.min(Picker.dScroll or 0, math.max(0, #data - vis))
+  local sel = Selection.get(Picker.db)
+  local selCity = sel and sel.kind == "city" and sel.name or nil
+  if Picker.detailHeader then
+    Picker.detailHeader:SetText("|cffb89254"
+      .. (Picker.detailSearching and "SEARCH RESULTS" or (Picker.selectedCountry or "")) .. "|r")
+  end
+  for i = 1, vis do
+    local row = Picker.detailPool[i]
+    local e = data[Picker.dScroll + i]
+    row.check:SetText(""); row.hl:Hide()
+    row.name, row._selected = nil, false
+    if not e then
+      row:Hide()
+    else
+      local isSel = (e.city.name == selCity)
+      row.label:SetText(e.city.name); row.name, row._selected = e.city.name, isSel
+      if isSel then row.hl:Show(); row.check:SetText("|cffb89254\226\156\147|r") end
+      row:Show()
+    end
+  end
+end
+
+function Picker.scrollMaster(delta)
+  Picker.mScroll = math.max(0, (Picker.mScroll or 0) - delta)
+  Picker.refreshMaster()
+end
+
+function Picker.scrollDetail(delta)
+  Picker.dScroll = math.max(0, (Picker.dScroll or 0) - delta)
+  Picker.refreshDetail()
+end
+
+-- The "Add custom location" form overlays the master-detail when open.
+function Picker.openAddPanel()
+  Picker.clearError()
+  if Picker.addPanel then Picker.addPanel:Show() end
+end
+
+function Picker.closeAddPanel()
+  if Picker.addPanel then Picker.addPanel:Hide() end
 end
 
 -- Notification settings (wired to db.notify, read live by the Notifier).
@@ -421,6 +530,11 @@ local COL = {
   gold    = { 0.72, 0.58, 0.29, 1 },
   navText = { 0.16, 0.14, 0.11 },
   navSub  = { 0.45, 0.42, 0.36 },
+  content = { 0.96, 0.94, 0.88, 1 }, -- cream tab background
+  card    = { 0.16, 0.13, 0.10, 1 }, -- dark current-location card
+  text    = { 0.16, 0.14, 0.11 },    -- dark body text on cream
+  muted   = { 0.45, 0.42, 0.36 },
+  rowHl   = { 0.85, 0.78, 0.55, 0.55 }, -- gold row highlight
 }
 
 -- Switch sections: show one panel, hide the others, and mark the active sidebar
@@ -516,75 +630,112 @@ function Picker.create()
   end
   local locP, calcP, notifP = Picker.panels.location, Picker.panels.calculation, Picker.panels.notifications
 
-  -- ===== Location tab (city list + search + manual/My Cities, unchanged) =====
-  Picker.selectedLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  Picker.selectedLabel:SetPoint("TOP", locP, "TOP", 0, -2)
+  -- ===== Location tab (master-detail: country -> city, search, card) =====
+  local MVIS, DVIS, RH = 20, 18, 18
+  local locBg = locP:CreateTexture(nil, "BACKGROUND")
+  locBg:SetAllPoints(); locBg:SetColorTexture(unpack(COL.content))
 
+  -- Legacy indicator kept (hidden) so updateSelected + older tests still work.
+  Picker.selectedLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  Picker.selectedLabel:SetPoint("TOPLEFT", 0, 0); Picker.selectedLabel:Hide()
+
+  -- Current-location card.
+  local card = locP:CreateTexture(nil, "BACKGROUND")
+  card:SetPoint("TOPLEFT", 6, -4); card:SetSize(442, 46); card:SetColorTexture(unpack(COL.card))
+  local cl = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  cl:SetPoint("TOPLEFT", 20, -10); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(COL.gold))
+  Picker.cardCity = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  Picker.cardCity:SetPoint("TOPLEFT", 20, -24); Picker.cardCity:SetTextColor(0.96, 0.94, 0.88)
+  Picker.cardCountry = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  Picker.cardCountry:SetPoint("TOPRIGHT", -16, -26); Picker.cardCountry:SetTextColor(0.70, 0.67, 0.60)
+
+  -- Search across all cities.
   local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP, "InputBoxTemplate")
-  search:SetSize(290, 20); search:SetPoint("TOP", locP, "TOP", 0, -24); search:SetAutoFocus(false)
-  search:SetScript("OnTextChanged", function(self)
-    Picker.scrollOffset = 0
-    Picker.refreshList(self:GetText())
-  end)
+  search:SetSize(434, 22); search:SetPoint("TOPLEFT", 12, -58); search:SetAutoFocus(false)
+  search:SetScript("OnTextChanged", function(self) Picker.dScroll = 0; Picker.refreshLocation(self:GetText()) end)
   Picker.searchBox = search
 
-  -- Scrollable row pool (with per-row delete button for saved rows).
-  local list = CreateFrame("Frame", nil, locP)
-  list:SetPoint("TOPLEFT", 14, -48)
-  list:SetSize(302, VISIBLE_ROWS * ROW_HEIGHT)
-  list:EnableMouseWheel(true)
-  list:SetScript("OnMouseWheel", function(_, delta) Picker.scroll(delta) end)
-  Picker.rows = {}
-  for i = 1, VISIBLE_ROWS do
-    local row = CreateFrame("Button", nil, list)
-    row:SetSize(302, ROW_HEIGHT)
-    row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_HEIGHT)
+  -- Master column: My Cities + countries (with counts).
+  local mlist = CreateFrame("Frame", nil, locP)
+  mlist:SetPoint("TOPLEFT", 8, -90); mlist:SetSize(196, MVIS * RH)
+  mlist:EnableMouseWheel(true); mlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollMaster(d) end)
+  Picker.masterPool = {}
+  for i = 1, MVIS do
+    local row = CreateFrame("Button", nil, mlist)
+    row:SetSize(196, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(0.15, 0.5, 0.25, 0.6); hl:Hide()
-    row.hl = hl
+    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 2, 0); label:SetJustifyH("LEFT")
-    row.label = label
+    label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
+    local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    count:SetPoint("RIGHT", -8, 0); row.count = count
     local del = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    del:SetSize(18, 14); del:SetPoint("RIGHT", -2, 0); del:SetText("x"); del:Hide()
-    row.delBtn = del
+    del:SetSize(18, 14); del:SetPoint("RIGHT", -4, 0); del:SetText("x"); del:Hide(); row.delBtn = del
     row:SetScript("OnClick", function(self)
-      if self.kind == "saved" and self.entryName then Picker.selectSaved(self.entryName)
-      elseif self.cityName then Picker.selectCity(self.cityName) end
+      if self.kind == "country" then Picker.selectCountry(self.country)
+      elseif self.kind == "saved" then Picker.selectSaved(self.name) end
     end)
-    Picker.rows[i] = row
+    Picker.masterPool[i] = row
   end
 
-  -- Manual / save section.
-  local mY = -48 - VISIBLE_ROWS * ROW_HEIGHT - 14
-  local mlabel = locP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  mlabel:SetPoint("TOPLEFT", 14, mY); mlabel:SetText("Add a location (your computer's timezone unless UTC set):")
+  -- Divider.
+  local divider = locP:CreateTexture(nil, "ARTWORK")
+  divider:SetPoint("TOPLEFT", 208, -88); divider:SetPoint("BOTTOMLEFT", 208, 40)
+  divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
 
-  -- Row 1: Lat / Lon / UTC+/- with labels above; EU DST beside UTC.
-  makeColLabel(locP, "Lat", 18, mY - 18)
-  makeColLabel(locP, "Lon", 74, mY - 18)
-  makeColLabel(locP, "UTC+/-", 130, mY - 18)
+  -- Detail column: cities of the selected country (or search results).
+  Picker.detailHeader = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  Picker.detailHeader:SetPoint("TOPLEFT", 216, -92)
+  local dlist = CreateFrame("Frame", nil, locP)
+  dlist:SetPoint("TOPLEFT", 214, -110); dlist:SetSize(232, DVIS * RH)
+  dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollDetail(d) end)
+  Picker.detailPool = {}
+  for i = 1, DVIS do
+    local row = CreateFrame("Button", nil, dlist)
+    row:SetSize(232, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    local hl = row:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
+    local check = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    check:SetPoint("RIGHT", -8, 0); row.check = check
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
+    row:SetScript("OnClick", function(self) if self.name then Picker.selectCity(self.name) end end)
+    Picker.detailPool[i] = row
+  end
 
-  local boxY = mY - 32
-  local latBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  latBox:SetSize(48, 20); latBox:SetPoint("TOPLEFT", 16, boxY); latBox:SetAutoFocus(false)
-  local lonBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  lonBox:SetSize(48, 20); lonBox:SetPoint("TOPLEFT", 72, boxY); lonBox:SetAutoFocus(false)
-  local offBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  offBox:SetSize(42, 20); offBox:SetPoint("TOPLEFT", 128, boxY); offBox:SetAutoFocus(false)
+  local addBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
+  addBtn:SetSize(232, 22); addBtn:SetPoint("BOTTOMLEFT", 214, 10); addBtn:SetText("+ Add custom location")
+  addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
 
-  local euCheck = CreateFrame("CheckButton", nil, locP, "UICheckButtonTemplate")
-  euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 178, boxY + 1)
+  -- Add-custom-location form (overlay; logic unchanged from 3R-3).
+  local addPanel = CreateFrame("Frame", nil, locP)
+  addPanel:SetPoint("TOPLEFT", 8, -86); addPanel:SetPoint("BOTTOMRIGHT", -8, 8)
+  local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(COL.content))
+  addPanel:Hide(); Picker.addPanel = addPanel
+
+  local at = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  at:SetPoint("TOPLEFT", 8, -6); at:SetText("Add custom location"); at:SetTextColor(unpack(COL.text))
+
+  makeColLabel(addPanel, "Lat", 12, -30)
+  makeColLabel(addPanel, "Lon", 68, -30)
+  makeColLabel(addPanel, "UTC+/-", 124, -30)
+  local boxY = -44
+  local latBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
+  latBox:SetSize(48, 20); latBox:SetPoint("TOPLEFT", 10, boxY); latBox:SetAutoFocus(false)
+  local lonBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
+  lonBox:SetSize(48, 20); lonBox:SetPoint("TOPLEFT", 66, boxY); lonBox:SetAutoFocus(false)
+  local offBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
+  offBox:SetSize(42, 20); offBox:SetPoint("TOPLEFT", 122, boxY); offBox:SetAutoFocus(false)
+  local euCheck = CreateFrame("CheckButton", nil, addPanel, "UICheckButtonTemplate")
+  euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 172, boxY + 1)
   Picker.euCheck = euCheck
-  local euText = locP:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  local euText = addPanel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   euText:SetPoint("LEFT", euCheck, "RIGHT", 0, 0); euText:SetText("EU DST")
 
-  -- Row 2: Name on its own full-width line, label above.
   local nameLabelY = boxY - 28
-  makeColLabel(locP, "Name", 18, nameLabelY)
-  local nameBoxY = nameLabelY - 14
-  local nameBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  nameBox:SetSize(282, 20); nameBox:SetPoint("TOPLEFT", 16, nameBoxY); nameBox:SetAutoFocus(false)
+  makeColLabel(addPanel, "Name", 12, nameLabelY)
+  local nameBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
+  nameBox:SetSize(282, 20); nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 14); nameBox:SetAutoFocus(false)
   Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
 
   local clearErr = function() Picker.clearError() end
@@ -593,27 +744,30 @@ function Picker.create()
   lonBox:SetScript("OnTextChanged", clearErr)
   offBox:SetScript("OnTextChanged", clearErr)
 
-  -- Row 3: Save as My City + Use once (both act on the fields above).
-  local btnY = nameBoxY - 28
-  local saveBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
-  saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 16, btnY); saveBtn:SetText("Save as My City")
+  local btnY = nameLabelY - 42
+  local saveBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
+  saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 10, btnY); saveBtn:SetText("Save as My City")
   saveBtn:SetScript("OnClick", function()
-    Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
+    local ok = Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
       offBox:GetText(), euCheck:GetChecked())
+    if ok then Picker.closeAddPanel() end
   end)
-  local useBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
-  useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 142, btnY); useBtn:SetText("Use once")
+  local useBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
+  useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 136, btnY); useBtn:SetText("Use once")
   useBtn:SetScript("OnClick", function()
-    Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
+    local ok = Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
+    if ok then Picker.closeAddPanel() end
   end)
+  local backBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
+  backBtn:SetSize(60, 22); backBtn:SetPoint("TOPLEFT", 226, btnY); backBtn:SetText("Back")
+  backBtn:SetScript("OnClick", function() Picker.closeAddPanel() end)
 
-  -- Tab order follows the new visual order: Lat -> Lon -> UTC -> Name -> search.
+  -- Tab order within the add form: Lat -> Lon -> UTC -> Name -> Lat.
   local function tabTo(a, b) a:SetScript("OnTabPressed", function() b:SetFocus() end) end
-  tabTo(search, latBox); tabTo(latBox, lonBox); tabTo(lonBox, offBox)
-  tabTo(offBox, nameBox); tabTo(nameBox, search)
+  tabTo(latBox, lonBox); tabTo(lonBox, offBox); tabTo(offBox, nameBox); tabTo(nameBox, latBox)
 
-  Picker.errorLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontRed")
-  Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 98)
+  Picker.errorLabel = addPanel:CreateFontString(nil, "OVERLAY", "GameFontRed")
+  Picker.errorLabel:SetPoint("TOPLEFT", 10, btnY - 24)
 
   -- ===== Calculation tab (method dropdown + Asr radio buttons) =====
   local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -668,12 +822,12 @@ function Picker.create()
   sText:SetPoint("LEFT", soundCheck, "RIGHT", 2, 0); sText:SetText("Play sound")
 
   Picker.frame = f
-  Picker.scrollOffset = 0
+  Picker.mScroll, Picker.dScroll = 0, 0
   Picker.showTab("location")
   Picker.updateSelected()
   Picker.updateNotifyControls()
   Picker.updateCalcControls()
-  Picker.refreshList("")
+  Picker.refreshLocation("")
   return f
 end
 
@@ -684,7 +838,8 @@ function Picker.open()
   Picker.updateSelected()
   Picker.updateNotifyControls()
   Picker.updateCalcControls()
-  Picker.refreshList(Picker.searchBox and Picker.searchBox:GetText() or "")
+  Picker.closeAddPanel()
+  Picker.refreshLocation(Picker.searchBox and Picker.searchBox:GetText() or "")
   Picker.frame:Show()
 end
 

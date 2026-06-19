@@ -793,8 +793,11 @@ do
   Picker.create()
   WowMock.setNow(1766318400)
 
-  check("picker builds VISIBLE_ROWS rows", #Picker.rows == 14)
-  check("picker populated display rows", #Picker.displayRows == 65 + (#Cities.byCountry()))
+  check("picker builds master + detail row pools",
+    #Picker.masterPool == 20 and #Picker.detailPool == 18)
+  Picker.refreshLocation("")
+  check("master column lists every country (+ COUNTRIES header)",
+    #Picker.masterData == (#Cities.byCountry() + 1))
 
   -- Selecting a city persists and updates the main window.
   Picker.selectCity("Sarajevo")
@@ -819,25 +822,31 @@ do
   check("applyManual invalid rejected", ok2 == false and type(err2) == "string")
   check("applyManual invalid keeps selection", pdb.selectedCity == before)
 
-  -- Search box drives the list; scroll clamps.
-  Picker.refreshList("istanbul")
-  check("search narrows list", #Picker.displayRows == 1 and Picker.displayRows[1].city.name == "Istanbul")
-  Picker.refreshList("")
-  Picker.scroll(-100) -- scroll way down; offset clamps, no error
-  check("scroll offset clamps", Picker.scrollOffset <= (#Picker.displayRows - 14))
+  -- Search drives the detail column (flat cross-city matches); scroll clamps.
+  Picker.refreshLocation("istanbul")
+  check("search narrows detail to Istanbul",
+    #Picker.detailData == 1 and Picker.detailData[1].city.name == "Istanbul" and Picker.detailSearching)
+  Picker.refreshLocation("")
+  Picker.scrollDetail(-100) -- scroll way down; offset clamps, no error
+  check("detail scroll offset clamps", Picker.dScroll <= math.max(0, #Picker.detailData - 18))
 
-  -- Selected row is highlighted in the list (visible feedback).
+  -- Selected city is checkmarked/highlighted in the detail column.
   Picker.selectCity("Istanbul")
-  Picker.refreshList("istanbul") -- one row, the selected city
-  check("selected row marked in list", Picker.rows[1]._selected == true)
-  Picker.refreshList("berlin")
-  check("non-selected row not marked", Picker.rows[1]._selected == false)
+  Picker.refreshLocation("istanbul") -- one row, the selected city
+  check("selected detail row marked", Picker.detailPool[1]._selected == true)
+  Picker.refreshLocation("berlin")
+  check("non-selected detail row not marked", Picker.detailPool[1]._selected == false)
 
-  -- Tab order wired across the input fields.
-  check("search has tab handler", Picker.searchBox:GetScript("OnTabPressed") ~= nil)
+  -- Master column: picking a country drives the detail column.
+  Picker.selectCountry("Germany")
+  check("selectCountry filters detail to that country",
+    Picker.selectedCountry == "Germany" and #Picker.detailData >= 1)
+
+  -- Tab order wired across the add-form input fields.
   check("lat has tab handler", Picker.latBox:GetScript("OnTabPressed") ~= nil)
   check("lon has tab handler", Picker.lonBox:GetScript("OnTabPressed") ~= nil)
   check("offset has tab handler", Picker.offsetBox:GetScript("OnTabPressed") ~= nil)
+  check("name has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
 end
 
 -- ---- 2d-4b: notification controls wired into the picker ------------------
@@ -1000,10 +1009,11 @@ do
   Selection.saveCity(db, "Travnik", 44.2261, 17.6650, {})
   Picker.create()
   Picker.selectSaved("Travnik")
-  Picker.refreshList("")
-  check("My Cities header rendered row 1", Picker.rows[1].kind == "header")
+  Picker.refreshLocation("")
+  check("My Cities header rendered in master row 1", Picker.masterPool[1].kind == "header")
   check("saved row rendered + selected + delete shown",
-    Picker.rows[2].kind == "saved" and Picker.rows[2]._selected == true)
+    Picker.masterPool[2].kind == "saved" and Picker.masterPool[2]._selected == true
+    and Picker.masterPool[2].delBtn:IsShown() == true)
   check("name field has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
 end
 
@@ -1439,6 +1449,65 @@ do
   Picker.updateSelected()
   check("header shows City . Country",
     Picker.headerLoc:GetText() ~= nil and Picker.headerLoc:GetText():find("Istanbul", 1, true) ~= nil)
+end
+
+-- ---- 3S-2: Location master-detail (country -> city, search, card) --------
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- masterRows: COUNTRIES header + one row per country; My Cities prepended.
+  local m = Picker.masterRows(db)
+  check("masterRows has a COUNTRIES header", m[1].kind == "cheader" and m[1].label == "COUNTRIES")
+  check("masterRows lists every country with a count",
+    #m == (1 + #Cities.byCountry()) and m[2].kind == "country" and m[2].count >= 1)
+  Selection.saveCity(db, "Hometown", 50, 5, {})
+  local m2 = Picker.masterRows(db)
+  check("My Cities header + saved row prepended",
+    m2[1].kind == "myheader" and m2[2].kind == "saved" and m2[2].city.name == "Hometown")
+
+  -- detailRows: country filter vs cross-city search.
+  local dRows, searching = Picker.detailRows(db, "", "Germany")
+  check("detailRows by country returns that country's cities", #dRows >= 1 and not searching)
+  local sRows, s2 = Picker.detailRows(db, "istan", nil)
+  check("detailRows by query searches across cities", s2 == true
+    and sRows[1] and sRows[1].city.name == "Istanbul")
+
+  -- defaultCountry follows the current city selection.
+  Picker.selectCity("Berlin")
+  check("defaultCountry follows selection", Picker.defaultCountry(db) == "Germany")
+
+  -- selectCountry drives the detail column + marks the master row.
+  Picker.selectCountry("France")
+  check("selectCountry sets selectedCountry + detail", Picker.selectedCountry == "France")
+  local franceSelectedInMaster = false
+  for _, row in ipairs(Picker.masterPool) do
+    if row.kind == "country" and row.country == "France" then franceSelectedInMaster = row._selected end
+  end
+  check("selected country highlighted in master", franceSelectedInMaster == true)
+
+  -- Checkmark on the selected city in the detail column.
+  Picker.selectCity("Paris")
+  Picker.selectCountry("France")
+  local parisChecked = false
+  for _, row in ipairs(Picker.detailPool) do
+    if row.name == "Paris" then parisChecked = row._selected end
+  end
+  check("selected city checkmarked in detail", parisChecked == true)
+
+  -- Current-location card reflects the selection.
+  check("card shows the selected city + country",
+    Picker.cardCity:GetText() == "Paris" and Picker.cardCountry:GetText() == "France")
+
+  -- "Add custom location" opens the overlay; Back/closeAddPanel hides it.
+  check("add panel hidden by default", Picker.addPanel:IsShown() == false)
+  Picker.openAddPanel()
+  check("openAddPanel shows the form", Picker.addPanel:IsShown() == true)
+  Picker.closeAddPanel()
+  check("closeAddPanel hides the form", Picker.addPanel:IsShown() == false)
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
