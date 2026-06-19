@@ -447,8 +447,20 @@ local function makeDropdown(parent, opts)
   local vis = opts.rows or 8
   local width = opts.width or 240
 
-  local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-  button:SetSize(width, 22)
+  -- Flat cream button: border + cream fill + left label + a v arrow. (No
+  -- Blizzard button template, so it matches the cream palette.)
+  local button = CreateFrame("Button", nil, parent)
+  button:SetSize(width, 26)
+  local bborder = button:CreateTexture(nil, "BACKGROUND"); bborder:SetAllPoints(); bborder:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local bfill = button:CreateTexture(nil, "BACKGROUND")
+  bfill:SetPoint("TOPLEFT", 1, -1); bfill:SetPoint("BOTTOMRIGHT", -1, 1); bfill:SetColorTexture(unpack(COL.cardOff))
+  local blabel = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  blabel:SetPoint("LEFT", 10, 0); blabel:SetPoint("RIGHT", -24, 0); blabel:SetJustifyH("LEFT"); blabel:SetTextColor(unpack(COL.text))
+  dd.labelFS = blabel
+  local barrow = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  barrow:SetPoint("RIGHT", -10, 0); barrow:SetText("\226\150\188"); barrow:SetTextColor(unpack(COL.muted))
+  button:SetScript("OnEnter", function() bfill:SetColorTexture(unpack(COL.cardSel)) end)
+  button:SetScript("OnLeave", function() bfill:SetColorTexture(unpack(COL.cardOff)) end)
   dd.button = button
 
   -- Full-screen catcher: clicking outside the open list closes it. Parented to
@@ -467,8 +479,10 @@ local function makeDropdown(parent, opts)
   popup:SetFrameStrata("FULLSCREEN_DIALOG")
   popup:EnableMouseWheel(true)
   popup:SetScript("OnMouseWheel", function(_, delta) dd:scroll(delta) end)
+  local pborder = popup:CreateTexture(nil, "BACKGROUND")
+  pborder:SetAllPoints(); pborder:SetColorTexture(0.55, 0.50, 0.42, 1)
   local pbg = popup:CreateTexture(nil, "BACKGROUND")
-  pbg:SetAllPoints(); pbg:SetColorTexture(0.05, 0.05, 0.05, 0.95)
+  pbg:SetPoint("TOPLEFT", 1, -1); pbg:SetPoint("BOTTOMRIGHT", -1, 1); pbg:SetColorTexture(unpack(COL.cardOff))
   popup:Hide()
   dd.popup = popup
 
@@ -478,10 +492,10 @@ local function makeDropdown(parent, opts)
     row:SetSize(width - 8, DD_ROW_H)
     row:SetPoint("TOPLEFT", 4, -4 - (i - 1) * DD_ROW_H)
     local hl = row:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(0.15, 0.5, 0.25, 0.6); hl:Hide()
+    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide()
     row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 4, 0); label:SetJustifyH("LEFT")
+    label:SetPoint("LEFT", 6, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text))
     row.label = label
     row:SetScript("OnClick", function(self) if self.key then dd:select(self.key) end end)
     dd.rows[i] = row
@@ -495,7 +509,7 @@ local function makeDropdown(parent, opts)
     return "Select..."
   end
 
-  function dd:updateButton() dd.button:SetText(dd:currentLabel()) end
+  function dd:updateButton() dd.labelFS:SetText(dd:currentLabel()) end
 
   function dd:renderRows()
     local options = opts.getOptions()
@@ -668,11 +682,16 @@ function Picker.create()
     Picker.tabButtons[t.key] = btn -- back-compat alias
 
     local panel = CreateFrame("Frame", nil, f)
-    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 196, -54)
-    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 12)
+    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 189, -46)
+    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
     Picker.panels[t.key] = panel
   end
   local locP, calcP, notifP = Picker.panels.location, Picker.panels.calculation, Picker.panels.notifications
+
+  -- Thin divider between the cream sidebar and the cream content.
+  local vdiv = f:CreateTexture(nil, "ARTWORK")
+  vdiv:SetPoint("TOPLEFT", 188, -46); vdiv:SetPoint("BOTTOMLEFT", 188, 0)
+  vdiv:SetWidth(1); vdiv:SetColorTexture(0, 0, 0, 0.18)
 
   -- ===== Location tab (master-detail: country -> city, search, card) =====
   local MVIS, DVIS, RH = 20, 18, 18

@@ -1235,13 +1235,13 @@ do
 
   -- Default reflects MWL (dropdown button shows the current method label).
   check("method dropdown shows MWL by default",
-    Picker.methodDropdown.button:GetText() == Methods.methodLabel("MuslimWorldLeague"))
+    Picker.methodDropdown.labelFS:GetText() == Methods.methodLabel("MuslimWorldLeague"))
 
   -- setMethod persists, refreshes, and updates the dropdown button.
   Picker.setMethod("Tehran")
   check("setMethod persists to db", db.method == "Tehran")
   check("setMethod updates the dropdown button",
-    Picker.methodDropdown.button:GetText() == Methods.methodLabel("Tehran"))
+    Picker.methodDropdown.labelFS:GetText() == Methods.methodLabel("Tehran"))
   check("setMethod triggers a window refresh", refreshes >= 1)
 
   -- Bogus key falls back to MWL via the registry.
@@ -1352,7 +1352,7 @@ do
   dd:select("Tehran")
   check("select() closes the dropdown", dd.isOpen == false and dd.popup:IsShown() == false)
   check("select() persists the choice", db.method == "Tehran")
-  check("select() updates the button label", dd.button:GetText() == Methods.methodLabel("Tehran"))
+  check("select() updates the button label", dd.labelFS:GetText() == Methods.methodLabel("Tehran"))
 
   -- Selecting an unknown key falls back to MWL via the registry.
   dd:select("Nonsense")
