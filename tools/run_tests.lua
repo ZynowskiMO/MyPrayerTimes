@@ -1306,7 +1306,7 @@ do
   -- Existing controls survived the move into panels (still present + wired).
   check("search box still present", Picker.searchBox ~= nil)
   check("name box still has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
-  check("method dropdown + Asr radios still present", Picker.methodDropdown ~= nil and Picker.asrRadios ~= nil)
+  check("method dropdown + Asr cards still present", Picker.methodDropdown ~= nil and Picker.asrCards ~= nil)
   check("notification controls still present",
     Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
 
@@ -1358,25 +1358,25 @@ do
   dd:select("Nonsense")
   check("select(unknown) -> MWL fallback", db.method == "MuslimWorldLeague")
 
-  -- Asr radios: exactly one checked, reflecting the current madhab.
-  local function checkedRadios()
+  -- Asr cards: exactly one selected, reflecting the current madhab.
+  local function selectedCards()
     local n, key = 0, nil
-    for _, r in ipairs(Picker.asrRadios) do if r:GetChecked() then n = n + 1; key = r.key end end
+    for _, c in ipairs(Picker.asrCards) do if c._selected then n = n + 1; key = c.key end end
     return n, key
   end
   db.madhab = "shafi"; Picker.updateCalcControls()
-  local n, key = checkedRadios()
-  check("exactly one Asr radio checked (Standard)", n == 1 and key == "shafi")
+  local n, key = selectedCards()
+  check("exactly one Asr card selected (Standard)", n == 1 and key == "shafi")
 
-  -- Clicking the Hanafi radio is mutually exclusive + updates Asr live.
+  -- Clicking the Hanafi card is mutually exclusive + updates Asr live.
   local realRefresh = Window.refresh
   local refreshes = 0
   Window.refresh = function(...) refreshes = refreshes + 1; return realRefresh(...) end
-  Picker.asrRadios[2]:GetScript("OnClick")(Picker.asrRadios[2])
-  local n2, key2 = checkedRadios()
-  check("clicking Hanafi radio selects it exclusively", n2 == 1 and key2 == "hanafi")
-  check("Asr radio click persists madhab", db.madhab == "hanafi")
-  check("Asr radio click refreshes the window", refreshes >= 1)
+  Picker.asrCards[2]:GetScript("OnClick")(Picker.asrCards[2])
+  local n2, key2 = selectedCards()
+  check("clicking Hanafi card selects it exclusively", n2 == 1 and key2 == "hanafi")
+  check("Asr card click persists madhab", db.madhab == "hanafi")
+  check("Asr card click refreshes the window", refreshes >= 1)
   Window.refresh = realRefresh
 end
 
@@ -1521,6 +1521,37 @@ do
   Picker.closeAddPanel()
   check("save persists + form close restores browse",
     sOk == true and Picker.browse:IsShown() == true and Selection.findSaved(db, "Sklep") ~= nil)
+end
+
+-- ---- 3S-4: Calculation tab (method dropdown + Asr description cards) -----
+do
+  local Picker = require("Picker")
+  local Methods = require("Methods")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- Two Asr cards, each with a title + a description.
+  check("two Asr cards built", #Picker.asrCards == 2)
+  check("Asr cards carry titles + descriptions",
+    Picker.asrCards[1].title:GetText() == Methods.madhabLabel("shafi")
+    and Picker.asrCards[1].desc ~= nil)
+
+  -- Selected card reflects the current madhab and flips on selection.
+  db.madhab = "shafi"; Picker.updateCalcControls()
+  check("Standard card selected for shafi", Picker.asrCards[1]._selected == true
+    and Picker.asrCards[2]._selected == false)
+  Picker.setMadhab("hanafi")
+  check("Hanafi card selected after setMadhab", Picker.asrCards[2]._selected == true
+    and Picker.asrCards[1]._selected == false)
+
+  -- Method dropdown still drives the registry and persists a pick.
+  Picker.methodDropdown:open()
+  check("method dropdown opens", Picker.methodDropdown.popup:IsShown() == true)
+  Picker.methodDropdown:select("Egyptian")
+  check("dropdown pick persists + closes",
+    db.method == "Egyptian" and Picker.methodDropdown.popup:IsShown() == false)
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------

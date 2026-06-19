@@ -12,6 +12,26 @@ local Methods = require("Methods")
 local VISIBLE_ROWS = 14
 local ROW_HEIGHT = 16
 
+-- Palette (cream / charcoal / gold). Declared up here so every function can use
+-- it. Content stays dark on not-yet-restyled tabs so light text reads; each tab
+-- is converted to cream + dark text as it is rebuilt (3S-2/3S-4/3S-5).
+local COL = {
+  header  = { 0.13, 0.11, 0.09, 1 },
+  bg      = { 0.07, 0.06, 0.05, 0.97 },
+  sidebar = { 0.91, 0.88, 0.81, 1 },
+  navHl   = { 0.97, 0.95, 0.90, 1 },
+  gold    = { 0.72, 0.58, 0.29, 1 },
+  navText = { 0.16, 0.14, 0.11 },
+  navSub  = { 0.45, 0.42, 0.36 },
+  content = { 0.96, 0.94, 0.88, 1 }, -- cream tab background
+  card    = { 0.16, 0.13, 0.10, 1 }, -- dark current-location card
+  text    = { 0.16, 0.14, 0.11 },    -- dark body text on cream
+  muted   = { 0.45, 0.42, 0.36 },
+  rowHl   = { 0.85, 0.78, 0.55, 0.55 }, -- gold row highlight
+  cardSel = { 0.91, 0.85, 0.67, 1 },    -- selected option card (light gold)
+  cardOff = { 1.0, 0.99, 0.96, 1 },     -- unselected option card (near white)
+}
+
 local Picker = {}
 
 function Picker.init(db)
@@ -384,9 +404,15 @@ end
 function Picker.updateCalcControls()
   local db = Picker.db
   if Picker.methodDropdown then Picker.methodDropdown:updateButton() end
-  if Picker.asrRadios then
+  if Picker.asrCards then
     local cur = Methods.resolveMadhab(db and db.madhab)
-    for _, r in ipairs(Picker.asrRadios) do r:SetChecked(r.key == cur) end
+    for _, c in ipairs(Picker.asrCards) do
+      local on = (c.key == cur)
+      c._selected = on
+      if c.bg then c.bg:SetColorTexture(unpack(on and COL.cardSel or COL.cardOff)) end
+      if c.border then if on then c.border:Show() else c.border:Hide() end end
+      if c.title then c.title:SetTextColor(unpack(on and COL.gold or COL.text)) end
+    end
   end
 end
 
@@ -520,24 +546,6 @@ local TABS = {
   { key = "location",      label = "Location",      sub = "Pick where you are" },
   { key = "calculation",   label = "Calculation",   sub = "Method & Asr" },
   { key = "notifications", label = "Notifications", sub = "Alerts & sound" },
-}
-
--- Palette (cream / charcoal / gold). Content stays dark in 3S-1 so the existing
--- light-text controls remain readable; each tab is converted to cream + dark
--- text as it is rebuilt (3S-2/3S-4/3S-5), with a final pass in 3S-6.
-local COL = {
-  header  = { 0.13, 0.11, 0.09, 1 },
-  bg      = { 0.07, 0.06, 0.05, 0.97 },
-  sidebar = { 0.91, 0.88, 0.81, 1 },
-  navHl   = { 0.97, 0.95, 0.90, 1 },
-  gold    = { 0.72, 0.58, 0.29, 1 },
-  navText = { 0.16, 0.14, 0.11 },
-  navSub  = { 0.45, 0.42, 0.36 },
-  content = { 0.96, 0.94, 0.88, 1 }, -- cream tab background
-  card    = { 0.16, 0.13, 0.10, 1 }, -- dark current-location card
-  text    = { 0.16, 0.14, 0.11 },    -- dark body text on cream
-  muted   = { 0.45, 0.42, 0.36 },
-  rowHl   = { 0.85, 0.78, 0.55, 0.55 }, -- gold row highlight
 }
 
 -- Switch sections: show one panel, hide the others, and mark the active sidebar
@@ -780,30 +788,47 @@ function Picker.create()
   Picker.errorLabel = addPanel:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 10, btnY - 24)
 
-  -- ===== Calculation tab (method dropdown + Asr radio buttons) =====
-  local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  mLabel:SetPoint("TOPLEFT", 14, -12); mLabel:SetText("Calculation method")
+  -- ===== Calculation tab (method dropdown + Asr description cards) =====
+  local calcBg = calcP:CreateTexture(nil, "BACKGROUND")
+  calcBg:SetAllPoints(); calcBg:SetColorTexture(unpack(COL.content))
+
+  local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  mLabel:SetPoint("TOPLEFT", 16, -16); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(COL.gold))
 
   Picker.methodDropdown = makeDropdown(calcP, {
-    width = 294, rows = 8,
+    width = 430, rows = 10,
     getOptions = function() return Methods.list() end,
     getCurrent = function() return Methods.resolveMethod(Picker.db and Picker.db.method) end,
     onSelect = function(key) Picker.setMethod(key) end,
   })
-  Picker.methodDropdown.button:SetPoint("TOPLEFT", 16, -32)
+  Picker.methodDropdown.button:SetPoint("TOPLEFT", 16, -34)
 
-  local aLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  aLabel:SetPoint("TOPLEFT", 14, -68); aLabel:SetText("Asr school")
+  local aLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  aLabel:SetPoint("TOPLEFT", 16, -78); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(COL.gold))
 
-  Picker.asrRadios = {}
+  -- Two selectable description cards, one per school (mutually exclusive).
+  local ASR_DESC = {
+    shafi = "Shafi'i, Maliki, Hanbali -- shadow = object length.",
+    hanafi = "Shadow = twice the object length.",
+  }
+  Picker.asrCards = {}
+  local cardW = 210
   for i, a in ipairs(Methods.asrList()) do
-    local radio = CreateFrame("CheckButton", nil, calcP, "UIRadioButtonTemplate")
-    radio:SetPoint("TOPLEFT", 18, -88 - (i - 1) * 24)
-    radio.key = a.key
-    radio:SetScript("OnClick", function() Picker.setMadhab(a.key) end)
-    local t = calcP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    t:SetPoint("LEFT", radio, "RIGHT", 4, 0); t:SetText(a.label)
-    Picker.asrRadios[i] = radio
+    local card = CreateFrame("Button", nil, calcP)
+    card:SetSize(cardW, 72); card:SetPoint("TOPLEFT", 16 + (i - 1) * (cardW + 10), -96)
+    card.key = a.key
+    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); cbg:SetColorTexture(unpack(COL.cardOff))
+    card.bg = cbg
+    local barT = card:CreateTexture(nil, "ARTWORK")
+    barT:SetPoint("TOPLEFT", 0, 0); barT:SetPoint("BOTTOMLEFT", 0, 0); barT:SetWidth(3)
+    barT:SetColorTexture(unpack(COL.gold)); barT:Hide(); card.border = barT
+    local ct = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(COL.text)); card.title = ct
+    local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
+    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(COL.muted))
+    card:SetScript("OnClick", function() Picker.setMadhab(a.key) end)
+    Picker.asrCards[i] = card
   end
 
   -- ===== Notifications tab =====
