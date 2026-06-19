@@ -18,8 +18,17 @@ local LABELS = {
 }
 local ORDER = Schedule.ORDER
 
-local NEXT_COLOR = { 0.25, 1.0, 0.4 } -- green highlight for the next prayer
-local NORMAL_COLOR = { 1.0, 1.0, 1.0 }
+-- Cream/gold palette matching the settings window (ADR-0005 redesign).
+local COL = {
+  border  = { 0.10, 0.09, 0.07, 1 },
+  header  = { 0.13, 0.11, 0.09, 1 },
+  bg      = { 0.96, 0.94, 0.88, 0.96 },
+  gold    = { 0.72, 0.58, 0.29, 1 },
+  text    = { 0.16, 0.14, 0.11 },
+  rowHl   = { 0.85, 0.78, 0.55, 0.7 },
+}
+local NEXT_COLOR = { 0.20, 0.14, 0.05 }  -- dark text on the gold next-row bar
+local NORMAL_COLOR = { 0.16, 0.14, 0.11 } -- dark text on cream
 
 local Window = {}
 
@@ -42,7 +51,7 @@ function Window.create()
   if Window.frame then return Window.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesFrame", UIParent)
-  f:SetSize(190, 234)
+  f:SetSize(206, 226)
   f:SetFrameStrata("MEDIUM")
   f:SetClampedToScreen(true)
   f:SetMovable(true)
@@ -55,30 +64,50 @@ function Window.create()
     Window.savePosition()
   end)
 
+  -- Cream card with a dark border + a dark header strip.
+  local border = f:CreateTexture(nil, "BACKGROUND")
+  border:SetAllPoints(); border:SetColorTexture(unpack(COL.border))
   local bg = f:CreateTexture(nil, "BACKGROUND")
-  bg:SetAllPoints()
-  bg:SetColorTexture(0, 0, 0, 0.6)
+  bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); bg:SetColorTexture(unpack(COL.bg))
+  local header = f:CreateTexture(nil, "ARTWORK")
+  header:SetPoint("TOPLEFT", 1, -1); header:SetPoint("TOPRIGHT", -1, -1); header:SetHeight(26)
+  header:SetColorTexture(unpack(COL.header))
 
+  -- City name (gold) + a gear button that opens settings.
   local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  title:SetPoint("TOP", 0, -10)
+  title:SetPoint("LEFT", header, "LEFT", 10, 0); title:SetTextColor(unpack(COL.gold))
   f.title = title
+
+  local gear = CreateFrame("Button", nil, f)
+  gear:SetSize(18, 18); gear:SetPoint("RIGHT", header, "RIGHT", -8, 0)
+  local gt = gear:CreateTexture(nil, "ARTWORK"); gt:SetAllPoints()
+  gt:SetTexture("Interface\\Buttons\\UI-OptionsButton")
+  gear:SetScript("OnEnter", function() gt:SetVertexColor(1, 0.95, 0.7) end)
+  gear:SetScript("OnLeave", function() gt:SetVertexColor(1, 1, 1) end)
+  gear:SetScript("OnClick", function()
+    local P = require("Picker"); if P and P.toggle then P.toggle() end
+  end)
+  f.gear = gear
 
   f.rows = {}
   for i, key in ipairs(ORDER) do
-    local y = -34 - (i - 1) * 26
-    local label = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", 14, y)
-    label:SetJustifyH("LEFT")
-    label:SetText(LABELS[key])
-    local timeText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    timeText:SetPoint("TOPRIGHT", -14, y)
-    timeText:SetJustifyH("RIGHT")
-    f.rows[key] = { label = label, time = timeText }
+    local y = -32 - (i - 1) * 25
+    local row = CreateFrame("Frame", nil, f)
+    row:SetPoint("TOPLEFT", 4, y); row:SetPoint("TOPRIGHT", -4, y); row:SetHeight(24)
+    local hl = row:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide()
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT")
+    label:SetText(LABELS[key]); label:SetTextColor(unpack(COL.text))
+    local timeText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    timeText:SetPoint("RIGHT", -10, 0); timeText:SetJustifyH("RIGHT")
+    timeText:SetTextColor(unpack(COL.text))
+    f.rows[key] = { label = label, time = timeText, hl = hl }
   end
 
   local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  countdown:SetPoint("BOTTOM", 0, 12)
-  countdown:SetTextColor(0.85, 0.85, 0.35)
+  countdown:SetPoint("BOTTOM", 0, 10)
+  countdown:SetTextColor(unpack(COL.gold))
   f.countdown = countdown
 
   Window.frame = f
@@ -171,9 +200,13 @@ local function renderNow(now)
   local f = Window.frame
   local sched = Schedule.compute(Window.localTimes, now.minuteOfDay)
   for _, key in ipairs(ORDER) do
-    local c = (key == sched.nextKey) and NEXT_COLOR or NORMAL_COLOR
+    local isNext = (key == sched.nextKey)
+    local c = isNext and NEXT_COLOR or NORMAL_COLOR
     f.rows[key].label:SetTextColor(c[1], c[2], c[3])
     f.rows[key].time:SetTextColor(c[1], c[2], c[3])
+    if f.rows[key].hl then
+      if isNext then f.rows[key].hl:Show() else f.rows[key].hl:Hide() end
+    end
   end
   if sched.nextKey and sched.untilMinutes then
     local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)

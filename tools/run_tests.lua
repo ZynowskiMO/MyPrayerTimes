@@ -1611,6 +1611,32 @@ do
   end
 end
 
+-- ---- 3M-1: main window restyle (gear button + next-prayer row highlight) -
+do
+  local Window = require("Window")
+  Window.frame = nil
+  local wdb = {}
+  Window.init(wdb)
+  WowMock.setNow(1766318400)
+  Window.create()
+
+  check("main window has a gear button", Window.frame.gear ~= nil)
+  check("prayer rows have highlight textures",
+    Window.frame.rows.fajr.hl ~= nil and Window.frame.rows.isha.hl ~= nil)
+
+  -- Exactly the next prayer's row is highlighted; the others are not.
+  local sched = Window.lastSchedule
+  check("a next prayer is scheduled", sched ~= nil and sched.nextKey ~= nil)
+  if sched and sched.nextKey then
+    local shown = 0
+    for _, key in ipairs(Schedule.ORDER) do
+      if Window.frame.rows[key].hl:IsShown() then shown = shown + 1 end
+    end
+    check("only the next prayer row is highlighted",
+      shown == 1 and Window.frame.rows[sched.nextKey].hl:IsShown() == true)
+  end
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
