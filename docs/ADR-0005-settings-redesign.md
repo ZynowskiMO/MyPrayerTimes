@@ -1,6 +1,6 @@
 # ADR-0005: Settings window redesign (Approach B — sidebar + master-detail)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-06-19
 - **Decision makers:** Muhamed Bašić (PO), Claude (advisory)
 - **Relates to:** ADR-0002 (local calculation), ADR-0004 (methods/Asr). Supersedes

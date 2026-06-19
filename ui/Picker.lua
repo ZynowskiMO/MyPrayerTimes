@@ -80,6 +80,9 @@ function Picker.updateSelected()
   if Picker.selectedLabel then
     Picker.selectedLabel:SetText(Picker.currentSelectionText(Picker.db))
   end
+  if Picker.headerLoc then
+    Picker.headerLoc:SetText(Picker.headerLocationText(Picker.db))
+  end
 end
 
 -- Selection actions (persist + update main window + indicator + list).
@@ -396,17 +399,32 @@ local function makeDropdown(parent, opts)
   return dd
 end
 
--- Three-tab layout (ADR-0004 redesign). 3R-1 introduces the scaffold and moves
--- the EXISTING controls into per-tab panels unchanged (re-parent + re-anchor
--- only -- no logic or widget rebuild). Subsequent checkpoints rebuild each tab.
+-- Settings redesign (ADR-0005, Approach B): a dark header, a persistent left
+-- sidebar (title + subtitle per section, active item marked with a gold bar +
+-- lighter background), and a content area on the right hosting one panel at a
+-- time. 3S-1 builds this chrome; each section's content is restyled in 3S-2..6.
+-- Skin is the approximation pass: solid-colour textures only, no bundled art.
 local TABS = {
-  { key = "location",      label = "Location" },
-  { key = "calculation",   label = "Calculation" },
-  { key = "notifications", label = "Notifications" },
+  { key = "location",      label = "Location",      sub = "Pick where you are" },
+  { key = "calculation",   label = "Calculation",   sub = "Method & Asr" },
+  { key = "notifications", label = "Notifications", sub = "Alerts & sound" },
 }
 
--- Switch tabs: show one panel, hide the others, and mark the active tab button
--- (disabled = current). Pure enough for the runner to drive via IsShown().
+-- Palette (cream / charcoal / gold). Content stays dark in 3S-1 so the existing
+-- light-text controls remain readable; each tab is converted to cream + dark
+-- text as it is rebuilt (3S-2/3S-4/3S-5), with a final pass in 3S-6.
+local COL = {
+  header  = { 0.13, 0.11, 0.09, 1 },
+  bg      = { 0.07, 0.06, 0.05, 0.97 },
+  sidebar = { 0.91, 0.88, 0.81, 1 },
+  navHl   = { 0.97, 0.95, 0.90, 1 },
+  gold    = { 0.72, 0.58, 0.29, 1 },
+  navText = { 0.16, 0.14, 0.11 },
+  navSub  = { 0.45, 0.42, 0.36 },
+}
+
+-- Switch sections: show one panel, hide the others, and mark the active sidebar
+-- item (gold bar + lighter background). Runner-drivable via IsShown().
 function Picker.showTab(name)
   if not Picker.panels then return end
   if not Picker.panels[name] then name = "location" end
@@ -414,17 +432,32 @@ function Picker.showTab(name)
   for key, panel in pairs(Picker.panels) do
     if key == name then panel:Show() else panel:Hide() end
   end
-  for key, btn in pairs(Picker.tabButtons) do
-    if key == name then btn:Disable() else btn:Enable() end
+  if Picker.navItems then
+    for key, n in pairs(Picker.navItems) do
+      if key == name then n.hl:Show(); n.bar:Show() else n.hl:Hide(); n.bar:Hide() end
+    end
   end
+end
+
+-- Compact "City . Country" for the header. Reuses the selection model.
+function Picker.headerLocationText(db)
+  local sel = Selection.get(db)
+  if not sel then return "Rotterdam" end
+  if sel.kind == "city" then
+    local c = Cities.findByName(sel.name)
+    return c and (c.name .. " \194\183 " .. c.country) or sel.name
+  elseif sel.kind == "saved" then
+    return sel.name
+  end
+  return "Manual location"
 end
 
 function Picker.create()
   if Picker.frame then return Picker.frame end
 
   local f = CreateFrame("Frame", "PrayerTimesPicker", UIParent)
-  f:SetSize(330, 660)
-  f:SetPoint("CENTER", UIParent, "CENTER", 235, 0) -- offset from the main window
+  f:SetSize(660, 560)
+  f:SetPoint("CENTER", UIParent, "CENTER", 150, 0)
   f:SetFrameStrata("DIALOG")
   f:SetMovable(true)
   f:EnableMouse(true)
@@ -433,27 +466,52 @@ function Picker.create()
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
 
   local bg = f:CreateTexture(nil, "BACKGROUND")
-  bg:SetAllPoints()
-  bg:SetColorTexture(0, 0, 0, 0.85)
+  bg:SetAllPoints(); bg:SetColorTexture(unpack(COL.bg))
 
-  local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  title:SetPoint("TOP", 0, -10)
-  title:SetText("PrayerTimes - Settings")
+  -- Dark header bar: wordmark + "SETTINGS", current location (right), close X.
+  local header = f:CreateTexture(nil, "BACKGROUND")
+  header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
+  header:SetColorTexture(unpack(COL.header))
 
-  -- Tab bar + content panels.
-  Picker.tabButtons, Picker.panels = {}, {}
-  local tabW = 100
+  local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  wm:SetPoint("TOPLEFT", 16, -14); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
+  local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  wmSub:SetPoint("LEFT", wm, "RIGHT", 6, -1); wmSub:SetText("SETTINGS")
+
+  Picker.headerLoc = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  Picker.headerLoc:SetPoint("TOPRIGHT", -44, -16); Picker.headerLoc:SetTextColor(unpack(COL.gold))
+
+  local x = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+  x:SetPoint("TOPRIGHT", -6, -8)
+  x:SetScript("OnClick", function() Picker.close() end)
+
+  -- Left sidebar.
+  local side = f:CreateTexture(nil, "BACKGROUND")
+  side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
+  side:SetColorTexture(unpack(COL.sidebar))
+
+  -- Sidebar nav items + content panels.
+  Picker.navItems, Picker.tabButtons, Picker.panels = {}, {}, {}
   for i, t in ipairs(TABS) do
-    local btn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    btn:SetSize(tabW, 22)
-    btn:SetPoint("TOPLEFT", 14 + (i - 1) * (tabW + 2), -34)
-    btn:SetText(t.label)
+    local btn = CreateFrame("Button", nil, f)
+    btn:SetSize(188, 58)
+    btn:SetPoint("TOPLEFT", 0, -46 - (i - 1) * 58)
+    local hl = btn:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.navHl)); hl:Hide()
+    local bar = btn:CreateTexture(nil, "ARTWORK")
+    bar:SetPoint("TOPLEFT", 0, 0); bar:SetPoint("BOTTOMLEFT", 0, 0); bar:SetWidth(4)
+    bar:SetColorTexture(unpack(COL.gold)); bar:Hide()
+    local title = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOPLEFT", 16, -12); title:SetText(t.label); title:SetTextColor(unpack(COL.navText))
+    local sub = btn:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    sub:SetPoint("TOPLEFT", 16, -30); sub:SetText(t.sub); sub:SetTextColor(unpack(COL.navSub))
     btn:SetScript("OnClick", function() Picker.showTab(t.key) end)
-    Picker.tabButtons[t.key] = btn
+    Picker.navItems[t.key] = { btn = btn, hl = hl, bar = bar }
+    Picker.tabButtons[t.key] = btn -- back-compat alias
 
     local panel = CreateFrame("Frame", nil, f)
-    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -60)
-    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 44)
+    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 196, -54)
+    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 12)
     Picker.panels[t.key] = panel
   end
   local locP, calcP, notifP = Picker.panels.location, Picker.panels.calculation, Picker.panels.notifications
@@ -608,11 +666,6 @@ function Picker.create()
   Picker.soundCheck = soundCheck
   local sText = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   sText:SetPoint("LEFT", soundCheck, "RIGHT", 2, 0); sText:SetText("Play sound")
-
-  -- Close button (shared, always visible).
-  local close = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-  close:SetSize(80, 24); close:SetPoint("BOTTOM", 0, 16); close:SetText("Close")
-  close:SetScript("OnClick", function() Picker.close() end)
 
   Picker.frame = f
   Picker.scrollOffset = 0

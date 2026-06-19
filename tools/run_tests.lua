@@ -1405,6 +1405,42 @@ do
   check("save with empty name still errors", sOk == false and sErr ~= nil)
 end
 
+-- ---- 3S-1: Approach B chrome (sidebar nav + header) under the mock -------
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- Sidebar nav items (title + subtitle + active marker) for all three tabs.
+  check("three sidebar nav items created",
+    Picker.navItems.location and Picker.navItems.calculation and Picker.navItems.notifications ~= nil)
+  check("each nav item has a gold bar + highlight",
+    Picker.navItems.location.bar ~= nil and Picker.navItems.location.hl ~= nil)
+
+  -- Active section marked: its bar+highlight shown, others hidden.
+  Picker.showTab("location")
+  check("active nav shows bar + highlight",
+    Picker.navItems.location.bar:IsShown() == true and Picker.navItems.location.hl:IsShown() == true)
+  check("inactive nav hides bar + highlight",
+    Picker.navItems.calculation.bar:IsShown() == false and Picker.navItems.notifications.hl:IsShown() == false)
+  Picker.showTab("notifications")
+  check("switching marks the new section only",
+    Picker.navItems.notifications.bar:IsShown() == true
+    and Picker.navItems.location.bar:IsShown() == false)
+
+  -- Panels still switch (one shown at a time) under the new chrome.
+  check("only the active panel is shown",
+    Picker.panels.notifications:IsShown() == true and Picker.panels.location:IsShown() == false)
+
+  -- Header location reflects the selection and updates on change.
+  Picker.selectCityByName("Istanbul")
+  Picker.updateSelected()
+  check("header shows City . Country",
+    Picker.headerLoc:GetText() ~= nil and Picker.headerLoc:GetText():find("Istanbul", 1, true) ~= nil)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
