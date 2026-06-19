@@ -502,27 +502,32 @@ function Picker.create()
   local mlabel = locP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   mlabel:SetPoint("TOPLEFT", 14, mY); mlabel:SetText("Add a location (your computer's timezone unless UTC set):")
 
-  makeColLabel(locP, "Name", 18, mY - 18)
-  makeColLabel(locP, "Lat", 124, mY - 18)
-  makeColLabel(locP, "Lon", 176, mY - 18)
-  makeColLabel(locP, "UTC+/-", 228, mY - 18)
+  -- Row 1: Lat / Lon / UTC+/- with labels above; EU DST beside UTC.
+  makeColLabel(locP, "Lat", 18, mY - 18)
+  makeColLabel(locP, "Lon", 74, mY - 18)
+  makeColLabel(locP, "UTC+/-", 130, mY - 18)
 
   local boxY = mY - 32
-  local nameBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  nameBox:SetSize(96, 20); nameBox:SetPoint("TOPLEFT", 16, boxY); nameBox:SetAutoFocus(false)
   local latBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  latBox:SetSize(46, 20); latBox:SetPoint("TOPLEFT", 122, boxY); latBox:SetAutoFocus(false)
+  latBox:SetSize(48, 20); latBox:SetPoint("TOPLEFT", 16, boxY); latBox:SetAutoFocus(false)
   local lonBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  lonBox:SetSize(46, 20); lonBox:SetPoint("TOPLEFT", 174, boxY); lonBox:SetAutoFocus(false)
+  lonBox:SetSize(48, 20); lonBox:SetPoint("TOPLEFT", 72, boxY); lonBox:SetAutoFocus(false)
   local offBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
-  offBox:SetSize(40, 20); offBox:SetPoint("TOPLEFT", 226, boxY); offBox:SetAutoFocus(false)
-  Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
+  offBox:SetSize(42, 20); offBox:SetPoint("TOPLEFT", 128, boxY); offBox:SetAutoFocus(false)
 
   local euCheck = CreateFrame("CheckButton", nil, locP, "UICheckButtonTemplate")
-  euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 272, boxY + 1)
+  euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 178, boxY + 1)
   Picker.euCheck = euCheck
   local euText = locP:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   euText:SetPoint("LEFT", euCheck, "RIGHT", 0, 0); euText:SetText("EU DST")
+
+  -- Row 2: Name on its own full-width line, label above.
+  local nameLabelY = boxY - 28
+  makeColLabel(locP, "Name", 18, nameLabelY)
+  local nameBoxY = nameLabelY - 14
+  local nameBox = CreateFrame("EditBox", nil, locP, "InputBoxTemplate")
+  nameBox:SetSize(282, 20); nameBox:SetPoint("TOPLEFT", 16, nameBoxY); nameBox:SetAutoFocus(false)
+  Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
 
   local clearErr = function() Picker.clearError() end
   nameBox:SetScript("OnTextChanged", clearErr)
@@ -530,26 +535,27 @@ function Picker.create()
   lonBox:SetScript("OnTextChanged", clearErr)
   offBox:SetScript("OnTextChanged", clearErr)
 
-  -- Buttons: use once (not saved) and save as a named My City.
-  local useBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
-  useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 16, boxY - 26); useBtn:SetText("Use once")
-  useBtn:SetScript("OnClick", function()
-    Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
-  end)
+  -- Row 3: Save as My City + Use once (both act on the fields above).
+  local btnY = nameBoxY - 28
   local saveBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
-  saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 104, boxY - 26); saveBtn:SetText("Save as My City")
+  saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 16, btnY); saveBtn:SetText("Save as My City")
   saveBtn:SetScript("OnClick", function()
     Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
       offBox:GetText(), euCheck:GetChecked())
   end)
+  local useBtn = CreateFrame("Button", nil, locP, "UIPanelButtonTemplate")
+  useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 142, btnY); useBtn:SetText("Use once")
+  useBtn:SetScript("OnClick", function()
+    Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
+  end)
 
-  -- Tab order across all input fields.
+  -- Tab order follows the new visual order: Lat -> Lon -> UTC -> Name -> search.
   local function tabTo(a, b) a:SetScript("OnTabPressed", function() b:SetFocus() end) end
-  tabTo(search, nameBox); tabTo(nameBox, latBox); tabTo(latBox, lonBox)
-  tabTo(lonBox, offBox); tabTo(offBox, search)
+  tabTo(search, latBox); tabTo(latBox, lonBox); tabTo(lonBox, offBox)
+  tabTo(offBox, nameBox); tabTo(nameBox, search)
 
   Picker.errorLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontRed")
-  Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 52)
+  Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 98)
 
   -- ===== Calculation tab (method dropdown + Asr radio buttons) =====
   local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")

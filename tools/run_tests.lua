@@ -1370,6 +1370,41 @@ do
   Window.refresh = realRefresh
 end
 
+-- ---- 3R-3: Location "Add a location" form re-layout (under the mock) -----
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- All form widgets survived the re-layout.
+  check("form fields present after re-layout",
+    Picker.latBox and Picker.lonBox and Picker.offsetBox and Picker.nameBox and Picker.euCheck ~= nil)
+
+  -- Tab-key chain wired across the new order (lat->lon->utc->name->search).
+  check("lat/lon/utc/name all have tab handlers",
+    Picker.latBox:GetScript("OnTabPressed") and Picker.lonBox:GetScript("OnTabPressed")
+    and Picker.offsetBox:GetScript("OnTabPressed") and Picker.nameBox:GetScript("OnTabPressed") ~= nil)
+
+  -- Logic intact: saving a named city through the new layout still works.
+  Picker.nameBox:SetText("Travnik")
+  Picker.latBox:SetText("44.2261"); Picker.lonBox:SetText("17.6650")
+  local ok = Picker.saveManual(Picker.nameBox:GetText(), Picker.latBox:GetText(),
+    Picker.lonBox:GetText(), "", false)
+  check("save through new layout creates the city", ok == true and Selection.findSaved(db, "Travnik") ~= nil)
+
+  -- Validation never fires on empty fields (both lat+lon empty = no-op, no error).
+  Picker.clearError()
+  local applied = Picker.applyManual("", "", "")
+  check("empty Use-once is a no-op with no error",
+    applied == false and Picker.errorLabel:GetText() == "")
+
+  -- Save with empty name still errors (validation reused unchanged).
+  local sOk, sErr = Picker.saveManual("", "50", "5", "", false)
+  check("save with empty name still errors", sOk == false and sErr ~= nil)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
