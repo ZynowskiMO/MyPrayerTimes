@@ -54,6 +54,9 @@ local function makeFrame()
   function f:SetSize(w, h) self._w, self._h = w, h end
   function f:SetWidth(w) self._w = w end
   function f:SetHeight(h) self._h = h end
+  function f:GetWidth() return self._w end
+  function f:GetHeight() return self._h end
+  function f:GetEffectiveScale() return 1 end
   function f:Show() self._shown = true end
   function f:Hide() self._shown = false end
   function f:IsShown() return self._shown end
@@ -104,6 +107,7 @@ function M.install()
   }
   _G.GetServerTime = function() return nowEpoch end
   _G.time = function() return nowEpoch end
+  _G.GetCursorPosition = function() return 0, 0 end
   _G.GameFontNormal = {}
   _G.GameFontHighlight = {}
   _G.SlashCmdList = {}

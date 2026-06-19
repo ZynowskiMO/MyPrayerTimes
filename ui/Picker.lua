@@ -296,6 +296,7 @@ function Picker.refreshMaster()
       row:Show()
     end
   end
+  if Picker.masterSB then Picker.masterSB:update() end
 end
 
 function Picker.refreshDetail()
@@ -322,6 +323,7 @@ function Picker.refreshDetail()
       row:Show()
     end
   end
+  if Picker.detailSB then Picker.detailSB:update() end
 end
 
 function Picker.scrollMaster(delta)
@@ -457,8 +459,11 @@ local function makeDropdown(parent, opts)
   local blabel = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   blabel:SetPoint("LEFT", 10, 0); blabel:SetPoint("RIGHT", -24, 0); blabel:SetJustifyH("LEFT"); blabel:SetTextColor(unpack(COL.text))
   dd.labelFS = blabel
-  local barrow = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  barrow:SetPoint("RIGHT", -10, 0); barrow:SetText("\226\150\188"); barrow:SetTextColor(unpack(COL.muted))
+  -- Down-arrow texture (a Unicode glyph renders as a "tofu" box in WoW's font).
+  local barrow = button:CreateTexture(nil, "OVERLAY")
+  barrow:SetSize(12, 12); barrow:SetPoint("RIGHT", -8, 0)
+  barrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+  barrow:SetVertexColor(0.35, 0.32, 0.27)
   button:SetScript("OnEnter", function() bfill:SetColorTexture(unpack(COL.cardSel)) end)
   button:SetScript("OnLeave", function() bfill:SetColorTexture(unpack(COL.cardOff)) end)
   dd.button = button
@@ -582,6 +587,56 @@ local function makeToggle(parent, getter, onToggle)
   btn:SetScript("OnClick", function() onToggle(not (getter() and true or false)); t:update() end)
   t:update()
   return t
+end
+
+-- Reusable proportional scrollbar for a row-pool list. A faint track with a
+-- gold thumb sized by visible/total and positioned by the scroll offset; the
+-- thumb is draggable (cursor-delta mapping) and hides itself when everything
+-- fits. getCount/getOffset/setOffset wire it to the list's state.
+local function makeScrollbar(listFrame, vis, height, getCount, getOffset, setOffset)
+  local sb = {}
+  local track = listFrame:CreateTexture(nil, "BACKGROUND")
+  track:SetPoint("TOPRIGHT", listFrame, "TOPRIGHT", 10, 0)
+  track:SetPoint("BOTTOMRIGHT", listFrame, "BOTTOMRIGHT", 10, 0)
+  track:SetWidth(6); track:SetColorTexture(0, 0, 0, 0.10)
+  local thumb = CreateFrame("Button", nil, listFrame)
+  thumb:SetWidth(6)
+  local tt = thumb:CreateTexture(nil, "ARTWORK"); tt:SetAllPoints(); tt:SetColorTexture(unpack(COL.gold))
+  sb.track, sb.thumb = track, thumb
+
+  function sb:update()
+    local count = getCount() or 0
+    local maxOff = math.max(0, count - vis)
+    if maxOff <= 0 then track:Hide(); thumb:Hide(); return end
+    track:Show(); thumb:Show()
+    local th = math.max(16, height * vis / count)
+    local off = math.min(getOffset() or 0, maxOff)
+    local y = -(off / maxOff) * (height - th)
+    thumb:SetSize(6, th)
+    thumb:ClearAllPoints(); thumb:SetPoint("TOPRIGHT", listFrame, "TOPRIGHT", 10, y)
+    sb.thumbH = th
+  end
+
+  thumb:RegisterForDrag("LeftButton")
+  thumb:SetScript("OnMouseDown", function()
+    local _, sy = GetCursorPosition()
+    sb._startY, sb._startOff = sy, getOffset() or 0
+    thumb:SetScript("OnUpdate", function()
+      local _, cy = GetCursorPosition()
+      local scale = UIParent:GetEffectiveScale() or 1
+      local dy = (sb._startY - cy) / scale
+      local count = getCount() or 0
+      local maxOff = math.max(0, count - vis)
+      local th = math.max(16, height * vis / count)
+      local range = math.max(1, height - th)
+      local off = math.floor(sb._startOff + (dy / range) * maxOff + 0.5)
+      setOffset(math.max(0, math.min(maxOff, off)))
+    end)
+  end)
+  thumb:SetScript("OnMouseUp", function() thumb:SetScript("OnUpdate", nil) end)
+
+  sb:update()
+  return sb
 end
 
 -- Settings redesign (ADR-0005, Approach B): a dark header, a persistent left
@@ -712,10 +767,15 @@ function Picker.create()
   Picker.cardCountry = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   Picker.cardCountry:SetPoint("TOPRIGHT", -16, -26); Picker.cardCountry:SetTextColor(0.70, 0.67, 0.60)
 
-  -- Search across all cities.
+  -- Search across all cities (with a placeholder shown while empty).
   local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP, "InputBoxTemplate")
   search:SetSize(434, 22); search:SetPoint("TOPLEFT", 12, -58); search:SetAutoFocus(false)
-  search:SetScript("OnTextChanged", function(self) Picker.dScroll = 0; Picker.refreshLocation(self:GetText()) end)
+  local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  ph:SetPoint("LEFT", 8, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
+  search:SetScript("OnTextChanged", function(self)
+    ph:SetShown(self:GetText() == "")
+    Picker.dScroll = 0; Picker.refreshLocation(self:GetText())
+  end)
   Picker.searchBox = search
 
   -- Browse container (master + detail). Hidden as a unit when the add-custom
@@ -746,6 +806,10 @@ function Picker.create()
     end)
     Picker.masterPool[i] = row
   end
+  Picker.masterSB = makeScrollbar(mlist, MVIS, MVIS * RH,
+    function() return #(Picker.masterData or {}) end,
+    function() return Picker.mScroll or 0 end,
+    function(o) Picker.mScroll = o; Picker.refreshMaster() end)
 
   -- Divider.
   local divider = browse:CreateTexture(nil, "ARTWORK")
@@ -771,6 +835,10 @@ function Picker.create()
     row:SetScript("OnClick", function(self) if self.name then Picker.selectCity(self.name) end end)
     Picker.detailPool[i] = row
   end
+  Picker.detailSB = makeScrollbar(dlist, DVIS, DVIS * RH,
+    function() return #(Picker.detailData or {}) end,
+    function() return Picker.dScroll or 0 end,
+    function(o) Picker.dScroll = o; Picker.refreshDetail() end)
 
   local addBtn = CreateFrame("Button", nil, browse, "UIPanelButtonTemplate")
   addBtn:SetSize(232, 22); addBtn:SetPoint("BOTTOMLEFT", 214, 10); addBtn:SetText("+ Add custom location")

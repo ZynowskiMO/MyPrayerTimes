@@ -1583,6 +1583,34 @@ do
   check("sound toggle flips persisted flag", db.notify.sound == false and Picker.soundToggle.on == false)
 end
 
+-- ---- 3S-7: list scrollbars (proportional thumb, hidden when not needed) --
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  check("master + detail scrollbars created", Picker.masterSB ~= nil and Picker.detailSB ~= nil)
+
+  -- Country list overflows the 20 visible rows -> master thumb shown.
+  Picker.refreshLocation("")
+  check("master scrollbar shown when countries overflow",
+    Picker.masterSB.track:IsShown() == true and Picker.masterSB.thumb:IsShown() == true)
+
+  -- A single-city country (Albania = 1) fits -> detail thumb hidden.
+  Picker.selectCountry("Albania")
+  check("detail scrollbar hidden when it all fits", Picker.detailSB.track:IsShown() == false)
+
+  -- A search with many hits overflowing 18 rows shows the detail thumb.
+  Picker.refreshLocation("a")
+  if #Picker.detailData > 18 then
+    check("detail scrollbar shown when results overflow", Picker.detailSB.thumb:IsShown() == true)
+  else
+    check("detail scrollbar overflow query produced enough hits", #Picker.detailData > 18)
+  end
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
