@@ -647,12 +647,13 @@ local function makeFlatButton(parent, text, primary)
   local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
   local fill = b:CreateTexture(nil, "BACKGROUND")
   fill:SetPoint("TOPLEFT", 1, -1); fill:SetPoint("BOTTOMRIGHT", -1, 1)
-  local base = primary and COL.gold or COL.cardOff
-  local hov = primary and { 0.80, 0.66, 0.36, 1 } or COL.cardSel
+  -- Gold buttons (primary = deeper gold, secondary = lighter gold).
+  local base = primary and { 0.80, 0.63, 0.28, 1 } or { 0.88, 0.76, 0.46, 1 }
+  local hov = primary and { 0.88, 0.71, 0.35, 1 } or { 0.93, 0.83, 0.55, 1 }
   fill:SetColorTexture(unpack(base))
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   fs:SetPoint("CENTER"); fs:SetText(text)
-  fs:SetTextColor(unpack(primary and { 0.14, 0.11, 0.07 } or COL.text))
+  fs:SetTextColor(0.16, 0.12, 0.06)
   b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(hov)) end)
   b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(base)) end)
   b.fill, b.label = fill, fs
@@ -669,6 +670,23 @@ local function makeFlatEditBox(parent)
   local fl = eb:CreateTexture(nil, "BACKGROUND")
   fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
   return eb
+end
+
+-- Flat cream checkbox (replaces UICheckButtonTemplate). A gold inner square
+-- shows when checked; exposes GetChecked/SetChecked like a CheckButton.
+local function makeFlatCheck(parent)
+  local c = CreateFrame("Button", nil, parent)
+  c:SetSize(18, 18)
+  local bd = c:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); bd:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local fl = c:CreateTexture(nil, "BACKGROUND")
+  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
+  local mark = c:CreateTexture(nil, "ARTWORK")
+  mark:SetPoint("CENTER"); mark:SetSize(10, 10); mark:SetColorTexture(unpack(COL.gold)); mark:Hide()
+  c._checked = false
+  function c:GetChecked() return self._checked end
+  function c:SetChecked(v) self._checked = v and true or false; if self._checked then mark:Show() else mark:Hide() end end
+  c:SetScript("OnClick", function(self) self:SetChecked(not self._checked) end)
+  return c
 end
 
 -- Settings redesign (ADR-0005, Approach B): a dark header, a persistent left
@@ -740,8 +758,12 @@ function Picker.create()
   Picker.headerLoc = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   Picker.headerLoc:SetPoint("TOPRIGHT", -44, -16); Picker.headerLoc:SetTextColor(unpack(COL.gold))
 
-  local x = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-  x:SetPoint("TOPRIGHT", -6, -8)
+  local x = CreateFrame("Button", nil, f)
+  x:SetSize(26, 26); x:SetPoint("TOPRIGHT", -10, -10)
+  local xfs = x:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  xfs:SetPoint("CENTER"); xfs:SetText("X"); xfs:SetTextColor(unpack(COL.gold))
+  x:SetScript("OnEnter", function() xfs:SetTextColor(1, 0.9, 0.6) end)
+  x:SetScript("OnLeave", function() xfs:SetTextColor(unpack(COL.gold)) end)
   x:SetScript("OnClick", function() Picker.close() end)
 
   -- Left sidebar.
@@ -891,29 +913,32 @@ function Picker.create()
   local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(COL.content))
   addPanel:Hide(); Picker.addPanel = addPanel
 
-  local at = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  at:SetPoint("TOPLEFT", 8, -6); at:SetText("Add custom location"); at:SetTextColor(unpack(COL.text))
+  local at = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  at:SetPoint("TOPLEFT", 10, -8); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(COL.gold))
 
-  makeColLabel(addPanel, "Lat", 12, -30)
-  makeColLabel(addPanel, "Lon", 68, -30)
-  makeColLabel(addPanel, "UTC+/-", 124, -30)
-  local boxY = -44
+  -- Coordinates row, spread across the width; EU DST to the right.
+  makeColLabel(addPanel, "Lat", 12, -32)
+  makeColLabel(addPanel, "Lon", 98, -32)
+  makeColLabel(addPanel, "UTC+/-", 184, -32)
+  local boxY = -46
   local latBox = makeFlatEditBox(addPanel)
-  latBox:SetSize(48, 22); latBox:SetPoint("TOPLEFT", 10, boxY)
+  latBox:SetSize(76, 22); latBox:SetPoint("TOPLEFT", 10, boxY)
   local lonBox = makeFlatEditBox(addPanel)
-  lonBox:SetSize(48, 22); lonBox:SetPoint("TOPLEFT", 66, boxY)
+  lonBox:SetSize(76, 22); lonBox:SetPoint("TOPLEFT", 96, boxY)
   local offBox = makeFlatEditBox(addPanel)
-  offBox:SetSize(42, 22); offBox:SetPoint("TOPLEFT", 122, boxY)
-  local euCheck = CreateFrame("CheckButton", nil, addPanel, "UICheckButtonTemplate")
-  euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 172, boxY + 1)
+  offBox:SetSize(62, 22); offBox:SetPoint("TOPLEFT", 182, boxY)
+  local euCheck = makeFlatCheck(addPanel)
+  euCheck:SetPoint("TOPLEFT", 258, boxY - 2)
   Picker.euCheck = euCheck
-  local euText = addPanel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  euText:SetPoint("LEFT", euCheck, "RIGHT", 0, 0); euText:SetText("EU DST")
+  local euText = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); euText:SetTextColor(unpack(COL.text))
 
-  local nameLabelY = boxY - 28
+  -- Name on its own full-width line.
+  local nameLabelY = boxY - 30
   makeColLabel(addPanel, "Name", 12, nameLabelY)
   local nameBox = makeFlatEditBox(addPanel)
-  nameBox:SetSize(282, 22); nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 14)
+  nameBox:SetHeight(22)
+  nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 16); nameBox:SetPoint("RIGHT", addPanel, "RIGHT", -10, 0)
   Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
 
   local clearErr = function() Picker.clearError() end
@@ -922,23 +947,24 @@ function Picker.create()
   lonBox:SetScript("OnTextChanged", clearErr)
   offBox:SetScript("OnTextChanged", clearErr)
 
-  local btnY = nameLabelY - 42
+  -- Buttons spread across the width: Save (left), Use once (mid), Back (right).
+  local btnY = nameLabelY - 46
   local saveBtn = makeFlatButton(addPanel, "Save as My City", true)
-  saveBtn:SetSize(120, 24); saveBtn:SetPoint("TOPLEFT", 10, btnY)
+  saveBtn:SetSize(170, 26); saveBtn:SetPoint("TOPLEFT", 10, btnY)
   saveBtn:SetScript("OnClick", function()
     local ok = Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
       offBox:GetText(), euCheck:GetChecked())
     if ok then Picker.closeAddPanel() end
   end)
+  local backBtn = makeFlatButton(addPanel, "Back")
+  backBtn:SetSize(90, 26); backBtn:SetPoint("TOPRIGHT", addPanel, "TOPRIGHT", -10, btnY)
+  backBtn:SetScript("OnClick", function() Picker.closeAddPanel() end)
   local useBtn = makeFlatButton(addPanel, "Use once")
-  useBtn:SetSize(80, 24); useBtn:SetPoint("TOPLEFT", 138, btnY)
+  useBtn:SetSize(120, 26); useBtn:SetPoint("LEFT", saveBtn, "RIGHT", 10, 0)
   useBtn:SetScript("OnClick", function()
     local ok = Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
     if ok then Picker.closeAddPanel() end
   end)
-  local backBtn = makeFlatButton(addPanel, "Back")
-  backBtn:SetSize(60, 24); backBtn:SetPoint("TOPLEFT", 226, btnY)
-  backBtn:SetScript("OnClick", function() Picker.closeAddPanel() end)
 
   -- Tab order within the add form: Lat -> Lon -> UTC -> Name -> Lat.
   local function tabTo(a, b) a:SetScript("OnTabPressed", function() b:SetFocus() end) end
