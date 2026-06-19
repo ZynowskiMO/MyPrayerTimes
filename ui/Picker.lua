@@ -268,11 +268,10 @@ end
 
 function Picker.updateCalcControls()
   local db = Picker.db
-  if Picker.methodLabelFS then
-    Picker.methodLabelFS:SetText(Methods.methodLabel(db and db.method))
-  end
-  if Picker.asrBtn then
-    Picker.asrBtn:SetText("Asr school: " .. Methods.madhabLabel(db and db.madhab))
+  if Picker.methodDropdown then Picker.methodDropdown:updateButton() end
+  if Picker.asrRadios then
+    local cur = Methods.resolveMadhab(db and db.madhab)
+    for _, r in ipairs(Picker.asrRadios) do r:SetChecked(r.key == cur) end
   end
 end
 
@@ -280,6 +279,121 @@ local function makeColLabel(f, text, x, y)
   local fs = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   fs:SetPoint("TOPLEFT", x, y)
   fs:SetText(text)
+end
+
+-- Reusable row-pool dropdown (no Blizzard dropdown widget -- stable on Retail +
+-- Classic). A button shows the current value; clicking opens an anchored,
+-- scrollable list built from the same pooled-row + highlight pattern as the
+-- city list, with a full-screen click-catcher to close on click-away. All
+-- state lives on the returned table and the option list / current value are
+-- supplied by callbacks, so the runner can drive open/close/select/scroll under
+-- the mock. opts = { width, rows, getOptions()->{{key,label}..},
+-- getCurrent()->key, onSelect(key) }.
+local DD_ROW_H = 16
+local function makeDropdown(parent, opts)
+  local dd = { isOpen = false, scrollOffset = 0 }
+  local vis = opts.rows or 8
+  local width = opts.width or 240
+
+  local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  button:SetSize(width, 22)
+  dd.button = button
+
+  -- Full-screen catcher: clicking outside the open list closes it. Parented to
+  -- the button so it disappears when the button (tab/window) is hidden.
+  local catcher = CreateFrame("Button", nil, button)
+  catcher:SetPoint("TOPLEFT", UIParent, "TOPLEFT")
+  catcher:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT")
+  catcher:SetFrameStrata("FULLSCREEN")
+  catcher:Hide()
+  catcher:SetScript("OnClick", function() dd:close() end)
+  dd.catcher = catcher
+
+  local popup = CreateFrame("Frame", nil, button)
+  popup:SetSize(width, vis * DD_ROW_H + 8)
+  popup:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -2)
+  popup:SetFrameStrata("FULLSCREEN_DIALOG")
+  popup:EnableMouseWheel(true)
+  popup:SetScript("OnMouseWheel", function(_, delta) dd:scroll(delta) end)
+  local pbg = popup:CreateTexture(nil, "BACKGROUND")
+  pbg:SetAllPoints(); pbg:SetColorTexture(0.05, 0.05, 0.05, 0.95)
+  popup:Hide()
+  dd.popup = popup
+
+  dd.rows = {}
+  for i = 1, vis do
+    local row = CreateFrame("Button", nil, popup)
+    row:SetSize(width - 8, DD_ROW_H)
+    row:SetPoint("TOPLEFT", 4, -4 - (i - 1) * DD_ROW_H)
+    local hl = row:CreateTexture(nil, "BACKGROUND")
+    hl:SetAllPoints(); hl:SetColorTexture(0.15, 0.5, 0.25, 0.6); hl:Hide()
+    row.hl = hl
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", 4, 0); label:SetJustifyH("LEFT")
+    row.label = label
+    row:SetScript("OnClick", function(self) if self.key then dd:select(self.key) end end)
+    dd.rows[i] = row
+  end
+
+  function dd:currentLabel()
+    local cur = opts.getCurrent()
+    for _, o in ipairs(opts.getOptions()) do
+      if o.key == cur then return o.label end
+    end
+    return "Select..."
+  end
+
+  function dd:updateButton() dd.button:SetText(dd:currentLabel()) end
+
+  function dd:renderRows()
+    local options = opts.getOptions()
+    local cur = opts.getCurrent()
+    local maxOffset = math.max(0, #options - vis)
+    dd.scrollOffset = math.min(dd.scrollOffset, maxOffset)
+    for i = 1, vis do
+      local row = dd.rows[i]
+      local o = options[dd.scrollOffset + i]
+      if not o then
+        row.key, row._selected = nil, false
+        row.hl:Hide(); row:Hide()
+      else
+        local isSel = (o.key == cur)
+        row.key, row._selected = o.key, isSel
+        row.label:SetText((isSel and "> " or "   ") .. o.label)
+        if isSel then row.hl:Show() else row.hl:Hide() end
+        row:Show()
+      end
+    end
+  end
+
+  function dd:open()
+    dd.isOpen = true
+    dd.scrollOffset = 0
+    dd:renderRows()
+    dd.catcher:Show(); dd.popup:Show()
+  end
+
+  function dd:close()
+    dd.isOpen = false
+    dd.popup:Hide(); dd.catcher:Hide()
+  end
+
+  function dd:toggle() if dd.isOpen then dd:close() else dd:open() end end
+
+  function dd:scroll(delta)
+    dd.scrollOffset = math.max(0, dd.scrollOffset - delta)
+    dd:renderRows()
+  end
+
+  function dd:select(key)
+    dd:close()
+    if opts.onSelect then opts.onSelect(key) end
+    dd:updateButton()
+  end
+
+  button:SetScript("OnClick", function() dd:toggle() end)
+  dd:updateButton()
+  return dd
 end
 
 -- Three-tab layout (ADR-0004 redesign). 3R-1 introduces the scaffold and moves
@@ -437,24 +551,31 @@ function Picker.create()
   Picker.errorLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 16, boxY - 52)
 
-  -- ===== Calculation tab (method prev/next selector + Asr toggle) =====
-  local clabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  clabel:SetPoint("TOPLEFT", 14, -10); clabel:SetText("Calculation method:")
+  -- ===== Calculation tab (method dropdown + Asr radio buttons) =====
+  local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  mLabel:SetPoint("TOPLEFT", 14, -12); mLabel:SetText("Calculation method")
 
-  local prevBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
-  prevBtn:SetSize(26, 22); prevBtn:SetPoint("TOPLEFT", 18, -32); prevBtn:SetText("<")
-  prevBtn:SetScript("OnClick", function() Picker.cycleMethod(-1) end)
-  local nextBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
-  nextBtn:SetSize(26, 22); nextBtn:SetPoint("TOPRIGHT", -18, -32); nextBtn:SetText(">")
-  nextBtn:SetScript("OnClick", function() Picker.cycleMethod(1) end)
-  local methodLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  methodLabel:SetPoint("TOP", 0, -36); methodLabel:SetWidth(232); methodLabel:SetJustifyH("CENTER")
-  Picker.methodLabelFS = methodLabel
+  Picker.methodDropdown = makeDropdown(calcP, {
+    width = 294, rows = 8,
+    getOptions = function() return Methods.list() end,
+    getCurrent = function() return Methods.resolveMethod(Picker.db and Picker.db.method) end,
+    onSelect = function(key) Picker.setMethod(key) end,
+  })
+  Picker.methodDropdown.button:SetPoint("TOPLEFT", 16, -32)
 
-  local asrBtn = CreateFrame("Button", nil, calcP, "UIPanelButtonTemplate")
-  asrBtn:SetSize(294, 22); asrBtn:SetPoint("TOPLEFT", 18, -58); asrBtn:SetText("Asr school: Standard (Shafi)")
-  asrBtn:SetScript("OnClick", function() Picker.toggleMadhab() end)
-  Picker.asrBtn = asrBtn
+  local aLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  aLabel:SetPoint("TOPLEFT", 14, -68); aLabel:SetText("Asr school")
+
+  Picker.asrRadios = {}
+  for i, a in ipairs(Methods.asrList()) do
+    local radio = CreateFrame("CheckButton", nil, calcP, "UIRadioButtonTemplate")
+    radio:SetPoint("TOPLEFT", 18, -88 - (i - 1) * 24)
+    radio.key = a.key
+    radio:SetScript("OnClick", function() Picker.setMadhab(a.key) end)
+    local t = calcP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    t:SetPoint("LEFT", radio, "RIGHT", 4, 0); t:SetText(a.label)
+    Picker.asrRadios[i] = radio
+  end
 
   -- ===== Notifications tab =====
   local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")

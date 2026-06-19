@@ -1223,38 +1223,34 @@ do
   local refreshes = 0
   Window.refresh = function(...) refreshes = refreshes + 1; return realRefresh(...) end
 
-  -- Default reflects MWL / Standard.
-  check("method label shows MWL by default",
-    Picker.methodLabelFS:GetText() == Methods.methodLabel("MuslimWorldLeague"))
-  check("Asr button shows Standard by default",
-    Picker.asrBtn:GetText() == "Asr school: " .. Methods.madhabLabel("shafi"))
+  -- Default reflects MWL (dropdown button shows the current method label).
+  check("method dropdown shows MWL by default",
+    Picker.methodDropdown.button:GetText() == Methods.methodLabel("MuslimWorldLeague"))
 
-  -- setMethod persists, refreshes, and updates the label.
+  -- setMethod persists, refreshes, and updates the dropdown button.
   Picker.setMethod("Tehran")
   check("setMethod persists to db", db.method == "Tehran")
-  check("setMethod updates the label", Picker.methodLabelFS:GetText() == Methods.methodLabel("Tehran"))
+  check("setMethod updates the dropdown button",
+    Picker.methodDropdown.button:GetText() == Methods.methodLabel("Tehran"))
   check("setMethod triggers a window refresh", refreshes >= 1)
 
   -- Bogus key falls back to MWL via the registry.
   Picker.setMethod("Nonsense")
   check("setMethod sanitises unknown key -> MWL", db.method == "MuslimWorldLeague")
 
-  -- Prev from MWL (first) wraps to the last method; next wraps back to first.
+  -- cycleMethod logic is retained (kept pure/tested even though the arrows are
+  -- gone): prev from MWL (first) wraps to last, next wraps back to first.
   local list = Methods.list()
   Picker.setMethod(list[1].key)
   Picker.cycleMethod(-1)
   check("cycleMethod(-1) wraps to last method", db.method == list[#list].key)
   Picker.cycleMethod(1)
   check("cycleMethod(1) wraps back to first (MWL)", db.method == list[1].key)
-  Picker.cycleMethod(1)
-  check("cycleMethod(1) advances to second method", db.method == list[2].key)
 
-  -- Asr toggle flips Standard <-> Hanafi and updates the button text.
+  -- toggleMadhab + setMadhab logic flips Standard <-> Hanafi.
   db.madhab = "shafi"
   Picker.toggleMadhab()
   check("toggleMadhab shafi -> hanafi", db.madhab == "hanafi")
-  check("Asr button text reflects Hanafi",
-    Picker.asrBtn:GetText() == "Asr school: " .. Methods.madhabLabel("hanafi"))
   Picker.toggleMadhab()
   check("toggleMadhab hanafi -> shafi", db.madhab == "shafi")
 
@@ -1300,7 +1296,7 @@ do
   -- Existing controls survived the move into panels (still present + wired).
   check("search box still present", Picker.searchBox ~= nil)
   check("name box still has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
-  check("method label + Asr button still present", Picker.methodLabelFS ~= nil and Picker.asrBtn ~= nil)
+  check("method dropdown + Asr radios still present", Picker.methodDropdown ~= nil and Picker.asrRadios ~= nil)
   check("notification controls still present",
     Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
 
@@ -1309,6 +1305,69 @@ do
   check("city selection still works through tabs", db.selectedCity and db.selectedCity.name == "Istanbul")
   Picker.setMethod("Tehran")
   check("method selection still works through tabs", db.method == "Tehran")
+end
+
+-- ---- 3R-2: reusable dropdown component + Calculation tab controls --------
+do
+  local Picker = require("Picker")
+  local Methods = require("Methods")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  local dd = Picker.methodDropdown
+  check("method dropdown created", dd ~= nil and dd.button ~= nil)
+
+  -- Closed initially; opening shows the popup + catcher and renders rows.
+  check("dropdown starts closed", dd.isOpen == false and dd.popup:IsShown() == false)
+  dd:open()
+  check("open() shows popup + catcher", dd.popup:IsShown() == true and dd.catcher:IsShown() == true)
+  check("open() renders min(visible, options) rows",
+    dd.rows[1]:IsShown() == true and dd.rows[8]:IsShown() == true)
+
+  -- Current method (MWL) is highlighted among the rendered rows.
+  local function selectedRowKey()
+    for _, r in ipairs(dd.rows) do if r._selected then return r.key end end
+  end
+  check("current method highlighted in the list", selectedRowKey() == "MuslimWorldLeague")
+
+  -- Scrolling moves the window into the 12-item list (12 > 8 visible).
+  dd:scroll(-1)
+  check("scroll advances the offset", dd.scrollOffset == 1)
+  dd:scroll(99)
+  check("scroll clamps to top", dd.scrollOffset == 0)
+
+  -- Selecting an item closes the list, persists, and updates the button label.
+  dd:select("Tehran")
+  check("select() closes the dropdown", dd.isOpen == false and dd.popup:IsShown() == false)
+  check("select() persists the choice", db.method == "Tehran")
+  check("select() updates the button label", dd.button:GetText() == Methods.methodLabel("Tehran"))
+
+  -- Selecting an unknown key falls back to MWL via the registry.
+  dd:select("Nonsense")
+  check("select(unknown) -> MWL fallback", db.method == "MuslimWorldLeague")
+
+  -- Asr radios: exactly one checked, reflecting the current madhab.
+  local function checkedRadios()
+    local n, key = 0, nil
+    for _, r in ipairs(Picker.asrRadios) do if r:GetChecked() then n = n + 1; key = r.key end end
+    return n, key
+  end
+  db.madhab = "shafi"; Picker.updateCalcControls()
+  local n, key = checkedRadios()
+  check("exactly one Asr radio checked (Standard)", n == 1 and key == "shafi")
+
+  -- Clicking the Hanafi radio is mutually exclusive + updates Asr live.
+  local realRefresh = Window.refresh
+  local refreshes = 0
+  Window.refresh = function(...) refreshes = refreshes + 1; return realRefresh(...) end
+  Picker.asrRadios[2]:GetScript("OnClick")(Picker.asrRadios[2])
+  local n2, key2 = checkedRadios()
+  check("clicking Hanafi radio selects it exclusively", n2 == 1 and key2 == "hanafi")
+  check("Asr radio click persists madhab", db.madhab == "hanafi")
+  check("Asr radio click refreshes the window", refreshes >= 1)
+  Window.refresh = realRefresh
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------

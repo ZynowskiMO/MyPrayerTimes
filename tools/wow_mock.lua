@@ -53,6 +53,13 @@ local function makeFrame()
   function f:Hide() self._shown = false end
   function f:IsShown() return self._shown end
   function f:SetShown(b) self._shown = b and true or false end
+  -- CheckButton / radio state.
+  function f:SetChecked(b) self._checked = b and true or false end
+  function f:GetChecked() return self._checked end
+  -- Button enable state (used for active-tab marking).
+  function f:Enable() self._disabled = false end
+  function f:Disable() self._disabled = true end
+  function f:IsEnabled() return not self._disabled end
   function f:SetMovable(b) self._movable = b end
   function f:IsMovable() return self._movable end
   function f:SetClampedToScreen() end
