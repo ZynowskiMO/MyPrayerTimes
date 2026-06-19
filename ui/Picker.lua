@@ -361,9 +361,20 @@ end
 function Picker.updateNotifyControls()
   local n = Picker.db and Picker.db.notify
   if not n then return end
-  if Picker.beforeBox then Picker.beforeBox:SetText(tostring(n.beforeMinutes or 0)) end
-  if Picker.atCheck then Picker.atCheck:SetChecked(n.atTime and true or false) end
-  if Picker.soundCheck then Picker.soundCheck:SetChecked(n.sound ~= false) end
+  if Picker.beforeValue then
+    local m = n.beforeMinutes or 0
+    Picker.beforeValue:SetText(m == 0 and "Off" or (m .. " min"))
+  end
+  if Picker.atToggle then Picker.atToggle:update() end
+  if Picker.soundToggle then Picker.soundToggle:update() end
+end
+
+-- Step the before-minutes value (stepper buttons); clamps at 0 = Off.
+function Picker.stepBeforeMinutes(delta)
+  local n = Picker.db and Picker.db.notify
+  if not n then return end
+  Picker.setBeforeMinutes((n.beforeMinutes or 0) + delta)
+  Picker.updateNotifyControls()
 end
 
 -- Calculation method + Asr school (persisted in the shared DB, read live by
@@ -535,6 +546,28 @@ local function makeDropdown(parent, opts)
   button:SetScript("OnClick", function() dd:toggle() end)
   dd:updateButton()
   return dd
+end
+
+-- Reusable faux-pill toggle (no Blizzard art): a track that turns gold when on
+-- with a thumb that slides right. getter()/onToggle(bool) wire it to the DB;
+-- state lives on the returned table so the runner can drive it under the mock.
+local function makeToggle(parent, getter, onToggle)
+  local t = {}
+  local btn = CreateFrame("Button", nil, parent)
+  btn:SetSize(46, 22)
+  local track = btn:CreateTexture(nil, "BACKGROUND"); track:SetAllPoints()
+  local thumb = btn:CreateTexture(nil, "ARTWORK"); thumb:SetSize(18, 18)
+  t.btn, t.track, t.thumb = btn, track, thumb
+  function t:update()
+    local on = getter() and true or false
+    t.on = on
+    if on then track:SetColorTexture(unpack(COL.gold)) else track:SetColorTexture(0.62, 0.60, 0.54, 1) end
+    thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -2 or 2, 0)
+    thumb:SetColorTexture(0.98, 0.97, 0.94)
+  end
+  btn:SetScript("OnClick", function() onToggle(not (getter() and true or false)); t:update() end)
+  t:update()
+  return t
 end
 
 -- Settings redesign (ADR-0005, Approach B): a dark header, a persistent left
@@ -831,31 +864,56 @@ function Picker.create()
     Picker.asrCards[i] = card
   end
 
-  -- ===== Notifications tab =====
-  local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  nlabel:SetPoint("TOPLEFT", 14, -10); nlabel:SetText("Notifications:")
+  -- ===== Notifications tab (stepper + toggle switches) =====
+  local notifBg = notifP:CreateTexture(nil, "BACKGROUND")
+  notifBg:SetAllPoints(); notifBg:SetColorTexture(unpack(COL.content))
 
-  local beforeBox = CreateFrame("EditBox", nil, notifP, "InputBoxTemplate")
-  beforeBox:SetSize(40, 20); beforeBox:SetPoint("TOPLEFT", 20, -32)
-  beforeBox:SetAutoFocus(false); beforeBox:SetNumeric(true)
-  beforeBox:SetScript("OnTextChanged", function(self) Picker.setBeforeMinutes(self:GetText()) end)
-  Picker.beforeBox = beforeBox
-  local bLabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  bLabel:SetPoint("LEFT", beforeBox, "RIGHT", 6, 0); bLabel:SetText("minutes before (0 = off)")
+  -- Row helper: title + description, returns the row's y for the control.
+  local function notifRow(y, title, desc)
+    local t = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    t:SetPoint("TOPLEFT", 16, y); t:SetText(title); t:SetTextColor(unpack(COL.text))
+    local d = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    d:SetPoint("TOPLEFT", 16, y - 18); d:SetWidth(300); d:SetJustifyH("LEFT")
+    d:SetText(desc); d:SetTextColor(unpack(COL.muted))
+  end
+  local function separator(y)
+    local s = notifP:CreateTexture(nil, "ARTWORK")
+    s:SetPoint("TOPLEFT", 16, y); s:SetPoint("TOPRIGHT", -16, y); s:SetHeight(1)
+    s:SetColorTexture(0, 0, 0, 0.12)
+  end
 
-  local atCheck = CreateFrame("CheckButton", nil, notifP, "UICheckButtonTemplate")
-  atCheck:SetPoint("TOPLEFT", 18, -56)
-  atCheck:SetScript("OnClick", function(self) Picker.setAtTime(self:GetChecked() and true or false) end)
-  Picker.atCheck = atCheck
-  local atText = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  atText:SetPoint("LEFT", atCheck, "RIGHT", 2, 0); atText:SetText("Alert at prayer time")
+  local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  nlabel:SetPoint("TOPLEFT", 16, -16); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(COL.gold))
 
-  local soundCheck = CreateFrame("CheckButton", nil, notifP, "UICheckButtonTemplate")
-  soundCheck:SetPoint("TOPLEFT", 18, -80)
-  soundCheck:SetScript("OnClick", function(self) Picker.setSound(self:GetChecked() and true or false) end)
-  Picker.soundCheck = soundCheck
-  local sText = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  sText:SetPoint("LEFT", soundCheck, "RIGHT", 2, 0); sText:SetText("Play sound")
+  -- Before-prayer minutes stepper.
+  notifRow(-36, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
+  local minusBtn = CreateFrame("Button", nil, notifP, "UIPanelButtonTemplate")
+  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -120, -34); minusBtn:SetText("-")
+  minusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(-1) end)
+  Picker.beforeValue = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  Picker.beforeValue:SetPoint("TOPRIGHT", -56, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
+  Picker.beforeValue:SetTextColor(unpack(COL.text))
+  local plusBtn = CreateFrame("Button", nil, notifP, "UIPanelButtonTemplate")
+  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -16, -34); plusBtn:SetText("+")
+  plusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(1) end)
+
+  separator(-84)
+
+  -- Alert exactly at prayer time.
+  notifRow(-100, "Alert exactly at prayer time", "Fire a notice the moment each prayer enters.")
+  Picker.atToggle = makeToggle(notifP,
+    function() return Picker.db and Picker.db.notify and Picker.db.notify.atTime end,
+    function(v) Picker.setAtTime(v) end)
+  Picker.atToggle.btn:SetPoint("TOPRIGHT", -16, -100)
+
+  separator(-148)
+
+  -- Notification sound.
+  notifRow(-164, "Notification sound", "Play a chime with each alert.")
+  Picker.soundToggle = makeToggle(notifP,
+    function() return Picker.db and Picker.db.notify and Picker.db.notify.sound ~= false end,
+    function(v) Picker.setSound(v) end)
+  Picker.soundToggle.btn:SetPoint("TOPRIGHT", -16, -164)
 
   Picker.frame = f
   Picker.mScroll, Picker.dScroll = 0, 0

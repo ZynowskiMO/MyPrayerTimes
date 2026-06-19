@@ -857,7 +857,7 @@ do
   Picker.frame = nil -- force a fresh build with the new controls
   Picker.create()
 
-  check("notif controls built", Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
+  check("notif controls built", Picker.beforeValue ~= nil and Picker.atToggle ~= nil and Picker.soundToggle ~= nil)
 
   -- before-minutes parsing.
   Picker.setBeforeMinutes("15")
@@ -1308,7 +1308,7 @@ do
   check("name box still has tab handler", Picker.nameBox:GetScript("OnTabPressed") ~= nil)
   check("method dropdown + Asr cards still present", Picker.methodDropdown ~= nil and Picker.asrCards ~= nil)
   check("notification controls still present",
-    Picker.beforeBox ~= nil and Picker.atCheck ~= nil and Picker.soundCheck ~= nil)
+    Picker.beforeValue ~= nil and Picker.atToggle ~= nil and Picker.soundToggle ~= nil)
 
   -- And still functional after the re-parent: city select + method set work.
   Picker.selectCityByName("Istanbul")
@@ -1552,6 +1552,35 @@ do
   Picker.methodDropdown:select("Egyptian")
   check("dropdown pick persists + closes",
     db.method == "Egyptian" and Picker.methodDropdown.popup:IsShown() == false)
+end
+
+-- ---- 3S-5: Notifications tab (stepper + toggle switches) -----------------
+do
+  local Picker = require("Picker")
+  local db = {}
+  Window.init(db); Picker.init(db)
+  Picker.frame = nil
+  Picker.create()
+
+  -- Stepper reflects + changes the before-minutes value (0 shows "Off").
+  db.notify.beforeMinutes = 10; Picker.updateNotifyControls()
+  check("stepper shows current minutes", Picker.beforeValue:GetText() == "10 min")
+  Picker.stepBeforeMinutes(1)
+  check("stepper + raises minutes", db.notify.beforeMinutes == 11)
+  Picker.stepBeforeMinutes(-11)
+  check("stepper clamps at 0 and shows Off",
+    db.notify.beforeMinutes == 0 and Picker.beforeValue:GetText() == "Off")
+
+  -- Toggles reflect + flip the persisted flags, and refresh live.
+  db.notify.atTime = true; Picker.updateNotifyControls()
+  check("at-time toggle reads on", Picker.atToggle.on == true)
+  Picker.atToggle.btn:GetScript("OnClick")(Picker.atToggle.btn)
+  check("at-time toggle flips persisted flag", db.notify.atTime == false and Picker.atToggle.on == false)
+
+  db.notify.sound = true; Picker.updateNotifyControls()
+  check("sound toggle reads on", Picker.soundToggle.on == true)
+  Picker.soundToggle.btn:GetScript("OnClick")(Picker.soundToggle.btn)
+  check("sound toggle flips persisted flag", db.notify.sound == false and Picker.soundToggle.on == false)
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
