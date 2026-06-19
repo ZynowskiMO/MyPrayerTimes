@@ -639,6 +639,38 @@ local function makeScrollbar(listFrame, vis, height, getCount, getOffset, setOff
   return sb
 end
 
+-- Flat button matching the cream/gold palette (replaces the red Blizzard
+-- UIPanelButtonTemplate). primary=true -> gold fill; otherwise cream. Returns a
+-- plain Button; the caller sets size/point/OnClick.
+local function makeFlatButton(parent, text, primary)
+  local b = CreateFrame("Button", nil, parent)
+  local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local fill = b:CreateTexture(nil, "BACKGROUND")
+  fill:SetPoint("TOPLEFT", 1, -1); fill:SetPoint("BOTTOMRIGHT", -1, 1)
+  local base = primary and COL.gold or COL.cardOff
+  local hov = primary and { 0.80, 0.66, 0.36, 1 } or COL.cardSel
+  fill:SetColorTexture(unpack(base))
+  local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  fs:SetPoint("CENTER"); fs:SetText(text)
+  fs:SetTextColor(unpack(primary and { 0.14, 0.11, 0.07 } or COL.text))
+  b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(hov)) end)
+  b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(base)) end)
+  b.fill, b.label = fill, fs
+  return b
+end
+
+-- Flat cream input box (replaces the gray Blizzard InputBoxTemplate skin).
+local function makeFlatEditBox(parent)
+  local eb = CreateFrame("EditBox", nil, parent)
+  eb:SetAutoFocus(false)
+  eb:SetFontObject("GameFontHighlight"); eb:SetTextColor(unpack(COL.text)); eb:SetTextInsets(8, 8, 0, 0)
+  eb:SetScript("OnEscapePressed", eb.ClearFocus)
+  local bd = eb:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); bd:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local fl = eb:CreateTexture(nil, "BACKGROUND")
+  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
+  return eb
+end
+
 -- Settings redesign (ADR-0005, Approach B): a dark header, a persistent left
 -- sidebar (title + subtitle per section, active item marked with a gold bar +
 -- lighter background), and a content area on the right hosting one panel at a
@@ -767,11 +799,18 @@ function Picker.create()
   Picker.cardCountry = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   Picker.cardCountry:SetPoint("TOPRIGHT", -16, -26); Picker.cardCountry:SetTextColor(0.70, 0.67, 0.60)
 
-  -- Search across all cities (with a placeholder shown while empty).
-  local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP, "InputBoxTemplate")
-  search:SetSize(434, 22); search:SetPoint("TOPLEFT", 12, -58); search:SetAutoFocus(false)
+  -- Search across all cities -- a flat cream field (no Blizzard InputBox skin)
+  -- with a placeholder shown while empty.
+  local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP)
+  search:SetSize(434, 24); search:SetPoint("TOPLEFT", 12, -58); search:SetAutoFocus(false)
+  search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(COL.text))
+  search:SetTextInsets(10, 10, 0, 0)
+  search:SetScript("OnEscapePressed", search.ClearFocus)
+  local sborder = search:CreateTexture(nil, "BACKGROUND"); sborder:SetAllPoints(); sborder:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local sfill = search:CreateTexture(nil, "BACKGROUND")
+  sfill:SetPoint("TOPLEFT", 1, -1); sfill:SetPoint("BOTTOMRIGHT", -1, 1); sfill:SetColorTexture(unpack(COL.cardOff))
   local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", 8, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
+  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
   search:SetScript("OnTextChanged", function(self)
     ph:SetShown(self:GetText() == "")
     Picker.dScroll = 0; Picker.refreshLocation(self:GetText())
@@ -798,8 +837,8 @@ function Picker.create()
     label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
-    local del = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    del:SetSize(18, 14); del:SetPoint("RIGHT", -4, 0); del:SetText("x"); del:Hide(); row.delBtn = del
+    local del = makeFlatButton(row, "x")
+    del:SetSize(18, 14); del:SetPoint("RIGHT", -4, 0); del:Hide(); row.delBtn = del
     row:SetScript("OnClick", function(self)
       if self.kind == "country" then Picker.selectCountry(self.country)
       elseif self.kind == "saved" then Picker.selectSaved(self.name) end
@@ -840,8 +879,8 @@ function Picker.create()
     function() return Picker.dScroll or 0 end,
     function(o) Picker.dScroll = o; Picker.refreshDetail() end)
 
-  local addBtn = CreateFrame("Button", nil, browse, "UIPanelButtonTemplate")
-  addBtn:SetSize(232, 22); addBtn:SetPoint("BOTTOMLEFT", 214, 10); addBtn:SetText("+ Add custom location")
+  local addBtn = makeFlatButton(browse, "+ Add custom location", true)
+  addBtn:SetSize(232, 24); addBtn:SetPoint("BOTTOMLEFT", 214, 10)
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
 
   -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
@@ -859,12 +898,12 @@ function Picker.create()
   makeColLabel(addPanel, "Lon", 68, -30)
   makeColLabel(addPanel, "UTC+/-", 124, -30)
   local boxY = -44
-  local latBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
-  latBox:SetSize(48, 20); latBox:SetPoint("TOPLEFT", 10, boxY); latBox:SetAutoFocus(false)
-  local lonBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
-  lonBox:SetSize(48, 20); lonBox:SetPoint("TOPLEFT", 66, boxY); lonBox:SetAutoFocus(false)
-  local offBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
-  offBox:SetSize(42, 20); offBox:SetPoint("TOPLEFT", 122, boxY); offBox:SetAutoFocus(false)
+  local latBox = makeFlatEditBox(addPanel)
+  latBox:SetSize(48, 22); latBox:SetPoint("TOPLEFT", 10, boxY)
+  local lonBox = makeFlatEditBox(addPanel)
+  lonBox:SetSize(48, 22); lonBox:SetPoint("TOPLEFT", 66, boxY)
+  local offBox = makeFlatEditBox(addPanel)
+  offBox:SetSize(42, 22); offBox:SetPoint("TOPLEFT", 122, boxY)
   local euCheck = CreateFrame("CheckButton", nil, addPanel, "UICheckButtonTemplate")
   euCheck:SetSize(20, 20); euCheck:SetPoint("TOPLEFT", 172, boxY + 1)
   Picker.euCheck = euCheck
@@ -873,8 +912,8 @@ function Picker.create()
 
   local nameLabelY = boxY - 28
   makeColLabel(addPanel, "Name", 12, nameLabelY)
-  local nameBox = CreateFrame("EditBox", nil, addPanel, "InputBoxTemplate")
-  nameBox:SetSize(282, 20); nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 14); nameBox:SetAutoFocus(false)
+  local nameBox = makeFlatEditBox(addPanel)
+  nameBox:SetSize(282, 22); nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 14)
   Picker.nameBox, Picker.latBox, Picker.lonBox, Picker.offsetBox = nameBox, latBox, lonBox, offBox
 
   local clearErr = function() Picker.clearError() end
@@ -884,21 +923,21 @@ function Picker.create()
   offBox:SetScript("OnTextChanged", clearErr)
 
   local btnY = nameLabelY - 42
-  local saveBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
-  saveBtn:SetSize(120, 22); saveBtn:SetPoint("TOPLEFT", 10, btnY); saveBtn:SetText("Save as My City")
+  local saveBtn = makeFlatButton(addPanel, "Save as My City", true)
+  saveBtn:SetSize(120, 24); saveBtn:SetPoint("TOPLEFT", 10, btnY)
   saveBtn:SetScript("OnClick", function()
     local ok = Picker.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(),
       offBox:GetText(), euCheck:GetChecked())
     if ok then Picker.closeAddPanel() end
   end)
-  local useBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
-  useBtn:SetSize(80, 22); useBtn:SetPoint("TOPLEFT", 136, btnY); useBtn:SetText("Use once")
+  local useBtn = makeFlatButton(addPanel, "Use once")
+  useBtn:SetSize(80, 24); useBtn:SetPoint("TOPLEFT", 138, btnY)
   useBtn:SetScript("OnClick", function()
     local ok = Picker.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText())
     if ok then Picker.closeAddPanel() end
   end)
-  local backBtn = CreateFrame("Button", nil, addPanel, "UIPanelButtonTemplate")
-  backBtn:SetSize(60, 22); backBtn:SetPoint("TOPLEFT", 226, btnY); backBtn:SetText("Back")
+  local backBtn = makeFlatButton(addPanel, "Back")
+  backBtn:SetSize(60, 24); backBtn:SetPoint("TOPLEFT", 226, btnY)
   backBtn:SetScript("OnClick", function() Picker.closeAddPanel() end)
 
   -- Tab order within the add form: Lat -> Lon -> UTC -> Name -> Lat.
@@ -974,14 +1013,14 @@ function Picker.create()
 
   -- Before-prayer minutes stepper.
   notifRow(-36, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
-  local minusBtn = CreateFrame("Button", nil, notifP, "UIPanelButtonTemplate")
-  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -120, -34); minusBtn:SetText("-")
+  local minusBtn = makeFlatButton(notifP, "-")
+  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -120, -34)
   minusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(-1) end)
   Picker.beforeValue = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Picker.beforeValue:SetPoint("TOPRIGHT", -56, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
   Picker.beforeValue:SetTextColor(unpack(COL.text))
-  local plusBtn = CreateFrame("Button", nil, notifP, "UIPanelButtonTemplate")
-  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -16, -34); plusBtn:SetText("+")
+  local plusBtn = makeFlatButton(notifP, "+")
+  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -16, -34)
   plusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(1) end)
 
   separator(-84)
