@@ -1669,6 +1669,58 @@ do
     Window.frame.rows.fajr.frame:IsShown() == false and Window.frame:GetHeight() == 92)
 end
 
+-- ---- 3W-1: welcome wizard scaffold (paging, Next/Back/Skip, dots) --------
+do
+  local Wizard = require("Wizard")
+  local Window = require("Window")
+  Window.frame = nil
+  local wdb = {}
+  Window.init(wdb); Window.create()
+  Wizard.frame = nil
+  Wizard.init(wdb)
+
+  check("shouldOpen true when not welcomed", Wizard.shouldOpen(wdb) == true)
+  check("shouldOpen false once welcomed", Wizard.shouldOpen({ welcomed = true }) == false)
+
+  Wizard.open()
+  check("opens on page 1", Wizard.step == 1)
+  check("page 1 shown, page 2 hidden",
+    Wizard.pages[1]:IsShown() == true and Wizard.pages[2]:IsShown() == false)
+  check("Back hidden on first page", Wizard.backBtn:IsShown() == false)
+  check("Skip shown on first page", Wizard.skipBtn:IsShown() == true)
+  check("Next labelled 'Next' on first page", Wizard.nextBtn.label:GetText() == "Next")
+  check("dot 1 active (gold), dot 2 not", Wizard.dots[1] ~= nil and #Wizard.dots == 5)
+
+  Wizard.next()
+  check("next advances to page 2", Wizard.step == 2)
+  check("page 2 shown, page 1 hidden",
+    Wizard.pages[2]:IsShown() == true and Wizard.pages[1]:IsShown() == false)
+  check("Back shown after first page", Wizard.backBtn:IsShown() == true)
+
+  Wizard.back()
+  check("back returns to page 1", Wizard.step == 1)
+  check("back clamps at first page", (Wizard.back() or Wizard.step) == 1)
+
+  -- Jump to the last page: Next becomes Done, Skip hides.
+  Wizard.go(#Wizard.PAGES)
+  check("last page: Next labelled 'Done'", Wizard.nextBtn.label:GetText() == "Done")
+  check("last page: Skip hidden", Wizard.skipBtn:IsShown() == false)
+  check("go clamps above range", (Wizard.go(99) or Wizard.step) == #Wizard.PAGES)
+
+  -- Done (finish) sets welcomed, hides wizard, shows the main window.
+  Wizard.finish()
+  check("finish sets welcomed flag", wdb.welcomed == true)
+  check("finish hides the wizard", Wizard.frame:IsShown() == false)
+  check("finish shows the main window", Window.frame:IsShown() == true)
+
+  -- Skip from a fresh wizard also completes.
+  local sdb = {}
+  Wizard.frame = nil; Wizard.init(sdb); Wizard.open()
+  Wizard.skip()
+  check("skip sets welcomed flag", sdb.welcomed == true)
+  check("skip hides the wizard", Wizard.frame:IsShown() == false)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

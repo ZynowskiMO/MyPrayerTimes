@@ -36,4 +36,5 @@ engine/Selection.lua
 ui/Alerts.lua
 ui/Window.lua
 ui/Picker.lua
+ui/Wizard.lua
 core/Main.lua
