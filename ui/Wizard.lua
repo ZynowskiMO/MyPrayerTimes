@@ -171,7 +171,9 @@ function Wizard.create()
   for i = 1, n do
     local dot = f:CreateTexture(nil, "ARTWORK")
     dot:SetSize(8, 8)
-    dot:SetPoint("BOTTOM", f, "BOTTOM", -totalW / 2 + (i - 1) * gap, 24)
+    -- Raised above the Back/Skip/Next row (button top ~44px) so the dots never
+    -- slide underneath the buttons.
+    dot:SetPoint("BOTTOM", f, "BOTTOM", -totalW / 2 + (i - 1) * gap, 58)
     dot:SetColorTexture(unpack(COL.dotOff))
     Wizard.dots[i] = dot
   end
