@@ -5,6 +5,7 @@
 
 local Window = require("Window")
 local Picker = require("Picker")
+local Wizard = require("Wizard")
 local Selection = require("Selection")
 
 local loader = CreateFrame("Frame")
@@ -13,6 +14,7 @@ loader:SetScript("OnEvent", function()
   PrayerTimesDB = PrayerTimesDB or {}
   Window.init(PrayerTimesDB)
   Picker.init(PrayerTimesDB)
+  Wizard.init(PrayerTimesDB)
   Window.create()
   if Picker.shouldAutoOpen(PrayerTimesDB) then
     Picker.open() -- first run: welcome / choose a city
@@ -46,6 +48,8 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     Window.setLocked(false); print("|cff33ff99PrayerTimes|r: window unlocked")
   elseif cmd == "settings" or cmd == "config" or cmd == "options" then
     Picker.toggle()
+  elseif cmd == "welcome" then
+    Wizard.open() -- preview the first-run wizard (temporary, until 3W-4 wiring)
   elseif cmd == "city" then
     if rest == "" then
       Picker.open()
