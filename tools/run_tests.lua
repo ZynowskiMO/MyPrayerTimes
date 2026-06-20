@@ -1721,6 +1721,41 @@ do
   check("skip hides the wizard", Wizard.frame:IsShown() == false)
 end
 
+-- ---- 3W-2: wizard Location page (master-detail reuse + selection) ---------
+do
+  local Wizard = require("Wizard")
+  local Picker = require("Picker")
+  local Selection = require("Selection")
+  local ldb = { savedCities = {} }
+  Picker.init(ldb) -- so afterLocationChange's Picker.updateSelected is a no-op-safe
+  Wizard.frame = nil; Wizard.init(ldb); Wizard.open()
+
+  check("location page built (master/detail pools)",
+    Wizard.masterPool ~= nil and #Wizard.masterPool == 9 and Wizard.detailPool ~= nil)
+  check("master list populated with countries", #(Wizard.masterData or {}) > 0)
+  check("default country pre-selected", Wizard.locCountry ~= nil)
+  check("detail list shows that country's cities", #(Wizard.detailData or {}) > 0)
+
+  -- Pick the first city shown in the detail column -> persists as a city.
+  local firstCity = Wizard.detailData[1].city.name
+  Wizard.selectCity(firstCity)
+  local sel = Selection.get(ldb)
+  check("selecting a city persists it", sel and sel.kind == "city" and sel.name == firstCity)
+  check("current card reflects the pick", Wizard.cardCity:GetText() == firstCity)
+
+  -- Switching country reloads the detail column and clears the search box.
+  local Cities = require("Cities")
+  local groups = Cities.byCountry()
+  local otherCountry = groups[#groups].country
+  Wizard.selectCountry(otherCountry)
+  check("selectCountry switches detail to that country", Wizard.locCountry == otherCountry)
+  check("selectCountry clears search", Wizard.searchBox:GetText() == "")
+
+  -- Search drives a flat cross-country result list.
+  Wizard.refreshLocation("ams")
+  check("search produces results + searching flag", Wizard.detailSearching == true)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

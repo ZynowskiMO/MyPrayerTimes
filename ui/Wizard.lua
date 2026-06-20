@@ -8,6 +8,9 @@
 -- All navigation is exposed as plain functions so the runner can drive it.
 
 local Window = require("Window")
+local Cities = require("Cities")
+local Selection = require("Selection")
+local Picker = require("Picker") -- reuse its pure builders + styled components
 
 local Wizard = {}
 
@@ -101,6 +104,195 @@ end
 function Wizard.skip() Wizard.complete() end
 function Wizard.finish() Wizard.complete() end
 
+-- ----- Location page (3W-2): reuse Picker's pure builders + Selection -------
+-- The wizard keeps its own widget pools but drives them with the same pure row
+-- builders (Picker.masterRows/detailRows/defaultCountry) and the same Selection
+-- setters as the settings window, so picking a city here persists identically.
+
+local function afterLocationChange()
+  if Window.refresh then Window.refresh() end
+  if Picker.db and Picker.updateSelected then Picker.updateSelected() end
+  Wizard.refreshLocation()
+end
+
+function Wizard.selectCity(name)
+  Selection.setCity(Wizard.db, name); afterLocationChange()
+end
+
+function Wizard.selectSaved(name)
+  Selection.setSavedCity(Wizard.db, name); afterLocationChange()
+end
+
+function Wizard.selectCountry(country)
+  Wizard.locCountry = country; Wizard.dScroll = 0
+  if Wizard.searchBox then Wizard.searchBox:SetText("") end -- fires refreshLocation
+  Wizard.refreshLocation("")
+end
+
+function Wizard.updateLocCard()
+  if not Wizard.cardCity then return end
+  local sel = Selection.get(Wizard.db)
+  local city, country = "Rotterdam", "default"
+  if sel then
+    if sel.kind == "city" then
+      local c = Cities.findByName(sel.name)
+      if c then city, country = c.name, c.country else city, country = sel.name, "" end
+    elseif sel.kind == "saved" then
+      city, country = sel.name, "saved"
+    else
+      city, country = "Manual location", ""
+    end
+  end
+  Wizard.cardCity:SetText(city); Wizard.cardCountry:SetText(country)
+end
+
+function Wizard.refreshLocation(query)
+  query = query or (Wizard.searchBox and Wizard.searchBox:GetText()) or ""
+  if not Wizard.locCountry then Wizard.locCountry = Picker.defaultCountry(Wizard.db) end
+  Wizard.masterData = Picker.masterRows(Wizard.db)
+  local rows, searching = Picker.detailRows(Wizard.db, query, Wizard.locCountry)
+  Wizard.detailData, Wizard.detailSearching = rows, searching
+  Wizard.refreshMaster(); Wizard.refreshDetail(); Wizard.updateLocCard()
+end
+
+function Wizard.refreshMaster()
+  if not Wizard.masterPool then return end
+  local data, vis = Wizard.masterData or {}, #Wizard.masterPool
+  Wizard.mScroll = math.min(Wizard.mScroll or 0, math.max(0, #data - vis))
+  local sel = Selection.get(Wizard.db)
+  local selSaved = sel and sel.kind == "saved" and sel.name or nil
+  for i = 1, vis do
+    local row = Wizard.masterPool[i]
+    local e = data[Wizard.mScroll + i]
+    row.count:SetText(""); row.hl:Hide(); row.kind, row.country, row.name = nil, nil, nil
+    if not e then
+      row:Hide()
+    elseif e.kind == "myheader" or e.kind == "cheader" then
+      row.label:SetText("|cff8a8275" .. e.label .. "|r"); row.kind = "header"; row:Show()
+    elseif e.kind == "saved" then
+      row.label:SetText(e.city.name); row.kind, row.name = "saved", e.city.name
+      if e.city.name == selSaved then row.hl:Show() end; row:Show()
+    elseif e.kind == "country" then
+      row.label:SetText(e.country); row.count:SetText("|cff8a8275" .. e.count .. "|r")
+      row.kind, row.country = "country", e.country
+      if e.country == Wizard.locCountry then row.hl:Show() end; row:Show()
+    end
+  end
+  if Wizard.masterSB then Wizard.masterSB:update() end
+end
+
+function Wizard.refreshDetail()
+  if not Wizard.detailPool then return end
+  local data, vis = Wizard.detailData or {}, #Wizard.detailPool
+  Wizard.dScroll = math.min(Wizard.dScroll or 0, math.max(0, #data - vis))
+  local sel = Selection.get(Wizard.db)
+  local selCity = sel and sel.kind == "city" and sel.name or nil
+  if Wizard.detailHeader then
+    Wizard.detailHeader:SetText("|cffb89254"
+      .. (Wizard.detailSearching and "SEARCH RESULTS" or (Wizard.locCountry or "")) .. "|r")
+  end
+  for i = 1, vis do
+    local row = Wizard.detailPool[i]
+    local e = data[Wizard.dScroll + i]
+    row.check:SetText(""); row.hl:Hide(); row.name = nil
+    if not e then
+      row:Hide()
+    else
+      row.label:SetText(e.city.name); row.name = e.city.name
+      if e.city.name == selCity then row.hl:Show(); row.check:SetText("|cffb89254\226\156\147|r") end
+      row:Show()
+    end
+  end
+  if Wizard.detailSB then Wizard.detailSB:update() end
+end
+
+function Wizard.scrollMaster(d) Wizard.mScroll = math.max(0, (Wizard.mScroll or 0) - d); Wizard.refreshMaster() end
+function Wizard.scrollDetail(d) Wizard.dScroll = math.max(0, (Wizard.dScroll or 0) - d); Wizard.refreshDetail() end
+
+-- Build the Location page UI into its panel. Uses the cream/gold palette and
+-- styled component factories exported by the settings window.
+local function buildLocationPage(panel)
+  local C, UI = Picker.COL, Picker.ui
+  local MVIS, DVIS, RH = 9, 9, 18
+
+  -- Current-location card.
+  local card = panel:CreateTexture(nil, "BACKGROUND")
+  card:SetPoint("TOPLEFT", 24, -54); card:SetSize(472, 42); card:SetColorTexture(unpack(C.card))
+  local cl = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  cl:SetPoint("TOPLEFT", 36, -60); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(C.gold))
+  Wizard.cardCity = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  Wizard.cardCity:SetPoint("TOPLEFT", 36, -74); Wizard.cardCity:SetTextColor(0.96, 0.94, 0.88)
+  Wizard.cardCountry = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  Wizard.cardCountry:SetPoint("TOPRIGHT", -36, -76); Wizard.cardCountry:SetTextColor(0.70, 0.67, 0.60)
+
+  -- Search across all cities (flat cream field + placeholder).
+  local search = CreateFrame("EditBox", "PrayerTimesWizardSearch", panel)
+  search:SetSize(472, 24); search:SetPoint("TOPLEFT", 24, -106); search:SetAutoFocus(false)
+  search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(C.text)); search:SetTextInsets(10, 10, 0, 0)
+  search:SetScript("OnEscapePressed", search.ClearFocus)
+  local sb = search:CreateTexture(nil, "BACKGROUND"); sb:SetAllPoints(); sb:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local sf = search:CreateTexture(nil, "BACKGROUND")
+  sf:SetPoint("TOPLEFT", 1, -1); sf:SetPoint("BOTTOMRIGHT", -1, 1); sf:SetColorTexture(unpack(C.cardOff))
+  local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
+  search:SetScript("OnTextChanged", function(self)
+    ph:SetShown(self:GetText() == "")
+    Wizard.dScroll = 0; Wizard.refreshLocation(self:GetText())
+  end)
+  Wizard.searchBox = search
+
+  -- Master column: My Cities + countries (with counts).
+  local mlist = CreateFrame("Frame", nil, panel)
+  mlist:SetPoint("TOPLEFT", 24, -142); mlist:SetSize(200, MVIS * RH)
+  mlist:EnableMouseWheel(true); mlist:SetScript("OnMouseWheel", function(_, d) Wizard.scrollMaster(d) end)
+  Wizard.masterPool = {}
+  for i = 1, MVIS do
+    local row = CreateFrame("Button", nil, mlist)
+    row:SetSize(200, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
+    local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    count:SetPoint("RIGHT", -8, 0); row.count = count
+    row:SetScript("OnClick", function(self)
+      if self.kind == "country" then Wizard.selectCountry(self.country)
+      elseif self.kind == "saved" then Wizard.selectSaved(self.name) end
+    end)
+    Wizard.masterPool[i] = row
+  end
+  Wizard.masterSB = UI.scrollbar(mlist, MVIS, MVIS * RH,
+    function() return #(Wizard.masterData or {}) end,
+    function() return Wizard.mScroll or 0 end,
+    function(o) Wizard.mScroll = o; Wizard.refreshMaster() end)
+
+  local divider = panel:CreateTexture(nil, "ARTWORK")
+  divider:SetPoint("TOPLEFT", 234, -140); divider:SetPoint("BOTTOMLEFT", 234, 8)
+  divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
+
+  -- Detail column: cities of the selected country (or search results).
+  Wizard.detailHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  Wizard.detailHeader:SetPoint("TOPLEFT", 244, -126)
+  local dlist = CreateFrame("Frame", nil, panel)
+  dlist:SetPoint("TOPLEFT", 244, -142); dlist:SetSize(252, DVIS * RH)
+  dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Wizard.scrollDetail(d) end)
+  Wizard.detailPool = {}
+  for i = 1, DVIS do
+    local row = CreateFrame("Button", nil, dlist)
+    row:SetSize(252, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
+    local check = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    check:SetPoint("RIGHT", -8, 0); row.check = check
+    local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
+    row:SetScript("OnClick", function(self) if self.name then Wizard.selectCity(self.name) end end)
+    Wizard.detailPool[i] = row
+  end
+  Wizard.detailSB = UI.scrollbar(dlist, DVIS, DVIS * RH,
+    function() return #(Wizard.detailData or {}) end,
+    function() return Wizard.dScroll or 0 end,
+    function(o) Wizard.dScroll = o; Wizard.refreshDetail() end)
+end
+
 -- ----- build ---------------------------------------------------------------
 
 function Wizard.create()
@@ -149,6 +341,9 @@ function Wizard.create()
     .. "method and Asr school, and set up reminders before each prayer.\n\n"
     .. "You can change any of this later from the settings window. Let's begin.")
 
+  -- Location page (3W-2).
+  buildLocationPage(Wizard.pages[2])
+
   -- Footer: Back (left), step dots (centre), Skip + Next/Done (right).
   Wizard.backBtn = makeBtn(f, "Back")
   Wizard.backBtn:SetSize(90, 28); Wizard.backBtn:SetPoint("BOTTOMLEFT", 16, 16)
@@ -179,12 +374,15 @@ function Wizard.create()
   end
 
   Wizard.frame = f
+  Wizard.mScroll, Wizard.dScroll = 0, 0
+  Wizard.refreshLocation("")
   Wizard.go(1)
   return f
 end
 
 function Wizard.open()
   Wizard.create()
+  Wizard.refreshLocation(Wizard.searchBox and Wizard.searchBox:GetText() or "")
   Wizard.go(1)
   Wizard.frame:Show()
 end

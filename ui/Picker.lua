@@ -1097,5 +1097,19 @@ function Picker.toggle()
   if Picker.frame and Picker.frame:IsShown() then Picker.close() else Picker.open() end
 end
 
+-- Styled component factories + palette, exposed so the welcome wizard (ADR-0006)
+-- reuses the exact same cream/gold widgets instead of duplicating them. Pure
+-- builders (masterRows/detailRows/defaultCountry) are already on Picker above.
+Picker.COL = COL
+Picker.ui = {
+  flatButton = makeFlatButton,
+  flatEditBox = makeFlatEditBox,
+  flatCheck = makeFlatCheck,
+  scrollbar = makeScrollbar,
+  dropdown = makeDropdown,
+  toggle = makeToggle,
+  colLabel = makeColLabel,
+}
+
 if PrayerTimesNS then PrayerTimesNS.modules.Picker = Picker end
 return Picker
