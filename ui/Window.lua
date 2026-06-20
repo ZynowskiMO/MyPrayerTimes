@@ -89,6 +89,17 @@ function Window.create()
   end)
   f.gear = gear
 
+  -- Minimize / restore button (collapses to just the next prayer).
+  local minBtn = CreateFrame("Button", nil, f)
+  minBtn:SetSize(18, 18); minBtn:SetPoint("RIGHT", gear, "LEFT", -4, 0)
+  local mfs = minBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  mfs:SetPoint("CENTER", 0, 2); mfs:SetText("_"); mfs:SetTextColor(unpack(COL.gold))
+  minBtn:SetScript("OnEnter", function() mfs:SetTextColor(1, 0.95, 0.7) end)
+  minBtn:SetScript("OnLeave", function() mfs:SetTextColor(unpack(COL.gold)) end)
+  minBtn:SetScript("OnClick", function() Window.toggleMinimize() end)
+  minBtn.label = mfs
+  f.minBtn = minBtn
+
   f.rows = {}
   for i, key in ipairs(ORDER) do
     local y = -32 - (i - 1) * 25
@@ -102,8 +113,14 @@ function Window.create()
     local timeText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     timeText:SetPoint("RIGHT", -10, 0); timeText:SetJustifyH("RIGHT")
     timeText:SetTextColor(unpack(COL.text))
-    f.rows[key] = { label = label, time = timeText, hl = hl }
+    f.rows[key] = { frame = row, label = label, time = timeText, hl = hl }
   end
+
+  -- Compact next-prayer line, shown only while minimized.
+  local nextLine = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  nextLine:SetPoint("TOPLEFT", 12, -36); nextLine:SetTextColor(unpack(COL.text))
+  nextLine:Hide()
+  f.nextLine = nextLine
 
   local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   countdown:SetPoint("BOTTOM", 0, 10)
@@ -114,6 +131,7 @@ function Window.create()
   Window.restorePosition()
   Window.applyLock()
   Window.refresh()
+  Window.applyMinimized()
   if C_Timer and C_Timer.NewTicker then
     Window.ticker = C_Timer.NewTicker(1, function() Window.tick() end)
   end
@@ -127,6 +145,7 @@ end
 function Window.init(db)
   Window.db = db
   db.locked = db.locked or false
+  db.minimized = db.minimized or false
   db.method = Methods.resolveMethod(db.method) -- default MWL; sanitise stale keys
   db.madhab = Methods.resolveMadhab(db.madhab) -- default Standard (Shafi)
   local n = db.notify or {}
@@ -195,6 +214,29 @@ function Window.toggleLock()
   Window.setLocked(not (Window.db and Window.db.locked))
 end
 
+-- Minimized = hide the six rows and show only the next-prayer line + countdown,
+-- shrinking the frame. Persisted in the DB.
+local EXPANDED_H, MINIMIZED_H = 226, 92
+
+function Window.applyMinimized()
+  local f = Window.frame
+  if not f then return end
+  local mini = Window.db and Window.db.minimized
+  for _, key in ipairs(ORDER) do f.rows[key].frame:SetShown(not mini) end
+  if f.nextLine then f.nextLine:SetShown(mini and true or false) end
+  if f.minBtn and f.minBtn.label then f.minBtn.label:SetText(mini and "+" or "_") end
+  f:SetHeight(mini and MINIMIZED_H or EXPANDED_H)
+end
+
+function Window.setMinimized(on)
+  if Window.db then Window.db.minimized = on and true or false end
+  Window.applyMinimized()
+end
+
+function Window.toggleMinimize()
+  Window.setMinimized(not (Window.db and Window.db.minimized))
+end
+
 -- Update highlight + countdown for the current moment, from the cached times.
 local function renderNow(now)
   local f = Window.frame
@@ -211,8 +253,12 @@ local function renderNow(now)
   if sched.nextKey and sched.untilMinutes then
     local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
     f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
+    if f.nextLine then
+      f.nextLine:SetText(LABELS[sched.nextKey] .. "   " .. (f.rows[sched.nextKey].time:GetText() or ""))
+    end
   else
     f.countdown:SetText("--:--")
+    if f.nextLine then f.nextLine:SetText("--:--") end
   end
   Window.checkNotifications(now)
   Window.lastSchedule = sched -- exposed for tests

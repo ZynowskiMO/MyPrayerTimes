@@ -1637,6 +1637,38 @@ do
   end
 end
 
+-- ---- 3M-2: minimize the main window (collapse to the next prayer) --------
+do
+  local Window = require("Window")
+  Window.frame = nil
+  local wdb = {}
+  Window.init(wdb)
+  WowMock.setNow(1766318400)
+  Window.create()
+
+  check("starts expanded (rows shown, next-line hidden)",
+    Window.frame.rows.fajr.frame:IsShown() == true and Window.frame.nextLine:IsShown() == false)
+
+  Window.toggleMinimize()
+  check("minimized: rows hidden + next-line shown + flag set",
+    wdb.minimized == true and Window.frame.rows.fajr.frame:IsShown() == false
+    and Window.frame.nextLine:IsShown() == true)
+  check("minimized frame is shorter", Window.frame:GetHeight() == 92)
+
+  Window.toggleMinimize()
+  check("restored: rows shown + next-line hidden",
+    wdb.minimized == false and Window.frame.rows.fajr.frame:IsShown() == true
+    and Window.frame.nextLine:IsShown() == false)
+  check("restored frame is taller", Window.frame:GetHeight() == 226)
+
+  -- Persisted minimized state is applied on load.
+  Window.frame = nil
+  local wdb2 = { minimized = true }
+  Window.init(wdb2); Window.create()
+  check("saved minimized state applied on load",
+    Window.frame.rows.fajr.frame:IsShown() == false and Window.frame:GetHeight() == 92)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

@@ -23,6 +23,7 @@ local function makeFontString()
   function fs:SetJustifyH() end
   function fs:Show() self._shown = true end
   function fs:Hide() self._shown = false end
+  function fs:SetShown(b) self._shown = b and true or false end
   function fs:IsShown() return self._shown end
   return fs
 end
