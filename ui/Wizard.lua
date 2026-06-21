@@ -279,7 +279,10 @@ end
 -- styled component factories exported by the settings window.
 local function buildLocationPage(panel)
   local C, UI = Picker.COL, Picker.ui
-  local MVIS, DVIS, RH = 6, 6, 18
+  -- Master (countries) has no button beneath it, so it runs taller — its bottom
+  -- lines up with the Add-custom button's bottom edge, using the otherwise empty
+  -- left-column space. Detail stays shorter to leave room for the Add button.
+  local MVIS, DVIS, RH = 9, 6, 18
 
   -- Current-location card.
   local card = panel:CreateTexture(nil, "BACKGROUND")

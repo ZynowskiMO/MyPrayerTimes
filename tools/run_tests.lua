@@ -1731,7 +1731,7 @@ do
   Wizard.frame = nil; Wizard.init(ldb); Wizard.open()
 
   check("location page built (master/detail pools)",
-    Wizard.masterPool ~= nil and #Wizard.masterPool == 6 and Wizard.detailPool ~= nil)
+    Wizard.masterPool ~= nil and #Wizard.masterPool == 9 and Wizard.detailPool ~= nil)
   check("master list populated with countries", #(Wizard.masterData or {}) > 0)
   check("default country pre-selected", Wizard.locCountry ~= nil)
   check("detail list shows that country's cities", #(Wizard.detailData or {}) > 0)
