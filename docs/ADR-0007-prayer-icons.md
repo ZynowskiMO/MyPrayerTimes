@@ -20,9 +20,12 @@ font does not render Unicode symbol glyphs (they appear as empty boxes — the
 reason the dropdown arrow and the selection check are already textures), so an
 icon must be a texture, not a font glyph.
 
-To match the reference look we need our own line-art icons. That means shipping
-image files, which is a new class of asset for this repo (until now: code +
-data only) and carries a licensing obligation, exactly like the adhan-js MIT
+To match the reference look we need clean line-art icons. The **Lucide** icon
+set (https://lucide.dev, MIT-licensed; the Feather-derived portion is ISC) is a
+good fit and removes the need for hand-drawn art. Lucide ships **SVG**, which WoW
+cannot load, so each icon is rasterised offline to a small `.tga`/`.blp` and that
+raster is what ships. This is a new class of asset for this repo (until now: code
++ data only) and carries a licensing obligation, exactly like the adhan-js MIT
 text we already keep.
 
 ## Decision
@@ -41,11 +44,15 @@ text we already keep.
    (e.g. 64×64) in `.tga` or `.blp`, the formats WoW loads. No code change is
    needed to swap a placeholder for final art — only the file is replaced.
 
-4. **Licensing is mandatory before an icon ships.** Only icons under a license
-   that permits redistribution may be bundled: the PO's own art, or a
-   permissive third-party set (CC0 / MIT / similar). Each third-party source and
-   its licence is recorded in `THIRD_PARTY_LICENSES.md` and credited where the
-   licence requires. No icon is committed without a cleared licence.
+4. **Icons come from Lucide (MIT).** The set is **Lucide** — clean monochrome
+   line icons under MIT (ISC for the Feather-derived part), which permits
+   redistribution. Mapping: Fajr → `moon`, Shurūq → `sunrise`, Dhuhr → `sun`,
+   Asr → `sun` (or `cloud-sun`), Maghrib → `sunset`, Isha → `moon-star`. Each
+   SVG is rasterised offline to a white-on-transparent `.tga`/`.blp` so it can be
+   **tinted at runtime** (`SetVertexColor`) to the cream/gold palette and follow
+   the active-prayer state. Lucide's MIT/ISC notice is recorded in
+   `THIRD_PARTY_LICENSES.md` and credited in README + the CurseForge listing. No
+   icon is committed without its licence recorded.
 
 5. **Cross-client constraint holds.** `Texture:SetTexture(path)` by file path is
    stable on Retail and Classic. No new API or dependency.
@@ -59,8 +66,10 @@ text we already keep.
 
 - **3I-1** Icon slot + `ui/Icons.lua` registry with fallback, wired into the
   main window rows, using placeholders. Runner covers the registry + fallback.
-- **3I-2** Drop in the final (PO-supplied or licence-cleared) art and record its
-  licence in `THIRD_PARTY_LICENSES.md` + README/CurseForge credit.
+- **3I-2** Rasterise the chosen Lucide SVGs to `Media/icons/*.tga`
+  (white-on-transparent), wire them through the registry with gold/cream tinting,
+  and record Lucide's MIT/ISC licence in `THIRD_PARTY_LICENSES.md` +
+  README/CurseForge credit.
 - *(later, optional)* the same icons in the wizard/settings if wanted.
 
 Each checkpoint keeps a working, runner-green build and is verified in-game.

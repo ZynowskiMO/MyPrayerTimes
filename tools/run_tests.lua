@@ -1897,6 +1897,37 @@ do
     Wizard.sumMethod:GetText() == Methods.methodLabel(Methods.DEFAULT_METHOD))
 end
 
+-- ---- 3I-1: per-prayer icons (registry + window slots + placeholders) -----
+do
+  local Icons = require("Icons")
+  local Schedule = require("Schedule")
+
+  -- Every prayer in the schedule has a Lucide mapping and a placeholder tint.
+  for _, key in ipairs(Schedule.ORDER) do
+    check("icon mapping for " .. key, Icons.LUCIDE[key] ~= nil and Icons.PLACEHOLDER_TINT[key] ~= nil)
+  end
+  check("path points under Media/icons", Icons.path("fajr") == Icons.MEDIA .. "moon.tga")
+  check("isha uses moon-star", Icons.path("isha"):find("moon%-star%.tga") ~= nil)
+
+  -- apply runs under both modes without error (placeholder + final-art path).
+  local tex = WowMock.makeFrame():CreateTexture()
+  Icons.USE_PLACEHOLDER = true;  Icons.apply(tex, "maghrib", false)
+  Icons.USE_PLACEHOLDER = false; Icons.apply(tex, "maghrib", true)
+  Icons.USE_PLACEHOLDER = true -- restore default
+  check("apply tolerates nil texture", (function() Icons.apply(nil, "fajr"); return true end)())
+
+  -- The main window builds an icon per row.
+  local Window = require("Window")
+  Window.frame = nil
+  local wdb = {}
+  Window.init(wdb); WowMock.setNow(1766318400); Window.create()
+  local n = 0
+  for _, key in ipairs(Schedule.ORDER) do
+    if Window.frame.rows[key] and Window.frame.rows[key].icon then n = n + 1 end
+  end
+  check("each window row has an icon", n == #Schedule.ORDER)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

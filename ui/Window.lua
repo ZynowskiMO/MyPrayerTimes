@@ -11,6 +11,7 @@ local Notifier = require("Notifier")
 local Alerts = require("Alerts")
 local Selection = require("Selection")
 local Methods = require("Methods")
+local Icons = require("Icons")
 
 local LABELS = {
   fajr = "Fajr", sunrise = "Sunrise", dhuhr = "Dhuhr",
@@ -107,13 +108,20 @@ function Window.create()
     row:SetPoint("TOPLEFT", 4, y); row:SetPoint("TOPRIGHT", -4, y); row:SetHeight(24)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide()
+    -- Icon slot (rounded light square) + the per-prayer icon (ADR-0007).
+    local iconBg = row:CreateTexture(nil, "BORDER")
+    iconBg:SetSize(20, 20); iconBg:SetPoint("LEFT", 6, 0)
+    iconBg:SetColorTexture(1, 0.99, 0.96, 0.55)
+    local icon = row:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(13, 13); icon:SetPoint("CENTER", iconBg, "CENTER")
+    Icons.apply(icon, key, false)
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT")
+    label:SetPoint("LEFT", 34, 0); label:SetJustifyH("LEFT")
     label:SetText(LABELS[key]); label:SetTextColor(unpack(COL.text))
     local timeText = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     timeText:SetPoint("RIGHT", -10, 0); timeText:SetJustifyH("RIGHT")
     timeText:SetTextColor(unpack(COL.text))
-    f.rows[key] = { frame = row, label = label, time = timeText, hl = hl }
+    f.rows[key] = { frame = row, label = label, time = timeText, hl = hl, icon = icon, iconBg = iconBg }
   end
 
   -- Compact next-prayer line, shown only while minimized.
