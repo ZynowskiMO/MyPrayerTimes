@@ -211,11 +211,74 @@ end
 function Wizard.scrollMaster(d) Wizard.mScroll = math.max(0, (Wizard.mScroll or 0) - d); Wizard.refreshMaster() end
 function Wizard.scrollDetail(d) Wizard.dScroll = math.max(0, (Wizard.dScroll or 0) - d); Wizard.refreshDetail() end
 
+-- Add-custom-location form (same Selection logic as the settings window; opaque
+-- cream overlay raised above the browse view so nothing shows through).
+function Wizard.clearError()
+  if Wizard.errorLabel then Wizard.errorLabel:SetText("") end
+end
+
+function Wizard.openAddPanel()
+  Wizard.clearError()
+  if Wizard.addPanel then Wizard.addPanel:Show() end
+end
+
+function Wizard.closeAddPanel()
+  if Wizard.addPanel then Wizard.addPanel:Hide() end
+end
+
+-- Save a named "My City". euDst applies only when an offset is given.
+function Wizard.saveManual(name, latText, lonText, offsetText, euDst)
+  local lat, lon = tonumber(latText), tonumber(lonText)
+  local opts = {}
+  if offsetText and offsetText ~= "" then
+    local hours = tonumber(offsetText)
+    if not hours then
+      if Wizard.errorLabel then Wizard.errorLabel:SetText("Offset must be a number") end
+      return false
+    end
+    opts.tz, opts.baseUtcOffset = "fixed", math.floor(hours * 60 + 0.5)
+    opts.dstRule = euDst and "EU" or "none"
+  end
+  local ok, err, savedName = Selection.saveCity(Wizard.db, name, lat, lon, opts)
+  if ok then
+    Wizard.clearError()
+    Selection.setSavedCity(Wizard.db, savedName)
+    afterLocationChange()
+  elseif Wizard.errorLabel then
+    Wizard.errorLabel:SetText(err or "Could not save")
+  end
+  return ok
+end
+
+-- One-off manual location (not saved). Empty lat+lon = no-op (not an error).
+function Wizard.applyManual(latText, lonText, offsetText)
+  if (not latText or latText == "") and (not lonText or lonText == "") then
+    Wizard.clearError(); return false
+  end
+  local lat, lon = tonumber(latText), tonumber(lonText)
+  local opts = {}
+  if offsetText and offsetText ~= "" then
+    local hours = tonumber(offsetText)
+    if not hours then
+      if Wizard.errorLabel then Wizard.errorLabel:SetText("Offset must be a number (hours from UTC)") end
+      return false
+    end
+    opts.tz, opts.baseUtcOffset, opts.dstRule = "fixed", math.floor(hours * 60 + 0.5), "none"
+  end
+  local ok, err = Selection.setManual(Wizard.db, lat, lon, opts)
+  if ok then
+    Wizard.clearError(); afterLocationChange()
+  elseif Wizard.errorLabel then
+    Wizard.errorLabel:SetText(err or "Invalid coordinates")
+  end
+  return ok
+end
+
 -- Build the Location page UI into its panel. Uses the cream/gold palette and
 -- styled component factories exported by the settings window.
 local function buildLocationPage(panel)
   local C, UI = Picker.COL, Picker.ui
-  local MVIS, DVIS, RH = 9, 9, 18
+  local MVIS, DVIS, RH = 7, 7, 18
 
   -- Current-location card.
   local card = panel:CreateTexture(nil, "BACKGROUND")
@@ -294,6 +357,67 @@ local function buildLocationPage(panel)
     function() return #(Wizard.detailData or {}) end,
     function() return Wizard.dScroll or 0 end,
     function(o) Wizard.dScroll = o; Wizard.refreshDetail() end)
+
+  -- "+ Add custom location" opens the add-form overlay.
+  local addBtn = UI.flatButton(panel, "+ Add custom location", true)
+  addBtn:SetSize(252, 24); addBtn:SetPoint("BOTTOMRIGHT", -24, 10)
+  addBtn:SetScript("OnClick", function() Wizard.openAddPanel() end)
+
+  -- Add-custom-location overlay: opaque cream, raised above the browse view and
+  -- mouse-enabled so clicks don't fall through to the lists beneath.
+  local ap = CreateFrame("Frame", nil, panel)
+  ap:SetPoint("TOPLEFT", 24, -50); ap:SetPoint("BOTTOMRIGHT", -24, 8)
+  ap:SetFrameLevel(panel:GetFrameLevel() + 10); ap:EnableMouse(true)
+  local apbg = ap:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(C.content))
+  ap:Hide(); Wizard.addPanel = ap
+
+  local at = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  at:SetPoint("TOPLEFT", 4, -6); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(C.gold))
+
+  UI.colLabel(ap, "Lat", 6, -28)
+  UI.colLabel(ap, "Lon", 92, -28)
+  UI.colLabel(ap, "UTC+/-", 178, -28)
+  local boxY = -42
+  local latBox = UI.flatEditBox(ap); latBox:SetSize(76, 22); latBox:SetPoint("TOPLEFT", 4, boxY)
+  local lonBox = UI.flatEditBox(ap); lonBox:SetSize(76, 22); lonBox:SetPoint("TOPLEFT", 90, boxY)
+  local offBox = UI.flatEditBox(ap); offBox:SetSize(62, 22); offBox:SetPoint("TOPLEFT", 176, boxY)
+  local euCheck = UI.flatCheck(ap); euCheck:SetPoint("TOPLEFT", 252, boxY - 2)
+  local euText = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); euText:SetTextColor(unpack(C.text))
+
+  local nameLabelY = boxY - 30
+  UI.colLabel(ap, "Name", 6, nameLabelY)
+  local nameBox = UI.flatEditBox(ap); nameBox:SetHeight(22)
+  nameBox:SetPoint("TOPLEFT", 4, nameLabelY - 16); nameBox:SetPoint("RIGHT", ap, "RIGHT", -4, 0)
+  Wizard.nameBox, Wizard.latBox, Wizard.lonBox, Wizard.offsetBox, Wizard.euCheck =
+    nameBox, latBox, lonBox, offBox, euCheck
+
+  local clearErr = function() Wizard.clearError() end
+  nameBox:SetScript("OnTextChanged", clearErr); latBox:SetScript("OnTextChanged", clearErr)
+  lonBox:SetScript("OnTextChanged", clearErr); offBox:SetScript("OnTextChanged", clearErr)
+
+  local btnY = nameLabelY - 46
+  local saveBtn = UI.flatButton(ap, "Save as My City", true)
+  saveBtn:SetSize(170, 26); saveBtn:SetPoint("TOPLEFT", 4, btnY)
+  saveBtn:SetScript("OnClick", function()
+    if Wizard.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(), offBox:GetText(), euCheck:GetChecked()) then
+      Wizard.closeAddPanel()
+    end
+  end)
+  local backBtn = UI.flatButton(ap, "Back")
+  backBtn:SetSize(90, 26); backBtn:SetPoint("TOPRIGHT", ap, "TOPRIGHT", -4, btnY)
+  backBtn:SetScript("OnClick", function() Wizard.closeAddPanel() end)
+  local useBtn = UI.flatButton(ap, "Use once")
+  useBtn:SetSize(120, 26); useBtn:SetPoint("LEFT", saveBtn, "RIGHT", 10, 0)
+  useBtn:SetScript("OnClick", function()
+    if Wizard.applyManual(latBox:GetText(), lonBox:GetText(), offBox:GetText()) then Wizard.closeAddPanel() end
+  end)
+
+  local function tabTo(a, b) a:SetScript("OnTabPressed", function() b:SetFocus() end) end
+  tabTo(latBox, lonBox); tabTo(lonBox, offBox); tabTo(offBox, nameBox); tabTo(nameBox, latBox)
+
+  Wizard.errorLabel = ap:CreateFontString(nil, "OVERLAY", "GameFontRed")
+  Wizard.errorLabel:SetPoint("TOPLEFT", 4, btnY - 24)
 end
 
 -- ----- build ---------------------------------------------------------------
@@ -386,6 +510,7 @@ end
 function Wizard.open()
   if Picker.close then Picker.close() end -- never show both windows at once
   Wizard.create()
+  Wizard.closeAddPanel()
   Wizard.refreshLocation(Wizard.searchBox and Wizard.searchBox:GetText() or "")
   Wizard.go(1)
   Wizard.frame:Show()

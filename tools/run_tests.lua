@@ -1731,7 +1731,7 @@ do
   Wizard.frame = nil; Wizard.init(ldb); Wizard.open()
 
   check("location page built (master/detail pools)",
-    Wizard.masterPool ~= nil and #Wizard.masterPool == 9 and Wizard.detailPool ~= nil)
+    Wizard.masterPool ~= nil and #Wizard.masterPool == 7 and Wizard.detailPool ~= nil)
   check("master list populated with countries", #(Wizard.masterData or {}) > 0)
   check("default country pre-selected", Wizard.locCountry ~= nil)
   check("detail list shows that country's cities", #(Wizard.detailData or {}) > 0)
@@ -1754,6 +1754,40 @@ do
   -- Search drives a flat cross-country result list.
   Wizard.refreshLocation("ams")
   check("search produces results + searching flag", Wizard.detailSearching == true)
+
+  -- Add-custom form: open/close + save + use-once via the wizard wrappers.
+  check("add panel hidden by default", Wizard.addPanel:IsShown() == false)
+  Wizard.openAddPanel()
+  check("openAddPanel shows the overlay", Wizard.addPanel:IsShown() == true)
+
+  local okSave = Wizard.saveManual("My Cabin", "44.2", "17.9", "1", true)
+  check("saveManual saves + selects a My City", okSave == true)
+  local s2 = Selection.get(ldb)
+  check("saved city becomes the selection", s2 and s2.kind == "saved" and s2.name == "My Cabin")
+  check("saved city appears in master data", (function()
+    for _, e in ipairs(Wizard.masterData or {}) do
+      if e.kind == "saved" and e.city.name == "My Cabin" then return true end
+    end
+    return false
+  end)())
+
+  Wizard.closeAddPanel()
+  check("closeAddPanel hides the overlay", Wizard.addPanel:IsShown() == false)
+
+  -- Use-once manual location (not saved).
+  local okUse = Wizard.applyManual("51.0", "10.0", "")
+  check("applyManual sets a manual selection", okUse == true)
+  local s3 = Selection.get(ldb)
+  check("manual selection kind is manual", s3 and s3.kind == "manual")
+
+  -- Empty lat+lon is a no-op, not an error.
+  Wizard.errorLabel:SetText("")
+  local okEmpty = Wizard.applyManual("", "", "")
+  check("empty manual is a no-op", okEmpty == false and Wizard.errorLabel:GetText() == "")
+
+  -- Bad offset reports an error and does not crash.
+  local okBad = Wizard.saveManual("X", "44", "17", "abc", false)
+  check("non-numeric offset reports an error", okBad == false and Wizard.errorLabel:GetText() ~= "")
 end
 
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
