@@ -42,6 +42,7 @@ function Picker.init(db)
       db.notify = { beforeMinutes = 10, atTime = true, sound = true, fired = {} }
     end
     db.savedCities = db.savedCities or {}
+    Selection.normalizeSavedNames(db) -- clean any legacy names (defence in depth)
   end
 end
 

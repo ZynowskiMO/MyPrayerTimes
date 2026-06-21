@@ -86,6 +86,19 @@ function Selection.findSaved(db, name)
   return nil
 end
 
+-- Defence in depth: strip escape sequences from any saved names that predate
+-- input sanitisation, so the display paths (lists, cards, header, window title)
+-- never render injected colours/hyperlinks/textures even for legacy entries.
+function Selection.normalizeSavedNames(db)
+  if not (db and type(db.savedCities) == "table") then return end
+  for _, c in ipairs(db.savedCities) do
+    if type(c.name) == "string" then c.name = (c.name:gsub("|", "")) end
+  end
+  if db.selectedCity and db.selectedCity.kind == "saved" and type(db.selectedCity.name) == "string" then
+    db.selectedCity.name = (db.selectedCity.name:gsub("|", ""))
+  end
+end
+
 -- Save a named manual location. opts.tz = "machine" (default) | "fixed"
 -- (+ opts.baseUtcOffset, opts.dstRule). Returns ok, errorMessage, savedName.
 function Selection.saveCity(db, name, lat, lon, opts)

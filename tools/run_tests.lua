@@ -734,6 +734,20 @@ do
     (function() return Selection.findSaved(cdb, "x") == nil end)())
   check("deleteCity tolerates non-string entry name",
     (function() return Selection.deleteCity(cdb, "x") == false end)())
+
+  -- Legacy names (saved before sanitisation) are cleaned at init time.
+  local legacy = {
+    savedCities = { { name = "|cffff0000Old|r Town", latitude = 1, longitude = 1 } },
+    selectedCity = { kind = "saved", name = "|cffff0000Old|r Town" },
+  }
+  Selection.normalizeSavedNames(legacy)
+  check("legacy saved name stripped of escape codes", legacy.savedCities[1].name:find("|", 1, true) == nil)
+  check("legacy selection name stripped too", legacy.selectedCity.name:find("|", 1, true) == nil)
+  check("normalizeSavedNames tolerates non-string + missing", (function()
+    Selection.normalizeSavedNames({ savedCities = { { name = 7 } } })
+    Selection.normalizeSavedNames({}); Selection.normalizeSavedNames(nil)
+    return true
+  end)())
 end
 
 -- Manual entry, fixed offset + rule -> flows through the pure pipeline.
