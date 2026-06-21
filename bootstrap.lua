@@ -11,14 +11,23 @@ local addonName, ns = ...
 _G.PrayerTimesNS = ns
 ns.modules = {}
 
-if not _G.require then
-  function _G.require(name)
-    local key = name:match("[^.]+$") -- "data.cities" -> "cities"
-    local mod = ns.modules[key]
-    if not mod then
-      error("PrayerTimes: module '" .. tostring(name)
-        .. "' not loaded yet (check .toc order)")
-    end
-    return mod
-  end
+-- We expose require() globally so the same engine/ui files run unchanged under
+-- the LuaJIT test runner (which has a real require). To stay a good citizen on a
+-- client with other addons, we do NOT blindly overwrite an existing require:
+-- - our require resolves our own modules from the registry first;
+-- - any other module name is delegated to whatever require existed before us
+--   (so we never break another addon's shim);
+-- - and we always install ours, so our own require() calls work even if another
+--   addon defined a require first.
+local prevRequire = _G.require
+local function ptRequire(name)
+  local key = name:match("[^.]+$") -- "data.cities" -> "cities"
+  local mod = ns.modules[key]
+  if mod then return mod end
+  if prevRequire then return prevRequire(name) end
+  error("PrayerTimes: module '" .. tostring(name)
+    .. "' not loaded yet (check .toc order)")
 end
+
+ns.require = ptRequire -- namespaced handle, for callers that prefer not to use _G
+_G.require = ptRequire

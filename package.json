@@ -1,0 +1,20 @@
+{
+  "name": "prayertimes-devtools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-only tooling for the PrayerTimes WoW addon: icon rasterisation and adhan-js verification fixtures. Not shipped to players (the addon itself is pure Lua; only files listed in PrayerTimes.toc load in WoW).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build:icons": "node tools/build_icons.mjs",
+    "fixtures:methods": "node tools/generate_methods_fixtures.mjs",
+    "fixtures:highlat": "node tools/generate_highlat_fixtures.mjs",
+    "fixtures:tz": "node tools/generate_tz_fixtures.mjs",
+    "fixtures": "node tools/generate_fixtures.mjs"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "adhan": "4.4.4",
+    "lucide-static": "1.21.0"
+  }
+}
