@@ -31,6 +31,26 @@ function Icons.path(key)
   return Icons.MEDIA .. (Icons.LUCIDE[key] or key) .. ".tga"
 end
 
+-- Chrome / control icons (3I-3): logical name -> Lucide file. Same bundled set,
+-- same Media/icons folder. White-on-transparent, so callers tint via
+-- SetVertexColor to suit their background.
+Icons.UI = {
+  settings = "settings", close = "x", minimize = "minus", restore = "plus",
+  chevron = "chevron-down", check = "check", trash = "trash-2",
+  minus = "minus", plus = "plus",
+}
+
+function Icons.uiPath(name)
+  return Icons.MEDIA .. (Icons.UI[name] or name) .. ".tga"
+end
+
+-- Set a Texture to a chrome icon, optionally tinted (r,g,b in 0..1).
+function Icons.setUI(tex, name, r, g, b)
+  if not tex then return end
+  tex:SetTexture(Icons.uiPath(name))
+  if r then tex:SetVertexColor(r, g, b) end
+end
+
 -- Apply the icon for `key` to a Texture. With final art, active rows tint gold
 -- and the rest a muted brown; placeholders just show their per-prayer tint.
 function Icons.apply(tex, key, active)

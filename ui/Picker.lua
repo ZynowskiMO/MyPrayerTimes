@@ -8,6 +8,7 @@ local Cities = require("Cities")
 local Selection = require("Selection")
 local Window = require("Window")
 local Methods = require("Methods")
+local Icons = require("Icons")
 
 local VISIBLE_ROWS = 14
 local ROW_HEIGHT = 16
@@ -461,9 +462,8 @@ local function makeDropdown(parent, opts)
   dd.labelFS = blabel
   -- Down-arrow texture (a Unicode glyph renders as a "tofu" box in WoW's font).
   local barrow = button:CreateTexture(nil, "OVERLAY")
-  barrow:SetSize(12, 12); barrow:SetPoint("RIGHT", -8, 0)
-  barrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
-  barrow:SetVertexColor(0.35, 0.32, 0.27)
+  barrow:SetSize(13, 13); barrow:SetPoint("RIGHT", -8, 0)
+  Icons.setUI(barrow, "chevron", 0.35, 0.32, 0.27)
   button:SetScript("OnEnter", function() bfill:SetColorTexture(unpack(COL.cardSel)) end)
   button:SetScript("OnLeave", function() bfill:SetColorTexture(unpack(COL.cardOff)) end)
   dd.button = button
@@ -648,7 +648,9 @@ end
 -- Flat button matching the cream/gold palette (replaces the red Blizzard
 -- UIPanelButtonTemplate). primary=true -> gold fill; otherwise cream. Returns a
 -- plain Button; the caller sets size/point/OnClick.
-local function makeFlatButton(parent, text, primary)
+-- iconName (optional): show a centered Lucide icon instead of text (e.g. a
+-- minus/plus stepper or a trash button), tinted dark to match the button text.
+local function makeFlatButton(parent, text, primary, iconName)
   local b = CreateFrame("Button", nil, parent)
   local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
   -- Fill on the BORDER layer (one above BACKGROUND) so it always draws over the
@@ -662,6 +664,12 @@ local function makeFlatButton(parent, text, primary)
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   fs:SetPoint("CENTER"); fs:SetText(text)
   fs:SetTextColor(0.16, 0.12, 0.06)
+  if iconName then
+    fs:SetText("")
+    local ic = b:CreateTexture(nil, "OVERLAY"); ic:SetPoint("CENTER"); ic:SetSize(13, 13)
+    Icons.setUI(ic, iconName, 0.16, 0.12, 0.06)
+    b.icon = ic
+  end
   b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(hov)) end)
   b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(base)) end)
   b.fill, b.label = fill, fs
@@ -688,8 +696,8 @@ local function makeFlatCheck(parent)
   local bd = c:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); bd:SetColorTexture(0.55, 0.50, 0.42, 1)
   local fl = c:CreateTexture(nil, "BORDER")
   fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
-  local mark = c:CreateTexture(nil, "ARTWORK")
-  mark:SetPoint("CENTER"); mark:SetSize(10, 10); mark:SetColorTexture(unpack(COL.gold)); mark:Hide()
+  local mark = c:CreateTexture(nil, "OVERLAY")
+  mark:SetPoint("CENTER"); mark:SetSize(16, 16); Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide()
   c._checked = false
   function c:GetChecked() return self._checked end
   function c:SetChecked(v) self._checked = v and true or false; if self._checked then mark:Show() else mark:Hide() end end
@@ -768,10 +776,10 @@ function Picker.create()
 
   local x = CreateFrame("Button", nil, f)
   x:SetSize(26, 26); x:SetPoint("TOPRIGHT", -10, -10)
-  local xfs = x:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  xfs:SetPoint("CENTER"); xfs:SetText("X"); xfs:SetTextColor(unpack(COL.gold))
-  x:SetScript("OnEnter", function() xfs:SetTextColor(1, 0.9, 0.6) end)
-  x:SetScript("OnLeave", function() xfs:SetTextColor(unpack(COL.gold)) end)
+  local xi = x:CreateTexture(nil, "OVERLAY"); xi:SetPoint("CENTER"); xi:SetSize(16, 16)
+  Icons.setUI(xi, "close", unpack(COL.gold))
+  x:SetScript("OnEnter", function() xi:SetVertexColor(1, 0.9, 0.6) end)
+  x:SetScript("OnLeave", function() xi:SetVertexColor(unpack(COL.gold)) end)
   x:SetScript("OnClick", function() Picker.close() end)
 
   -- Left sidebar.
@@ -867,8 +875,8 @@ function Picker.create()
     label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
-    local del = makeFlatButton(row, "x")
-    del:SetSize(18, 14); del:SetPoint("RIGHT", -4, 0); del:Hide(); row.delBtn = del
+    local del = makeFlatButton(row, "", false, "trash")
+    del:SetSize(18, 16); del:SetPoint("RIGHT", -4, 0); del:Hide(); row.delBtn = del
     row:SetScript("OnClick", function(self)
       if self.kind == "country" then Picker.selectCountry(self.country)
       elseif self.kind == "saved" then Picker.selectSaved(self.name) end
@@ -898,8 +906,8 @@ function Picker.create()
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
-    mark:SetSize(20, 20); mark:SetPoint("RIGHT", -6, 0)
-    mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check"); mark:Hide(); row.mark = mark
+    mark:SetSize(16, 16); mark:SetPoint("RIGHT", -6, 0)
+    Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Picker.selectCity(self.name) end end)
@@ -1048,13 +1056,13 @@ function Picker.create()
 
   -- Before-prayer minutes stepper.
   notifRow(-36, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
-  local minusBtn = makeFlatButton(notifP, "-")
+  local minusBtn = makeFlatButton(notifP, "", false, "minus")
   minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -120, -34)
   minusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(-1) end)
   Picker.beforeValue = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Picker.beforeValue:SetPoint("TOPRIGHT", -56, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
   Picker.beforeValue:SetTextColor(unpack(COL.text))
-  local plusBtn = makeFlatButton(notifP, "+")
+  local plusBtn = makeFlatButton(notifP, "", false, "plus")
   plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -16, -34)
   plusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(1) end)
 

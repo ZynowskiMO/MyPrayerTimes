@@ -14,7 +14,12 @@ import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 
 const SIZE = 64
-const ICONS = ['moon', 'moon-star', 'sun', 'sunrise', 'sunset']
+const ICONS = [
+  // Prayer-row icons.
+  'moon', 'moon-star', 'sun', 'sunrise', 'sunset',
+  // Chrome / control icons (3I-3).
+  'settings', 'x', 'minus', 'plus', 'chevron-down', 'check', 'trash-2',
+]
 const SRC = 'node_modules/lucide-static/icons'
 const OUT = 'Media/icons'
 

@@ -47,8 +47,9 @@ The prayer-row icons in the display window are rasterised from the **Lucide**
 icon set (SVG -> 32-bit TGA under `Media/icons/`, via `tools/build_icons.mjs`).
 
 - Source: https://lucide.dev (https://github.com/lucide-icons/lucide)
-- Icons used: `moon`, `sun`, `sunrise`, `sunset` (Feather-derived, MIT);
-  `moon-star` (Lucide-original, ISC)
+- Icons used: `moon`, `sun`, `sunrise`, `sunset`, `x`, `minus`, `plus`,
+  `chevron-down`, `check`, `trash-2` (Feather-derived, MIT); `moon-star`,
+  `settings` (Lucide-original, ISC)
 - Licence: ISC (Lucide), with the Feather-derived icons under MIT
 
 Both licence notices are reproduced verbatim below.

@@ -11,6 +11,7 @@ local Window = require("Window")
 local Cities = require("Cities")
 local Selection = require("Selection")
 local Methods = require("Methods")
+local Icons = require("Icons")
 local Picker = require("Picker") -- reuse its pure builders + styled components
 
 local Wizard = {}
@@ -356,8 +357,8 @@ local function buildLocationPage(panel)
     row:SetSize(252, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
-    mark:SetSize(20, 20); mark:SetPoint("RIGHT", -6, 0)
-    mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check"); mark:Hide(); row.mark = mark
+    mark:SetSize(16, 16); mark:SetPoint("RIGHT", -6, 0)
+    Icons.setUI(mark, "check", unpack(C.gold)); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Wizard.selectCity(self.name) end end)
@@ -568,13 +569,13 @@ local function buildNotificationsPage(panel)
 
   -- Before-prayer minutes stepper.
   notifRow(-80, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
-  local minusBtn = UI.flatButton(panel, "-")
+  local minusBtn = UI.flatButton(panel, "", false, "minus")
   minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -128, -78)
   minusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(-1) end)
   Wizard.beforeValue = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Wizard.beforeValue:SetPoint("TOPRIGHT", -64, -84); Wizard.beforeValue:SetWidth(58); Wizard.beforeValue:SetJustifyH("CENTER")
   Wizard.beforeValue:SetTextColor(unpack(C.text))
-  local plusBtn = UI.flatButton(panel, "+")
+  local plusBtn = UI.flatButton(panel, "", false, "plus")
   plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -24, -78)
   plusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(1) end)
 

@@ -81,10 +81,10 @@ function Window.create()
 
   local gear = CreateFrame("Button", nil, f)
   gear:SetSize(18, 18); gear:SetPoint("RIGHT", header, "RIGHT", -8, 0)
-  local gt = gear:CreateTexture(nil, "ARTWORK"); gt:SetAllPoints()
-  gt:SetTexture("Interface\\Buttons\\UI-OptionsButton")
+  local gt = gear:CreateTexture(nil, "ARTWORK"); gt:SetPoint("CENTER"); gt:SetSize(15, 15)
+  Icons.setUI(gt, "settings", unpack(COL.gold))
   gear:SetScript("OnEnter", function() gt:SetVertexColor(1, 0.95, 0.7) end)
-  gear:SetScript("OnLeave", function() gt:SetVertexColor(1, 1, 1) end)
+  gear:SetScript("OnLeave", function() gt:SetVertexColor(unpack(COL.gold)) end)
   gear:SetScript("OnClick", function()
     local P = require("Picker"); if P and P.toggle then P.toggle() end
   end)
@@ -93,12 +93,12 @@ function Window.create()
   -- Minimize / restore button (collapses to just the next prayer).
   local minBtn = CreateFrame("Button", nil, f)
   minBtn:SetSize(18, 18); minBtn:SetPoint("RIGHT", gear, "LEFT", -4, 0)
-  local mfs = minBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  mfs:SetPoint("CENTER", 0, 2); mfs:SetText("_"); mfs:SetTextColor(unpack(COL.gold))
-  minBtn:SetScript("OnEnter", function() mfs:SetTextColor(1, 0.95, 0.7) end)
-  minBtn:SetScript("OnLeave", function() mfs:SetTextColor(unpack(COL.gold)) end)
+  local mIcon = minBtn:CreateTexture(nil, "ARTWORK"); mIcon:SetPoint("CENTER"); mIcon:SetSize(14, 14)
+  Icons.setUI(mIcon, "minimize", unpack(COL.gold))
+  minBtn:SetScript("OnEnter", function() mIcon:SetVertexColor(1, 0.95, 0.7) end)
+  minBtn:SetScript("OnLeave", function() mIcon:SetVertexColor(unpack(COL.gold)) end)
   minBtn:SetScript("OnClick", function() Window.toggleMinimize() end)
-  minBtn.label = mfs
+  minBtn.icon = mIcon
   f.minBtn = minBtn
 
   f.rows = {}
@@ -232,7 +232,9 @@ function Window.applyMinimized()
   local mini = Window.db and Window.db.minimized
   for _, key in ipairs(ORDER) do f.rows[key].frame:SetShown(not mini) end
   if f.nextLine then f.nextLine:SetShown(mini and true or false) end
-  if f.minBtn and f.minBtn.label then f.minBtn.label:SetText(mini and "+" or "_") end
+  if f.minBtn and f.minBtn.icon then
+    Icons.setUI(f.minBtn.icon, mini and "restore" or "minimize", unpack(COL.gold))
+  end
   f:SetHeight(mini and MINIMIZED_H or EXPANDED_H)
 end
 

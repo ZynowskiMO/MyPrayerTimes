@@ -1930,6 +1930,32 @@ do
   check("each window row has an icon", n == #Schedule.ORDER)
 end
 
+-- ---- 3I-3: Lucide chrome icons (settings, close, min/max, arrow, check) ---
+do
+  local Icons = require("Icons")
+  for _, name in ipairs({ "settings", "close", "minimize", "restore", "chevron", "check", "trash", "minus", "plus" }) do
+    check("UI icon mapping for " .. name, Icons.UI[name] ~= nil)
+  end
+  check("uiPath points under Media/icons", Icons.uiPath("settings") == Icons.MEDIA .. "settings.tga")
+  check("close maps to x.tga", Icons.uiPath("close") == Icons.MEDIA .. "x.tga")
+  local tex = WowMock.makeFrame():CreateTexture()
+  check("setUI tolerates nil", (function() Icons.setUI(nil, "close"); return true end)())
+  check("setUI runs with tint", (function() Icons.setUI(tex, "settings", 0.7, 0.5, 0.2); return true end)())
+
+  -- The main window's gear + minimize button now carry icon textures.
+  local Window = require("Window")
+  Window.frame = nil
+  Window.init({}); WowMock.setNow(1766318400); Window.create()
+  check("gear button built", Window.frame.gear ~= nil)
+  check("minimize button has an icon", Window.frame.minBtn ~= nil and Window.frame.minBtn.icon ~= nil)
+
+  -- Settings + wizard still build cleanly with the new icon widgets.
+  local Picker = require("Picker"); Picker.init({ savedCities = {} }); Picker.open()
+  check("settings still builds with icon chrome", Picker.frame ~= nil)
+  local Wizard = require("Wizard"); Wizard.frame = nil; Wizard.init({}); Wizard.open()
+  check("wizard still builds with icon chrome", Wizard.frame ~= nil)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------
