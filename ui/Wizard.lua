@@ -278,7 +278,7 @@ end
 -- styled component factories exported by the settings window.
 local function buildLocationPage(panel)
   local C, UI = Picker.COL, Picker.ui
-  local MVIS, DVIS, RH = 7, 7, 18
+  local MVIS, DVIS, RH = 6, 6, 18
 
   -- Current-location card.
   local card = panel:CreateTexture(nil, "BACKGROUND")
@@ -358,9 +358,10 @@ local function buildLocationPage(panel)
     function() return Wizard.dScroll or 0 end,
     function(o) Wizard.dScroll = o; Wizard.refreshDetail() end)
 
-  -- "+ Add custom location" opens the add-form overlay.
+  -- "+ Add custom location" opens the add-form overlay. Anchored just below the
+  -- detail list (fixed gap) so it never crowds the step dots near the footer.
   local addBtn = UI.flatButton(panel, "+ Add custom location", true)
-  addBtn:SetSize(252, 24); addBtn:SetPoint("BOTTOMRIGHT", -24, 10)
+  addBtn:SetSize(252, 24); addBtn:SetPoint("TOPRIGHT", dlist, "BOTTOMRIGHT", 0, -12)
   addBtn:SetScript("OnClick", function() Wizard.openAddPanel() end)
 
   -- Add-custom-location overlay: opaque cream, raised above the browse view and
