@@ -1790,6 +1790,47 @@ do
   check("non-numeric offset reports an error", okBad == false and Wizard.errorLabel:GetText() ~= "")
 end
 
+-- ---- 3W-3: wizard Calculation page (method dropdown + Asr cards) ----------
+do
+  local Wizard = require("Wizard")
+  local Methods = require("Methods")
+  local cdb = { savedCities = {} }
+  Wizard.frame = nil; Wizard.init(cdb); Wizard.open()
+
+  check("method dropdown built", Wizard.methodDropdown ~= nil and Wizard.methodDropdown.button ~= nil)
+  check("two Asr cards built", Wizard.asrCards ~= nil and #Wizard.asrCards == 2)
+
+  -- Defaults persist on first touch; setMethod writes a valid registry key.
+  Wizard.setMethod("Egyptian")
+  check("setMethod persists the chosen method", cdb.method == "Egyptian")
+  check("dropdown button shows the method label",
+    Wizard.methodDropdown.labelFS:GetText() == Methods.methodLabel("Egyptian"))
+
+  -- Unknown method falls back to the default (MWL), never errors.
+  Wizard.setMethod("NotAMethod")
+  check("unknown method resolves to default", cdb.method == Methods.DEFAULT_METHOD)
+
+  -- Asr cards: selecting Hanafi persists + highlights exactly one card.
+  Wizard.setMadhab("hanafi")
+  check("setMadhab persists hanafi", cdb.madhab == "hanafi")
+  local sel, off = 0, 0
+  for _, c in ipairs(Wizard.asrCards) do
+    if c.key == "hanafi" then check("hanafi card selected", c._selected == true) end
+    if c._selected then sel = sel + 1 else off = off + 1 end
+  end
+  check("exactly one Asr card highlighted", sel == 1 and off == 1)
+
+  Wizard.setMadhab("shafi")
+  check("setMadhab persists shafi", cdb.madhab == "shafi")
+
+  -- Dropdown open/select drives setMethod through the same path.
+  Wizard.methodDropdown:open()
+  check("dropdown opens", Wizard.methodDropdown.isOpen == true)
+  Wizard.methodDropdown:select("Turkey")
+  check("dropdown select persists + closes",
+    cdb.method == "Turkey" and Wizard.methodDropdown.isOpen == false)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

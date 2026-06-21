@@ -10,6 +10,7 @@
 local Window = require("Window")
 local Cities = require("Cities")
 local Selection = require("Selection")
+local Methods = require("Methods")
 local Picker = require("Picker") -- reuse its pure builders + styled components
 
 local Wizard = {}
@@ -426,6 +427,89 @@ local function buildLocationPage(panel)
   Wizard.errorLabel:SetPoint("TOPLEFT", 4, btnY - 24)
 end
 
+-- ----- Calculation page (3W-3): method dropdown + Asr cards -----------------
+-- Same Methods registry and persisted db.method/db.madhab as the settings tab;
+-- changing either re-runs the engine and refreshes the main window (and the
+-- settings controls if that window has been built).
+
+local function afterCalcChange()
+  if Window.refresh then Window.refresh() end
+  Wizard.updateCalcControls()
+  if Picker.db and Picker.updateCalcControls then Picker.updateCalcControls() end
+end
+
+function Wizard.setMethod(key)
+  if not Wizard.db then return end
+  Wizard.db.method = Methods.resolveMethod(key); afterCalcChange()
+end
+
+function Wizard.setMadhab(key)
+  if not Wizard.db then return end
+  Wizard.db.madhab = Methods.resolveMadhab(key); afterCalcChange()
+end
+
+function Wizard.updateCalcControls()
+  local C = Picker.COL
+  if Wizard.methodDropdown then Wizard.methodDropdown:updateButton() end
+  if Wizard.asrCards then
+    local cur = Methods.resolveMadhab(Wizard.db and Wizard.db.madhab)
+    for _, c in ipairs(Wizard.asrCards) do
+      local on = (c.key == cur)
+      c._selected = on
+      if c.bg then c.bg:SetColorTexture(unpack(on and C.cardSel or C.cardOff)) end
+      if c.border then if on then c.border:Show() else c.border:Hide() end end
+      if c.title then c.title:SetTextColor(unpack(on and C.gold or C.text)) end
+    end
+  end
+end
+
+local ASR_DESC = {
+  shafi = "Shafi'i, Maliki, Hanbali -- Asr begins when an object's shadow equals its own length. The common choice.",
+  hanafi = "Hanafi -- Asr begins when the shadow is twice the object's length, so Asr (and Maghrib) fall later.",
+}
+
+local function buildCalculationPage(panel)
+  local C, UI = Picker.COL, Picker.ui
+
+  local mLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  mLabel:SetPoint("TOPLEFT", 24, -58); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(C.gold))
+
+  Wizard.methodDropdown = UI.dropdown(panel, {
+    width = 448, rows = 10,
+    getOptions = function() return Methods.list() end,
+    getCurrent = function() return Methods.resolveMethod(Wizard.db and Wizard.db.method) end,
+    onSelect = function(key) Wizard.setMethod(key) end,
+  })
+  Wizard.methodDropdown.button:SetPoint("TOPLEFT", 24, -76)
+
+  local mHint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  mHint:SetPoint("TOPLEFT", 24, -108); mHint:SetWidth(448); mHint:SetJustifyH("LEFT")
+  mHint:SetText("Sets the Fajr/Isha twilight angles. Default (Muslim World League) suits most of Europe.")
+  mHint:SetTextColor(unpack(C.muted))
+
+  local aLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  aLabel:SetPoint("TOPLEFT", 24, -146); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(C.gold))
+
+  Wizard.asrCards = {}
+  local cardW = 226
+  for i, a in ipairs(Methods.asrList()) do
+    local card = CreateFrame("Button", nil, panel)
+    card:SetSize(cardW, 88); card:SetPoint("TOPLEFT", 24 + (i - 1) * (cardW + 12), -164)
+    card.key = a.key
+    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); cbg:SetColorTexture(unpack(C.cardOff)); card.bg = cbg
+    local barT = card:CreateTexture(nil, "ARTWORK")
+    barT:SetPoint("TOPLEFT", 0, 0); barT:SetPoint("BOTTOMLEFT", 0, 0); barT:SetWidth(3)
+    barT:SetColorTexture(unpack(C.gold)); barT:Hide(); card.border = barT
+    local ct = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(C.text)); card.title = ct
+    local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
+    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(C.muted))
+    card:SetScript("OnClick", function() Wizard.setMadhab(a.key) end)
+    Wizard.asrCards[i] = card
+  end
+end
+
 -- ----- build ---------------------------------------------------------------
 
 function Wizard.create()
@@ -477,8 +561,9 @@ function Wizard.create()
     .. "method and Asr school, and set up reminders before each prayer.\n\n"
     .. "You can change any of this later from the settings window. Let's begin.")
 
-  -- Location page (3W-2).
+  -- Location page (3W-2) + Calculation page (3W-3).
   buildLocationPage(Wizard.pages[2])
+  buildCalculationPage(Wizard.pages[3])
 
   -- Footer: Skip set apart on the left; Back + Next grouped together on the
   -- right (so the two navigation buttons sit side by side and Skip can't be hit
@@ -514,6 +599,7 @@ function Wizard.create()
   Wizard.frame = f
   Wizard.mScroll, Wizard.dScroll = 0, 0
   Wizard.refreshLocation("")
+  Wizard.updateCalcControls()
   Wizard.go(1)
   return f
 end
@@ -523,6 +609,7 @@ function Wizard.open()
   Wizard.create()
   Wizard.closeAddPanel()
   Wizard.refreshLocation(Wizard.searchBox and Wizard.searchBox:GetText() or "")
+  Wizard.updateCalcControls()
   Wizard.go(1)
   Wizard.frame:Show()
 end
