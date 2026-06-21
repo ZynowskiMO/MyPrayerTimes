@@ -1831,6 +1831,30 @@ do
     cdb.method == "Turkey" and Wizard.methodDropdown.isOpen == false)
 end
 
+-- ---- 3W-4a: wizard Notifications page (stepper + toggles) -----------------
+do
+  local Wizard = require("Wizard")
+  local ndb = {}
+  Wizard.frame = nil; Wizard.init(ndb); Wizard.open()
+
+  check("init creates notify defaults", ndb.notify ~= nil and ndb.notify.beforeMinutes == 10)
+  check("notification controls built",
+    Wizard.beforeValue ~= nil and Wizard.atToggle ~= nil and Wizard.soundToggle ~= nil)
+  check("before-value shows minutes", Wizard.beforeValue:GetText() == "10 min")
+
+  Wizard.stepBeforeMinutes(5)
+  check("stepper increases minutes", ndb.notify.beforeMinutes == 15 and Wizard.beforeValue:GetText() == "15 min")
+
+  -- Clamp at 0 = Off (never negative).
+  Wizard.setBeforeMinutes(0); Wizard.stepBeforeMinutes(-1); Wizard.updateNotifyControls()
+  check("minutes clamp at Off", ndb.notify.beforeMinutes == 0 and Wizard.beforeValue:GetText() == "Off")
+
+  Wizard.setAtTime(false)
+  check("atTime toggle persists", ndb.notify.atTime == false)
+  Wizard.setSound(false)
+  check("sound toggle persists", ndb.notify.sound == false)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

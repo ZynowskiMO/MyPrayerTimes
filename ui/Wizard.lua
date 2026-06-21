@@ -39,6 +39,9 @@ Wizard.PAGES = PAGES
 
 function Wizard.init(db)
   Wizard.db = db
+  if db and not db.notify then
+    db.notify = { beforeMinutes = 10, atTime = true, sound = true, fired = {} }
+  end
 end
 
 -- The wizard is shown on first run only, gated by the persisted flag.
@@ -510,6 +513,87 @@ local function buildCalculationPage(panel)
   end
 end
 
+-- ----- Notifications page (3W-4): stepper + toggle switches -----------------
+-- Wired to db.notify exactly like the settings tab; the Notifier reads it live,
+-- so no engine/window refresh is needed when these change.
+
+function Wizard.setBeforeMinutes(n)
+  if not (Wizard.db and Wizard.db.notify) then return end
+  Wizard.db.notify.beforeMinutes = math.max(0, math.floor(tonumber(n) or 0))
+end
+function Wizard.setAtTime(on)
+  if Wizard.db and Wizard.db.notify then Wizard.db.notify.atTime = on and true or false end
+end
+function Wizard.setSound(on)
+  if Wizard.db and Wizard.db.notify then Wizard.db.notify.sound = on and true or false end
+end
+
+function Wizard.updateNotifyControls()
+  local n = Wizard.db and Wizard.db.notify
+  if not n then return end
+  if Wizard.beforeValue then
+    local m = n.beforeMinutes or 0
+    Wizard.beforeValue:SetText(m == 0 and "Off" or (m .. " min"))
+  end
+  if Wizard.atToggle then Wizard.atToggle:update() end
+  if Wizard.soundToggle then Wizard.soundToggle:update() end
+end
+
+function Wizard.stepBeforeMinutes(delta)
+  local n = Wizard.db and Wizard.db.notify
+  if not n then return end
+  Wizard.setBeforeMinutes((n.beforeMinutes or 0) + delta)
+  Wizard.updateNotifyControls()
+end
+
+local function buildNotificationsPage(panel)
+  local C, UI = Picker.COL, Picker.ui
+
+  local function notifRow(y, title, desc)
+    local t = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    t:SetPoint("TOPLEFT", 24, y); t:SetText(title); t:SetTextColor(unpack(C.text))
+    local d = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    d:SetPoint("TOPLEFT", 24, y - 18); d:SetWidth(360); d:SetJustifyH("LEFT")
+    d:SetText(desc); d:SetTextColor(unpack(C.muted))
+  end
+  local function separator(y)
+    local s = panel:CreateTexture(nil, "ARTWORK")
+    s:SetPoint("TOPLEFT", 24, y); s:SetPoint("TOPRIGHT", -24, y); s:SetHeight(1)
+    s:SetColorTexture(0, 0, 0, 0.12)
+  end
+
+  local nlabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  nlabel:SetPoint("TOPLEFT", 24, -58); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(C.gold))
+
+  -- Before-prayer minutes stepper.
+  notifRow(-80, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
+  local minusBtn = UI.flatButton(panel, "-")
+  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -128, -78)
+  minusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(-1) end)
+  Wizard.beforeValue = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  Wizard.beforeValue:SetPoint("TOPRIGHT", -64, -84); Wizard.beforeValue:SetWidth(58); Wizard.beforeValue:SetJustifyH("CENTER")
+  Wizard.beforeValue:SetTextColor(unpack(C.text))
+  local plusBtn = UI.flatButton(panel, "+")
+  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -24, -78)
+  plusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(1) end)
+
+  separator(-118)
+
+  notifRow(-134, "Alert exactly at prayer time", "Fire a notice the moment each prayer enters.")
+  Wizard.atToggle = UI.toggle(panel,
+    function() return Wizard.db and Wizard.db.notify and Wizard.db.notify.atTime end,
+    function(v) Wizard.setAtTime(v) end)
+  Wizard.atToggle.btn:SetPoint("TOPRIGHT", -24, -134)
+
+  separator(-186)
+
+  notifRow(-202, "Notification sound", "Play a chime with each alert.")
+  Wizard.soundToggle = UI.toggle(panel,
+    function() return Wizard.db and Wizard.db.notify and Wizard.db.notify.sound ~= false end,
+    function(v) Wizard.setSound(v) end)
+  Wizard.soundToggle.btn:SetPoint("TOPRIGHT", -24, -202)
+end
+
 -- ----- build ---------------------------------------------------------------
 
 function Wizard.create()
@@ -561,9 +645,10 @@ function Wizard.create()
     .. "method and Asr school, and set up reminders before each prayer.\n\n"
     .. "You can change any of this later from the settings window. Let's begin.")
 
-  -- Location page (3W-2) + Calculation page (3W-3).
+  -- Location (3W-2) + Calculation (3W-3) + Notifications (3W-4) pages.
   buildLocationPage(Wizard.pages[2])
   buildCalculationPage(Wizard.pages[3])
+  buildNotificationsPage(Wizard.pages[4])
 
   -- Footer: Skip set apart on the left; Back + Next grouped together on the
   -- right (so the two navigation buttons sit side by side and Skip can't be hit
@@ -600,6 +685,7 @@ function Wizard.create()
   Wizard.mScroll, Wizard.dScroll = 0, 0
   Wizard.refreshLocation("")
   Wizard.updateCalcControls()
+  Wizard.updateNotifyControls()
   Wizard.go(1)
   return f
 end
@@ -610,6 +696,7 @@ function Wizard.open()
   Wizard.closeAddPanel()
   Wizard.refreshLocation(Wizard.searchBox and Wizard.searchBox:GetText() or "")
   Wizard.updateCalcControls()
+  Wizard.updateNotifyControls()
   Wizard.go(1)
   Wizard.frame:Show()
 end
