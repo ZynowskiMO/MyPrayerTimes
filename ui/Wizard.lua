@@ -269,11 +269,12 @@ local function buildLocationPage(panel)
   divider:SetPoint("TOPLEFT", 234, -140); divider:SetPoint("BOTTOMLEFT", 234, 8)
   divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
 
-  -- Detail column: cities of the selected country (or search results).
+  -- Detail column: cities of the selected country (or search results). Header
+  -- sits below the search box, aligned with the master's COUNTRIES row.
   Wizard.detailHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  Wizard.detailHeader:SetPoint("TOPLEFT", 244, -126)
+  Wizard.detailHeader:SetPoint("TOPLEFT", 244, -144)
   local dlist = CreateFrame("Frame", nil, panel)
-  dlist:SetPoint("TOPLEFT", 244, -142); dlist:SetSize(252, DVIS * RH)
+  dlist:SetPoint("TOPLEFT", 244, -162); dlist:SetSize(252, DVIS * RH)
   dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Wizard.scrollDetail(d) end)
   Wizard.detailPool = {}
   for i = 1, DVIS do
@@ -381,6 +382,7 @@ function Wizard.create()
 end
 
 function Wizard.open()
+  if Picker.close then Picker.close() end -- never show both windows at once
   Wizard.create()
   Wizard.refreshLocation(Wizard.searchBox and Wizard.searchBox:GetText() or "")
   Wizard.go(1)
