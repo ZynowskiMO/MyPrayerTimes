@@ -312,14 +312,14 @@ function Picker.refreshDetail()
   for i = 1, vis do
     local row = Picker.detailPool[i]
     local e = data[Picker.dScroll + i]
-    row.check:SetText(""); row.hl:Hide()
+    row.mark:Hide(); row.hl:Hide()
     row.name, row._selected = nil, false
     if not e then
       row:Hide()
     else
       local isSel = (e.city.name == selCity)
       row.label:SetText(e.city.name); row.name, row._selected = e.city.name, isSel
-      if isSel then row.hl:Show(); row.check:SetText("|cffb89254\226\156\147|r") end
+      if isSel then row.hl:Show(); row.mark:Show() end
       row:Show()
     end
   end
@@ -891,8 +891,9 @@ function Picker.create()
     row:SetSize(232, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
-    local check = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    check:SetPoint("RIGHT", -8, 0); row.check = check
+    local mark = row:CreateTexture(nil, "OVERLAY")
+    mark:SetSize(20, 20); mark:SetPoint("RIGHT", -6, 0)
+    mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check"); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Picker.selectCity(self.name) end end)

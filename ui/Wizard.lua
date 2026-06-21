@@ -16,7 +16,8 @@ local Wizard = {}
 
 -- Palette shared with the settings window (cream / charcoal / gold).
 local COL = {
-  header = { 0.13, 0.11, 0.09, 1 },
+  header = { 0.30, 0.22, 0.12, 1 }, -- warm brown title bar, distinct from cream
+  headerAccent = { 0.72, 0.58, 0.29, 1 },
   body   = { 0.96, 0.94, 0.88, 1 }, -- cream
   gold   = { 0.72, 0.58, 0.29, 1 },
   text   = { 0.16, 0.14, 0.11 },
@@ -196,12 +197,12 @@ function Wizard.refreshDetail()
   for i = 1, vis do
     local row = Wizard.detailPool[i]
     local e = data[Wizard.dScroll + i]
-    row.check:SetText(""); row.hl:Hide(); row.name = nil
+    row.mark:Hide(); row.hl:Hide(); row.name = nil
     if not e then
       row:Hide()
     else
       row.label:SetText(e.city.name); row.name = e.city.name
-      if e.city.name == selCity then row.hl:Show(); row.check:SetText("|cffb89254\226\156\147|r") end
+      if e.city.name == selCity then row.hl:Show(); row.mark:Show() end
       row:Show()
     end
   end
@@ -346,8 +347,9 @@ local function buildLocationPage(panel)
     local row = CreateFrame("Button", nil, dlist)
     row:SetSize(252, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
-    local check = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    check:SetPoint("RIGHT", -8, 0); row.check = check
+    local mark = row:CreateTexture(nil, "OVERLAY")
+    mark:SetSize(20, 20); mark:SetPoint("RIGHT", -6, 0)
+    mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check"); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Wizard.selectCity(self.name) end end)
@@ -441,6 +443,9 @@ function Wizard.create()
   local header = f:CreateTexture(nil, "BACKGROUND")
   header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
   header:SetColorTexture(unpack(COL.header))
+  local accent = f:CreateTexture(nil, "ARTWORK")
+  accent:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0); accent:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
+  accent:SetHeight(2); accent:SetColorTexture(unpack(COL.headerAccent))
   local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   wm:SetPoint("TOPLEFT", 16, -14); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
   Wizard.stepText = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -472,19 +477,21 @@ function Wizard.create()
   -- Location page (3W-2).
   buildLocationPage(Wizard.pages[2])
 
-  -- Footer: Back (left), step dots (centre), Skip + Next/Done (right).
-  Wizard.backBtn = makeBtn(f, "Back")
-  Wizard.backBtn:SetSize(90, 28); Wizard.backBtn:SetPoint("BOTTOMLEFT", 16, 16)
-  Wizard.backBtn:SetScript("OnClick", function() Wizard.back() end)
+  -- Footer: Skip set apart on the left; Back + Next grouped together on the
+  -- right (so the two navigation buttons sit side by side and Skip can't be hit
+  -- by mistake when reaching for Back).
+  Wizard.skipBtn = makeBtn(f, "Skip")
+  Wizard.skipBtn:SetSize(90, 28); Wizard.skipBtn:SetPoint("BOTTOMLEFT", 16, 16)
+  Wizard.skipBtn:SetScript("OnClick", function() Wizard.skip() end)
 
   Wizard.nextBtn = makeBtn(f, "Next", true)
   Wizard.nextBtn:SetSize(110, 28); Wizard.nextBtn:SetPoint("BOTTOMRIGHT", -16, 16)
   Wizard.nextBtn:SetScript("OnClick", function() Wizard.next() end)
 
-  Wizard.skipBtn = makeBtn(f, "Skip")
-  Wizard.skipBtn:SetSize(90, 28)
-  Wizard.skipBtn:SetPoint("RIGHT", Wizard.nextBtn, "LEFT", -10, 0)
-  Wizard.skipBtn:SetScript("OnClick", function() Wizard.skip() end)
+  Wizard.backBtn = makeBtn(f, "Back")
+  Wizard.backBtn:SetSize(90, 28)
+  Wizard.backBtn:SetPoint("RIGHT", Wizard.nextBtn, "LEFT", -10, 0)
+  Wizard.backBtn:SetScript("OnClick", function() Wizard.back() end)
 
   -- Step-dot indicator centred along the footer.
   Wizard.dots = {}
