@@ -326,7 +326,8 @@ local function buildLocationPage(panel)
     row:SetSize(200, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
+    label:SetPoint("LEFT", 8, 0); label:SetPoint("RIGHT", row, "RIGHT", -22, 0)
+    label:SetJustifyH("LEFT"); label:SetWordWrap(false); label:SetTextColor(unpack(C.text)); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
     row:SetScript("OnClick", function(self)

@@ -872,7 +872,8 @@ function Picker.create()
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 8, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
+    label:SetPoint("LEFT", 8, 0); label:SetPoint("RIGHT", row, "RIGHT", -24, 0)
+    label:SetJustifyH("LEFT"); label:SetWordWrap(false); label:SetTextColor(unpack(COL.text)); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
     local del = makeFlatButton(row, "", false, "trash")
@@ -897,12 +898,12 @@ function Picker.create()
   Picker.detailHeader = browse:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   Picker.detailHeader:SetPoint("TOPLEFT", 216, -92)
   local dlist = CreateFrame("Frame", nil, browse)
-  dlist:SetPoint("TOPLEFT", 214, -110); dlist:SetSize(232, DVIS * RH)
+  dlist:SetPoint("TOPLEFT", 214, -110); dlist:SetSize(247, DVIS * RH)
   dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollDetail(d) end)
   Picker.detailPool = {}
   for i = 1, DVIS do
     local row = CreateFrame("Button", nil, dlist)
-    row:SetSize(232, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    row:SetSize(247, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
@@ -918,8 +919,10 @@ function Picker.create()
     function() return Picker.dScroll or 0 end,
     function(o) Picker.dScroll = o; Picker.refreshDetail() end)
 
+  -- Aligned with the detail column (left 214, right edge = panel right - 10),
+  -- with equal bottom + right margins.
   local addBtn = makeFlatButton(browse, "+ Add custom location", true)
-  addBtn:SetSize(232, 24); addBtn:SetPoint("BOTTOMLEFT", 214, 10)
+  addBtn:SetSize(247, 24); addBtn:SetPoint("BOTTOMLEFT", 214, 10)
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
 
   -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
