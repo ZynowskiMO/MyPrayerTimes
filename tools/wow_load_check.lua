@@ -76,8 +76,10 @@ end
 expect("window has six rows with HH:MM", rowCount == 6 and rowsOk)
 expect("a next prayer was highlighted", win and win.lastSchedule and win.lastSchedule.nextKey ~= nil)
 expect("Notifier + Alerts registered", ns.modules.Notifier ~= nil and ns.modules.Alerts ~= nil)
-expect("Picker registered + auto-opened on first run (no city)",
-  ns.modules.Picker ~= nil and ns.modules.Picker.frame ~= nil)
+expect("Picker + Wizard registered",
+  ns.modules.Picker ~= nil and ns.modules.Wizard ~= nil)
+expect("welcome wizard opened on first run (not welcomed yet)",
+  ns.modules.Wizard.frame ~= nil and ns.modules.Wizard.frame:IsShown() == true)
 expect("slash command registered", _G.SlashCmdList and _G.SlashCmdList["PRAYERTIMES"] ~= nil)
 expect("/pt test fires an alert", (function()
   WowMock.resetAlerts()
