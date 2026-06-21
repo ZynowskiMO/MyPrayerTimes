@@ -257,6 +257,7 @@ local function renderNow(now)
     if f.rows[key].hl then
       if isNext then f.rows[key].hl:Show() else f.rows[key].hl:Hide() end
     end
+    if f.rows[key].icon then Icons.apply(f.rows[key].icon, key, isNext) end
   end
   if sched.nextKey and sched.untilMinutes then
     local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)

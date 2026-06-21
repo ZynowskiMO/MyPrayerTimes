@@ -8,7 +8,7 @@
 local Icons = {}
 
 Icons.MEDIA = "Interface\\AddOns\\PrayerTimes\\Media\\icons\\"
-Icons.USE_PLACEHOLDER = true -- 3I-2 flips this to false once the .tga files exist
+Icons.USE_PLACEHOLDER = false -- final Lucide .tga art present (Media/icons); see 3I-2
 
 -- Lucide icon name behind each prayer (also the .tga file name for 3I-2).
 Icons.LUCIDE = {

@@ -1909,11 +1909,13 @@ do
   check("path points under Media/icons", Icons.path("fajr") == Icons.MEDIA .. "moon.tga")
   check("isha uses moon-star", Icons.path("isha"):find("moon%-star%.tga") ~= nil)
 
+  -- Final Lucide art is wired in (3I-2): placeholder mode is off by default.
+  check("final art mode active (placeholders off)", Icons.USE_PLACEHOLDER == false)
+
   -- apply runs under both modes without error (placeholder + final-art path).
   local tex = WowMock.makeFrame():CreateTexture()
   Icons.USE_PLACEHOLDER = true;  Icons.apply(tex, "maghrib", false)
   Icons.USE_PLACEHOLDER = false; Icons.apply(tex, "maghrib", true)
-  Icons.USE_PLACEHOLDER = true -- restore default
   check("apply tolerates nil texture", (function() Icons.apply(nil, "fajr"); return true end)())
 
   -- The main window builds an icon per row.
