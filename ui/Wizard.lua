@@ -49,7 +49,9 @@ end
 local function makeBtn(parent, text, primary)
   local b = CreateFrame("Button", nil, parent)
   local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
-  local fill = b:CreateTexture(nil, "BACKGROUND")
+  -- Fill on the BORDER layer (one above BACKGROUND) so it always draws on top of
+  -- the outline regardless of texture creation order.
+  local fill = b:CreateTexture(nil, "BORDER")
   fill:SetPoint("TOPLEFT", 1, -1); fill:SetPoint("BOTTOMRIGHT", -1, 1)
   local base = primary and { 0.80, 0.63, 0.28, 1 } or { 0.88, 0.76, 0.46, 1 }
   local hov  = primary and { 0.88, 0.71, 0.35, 1 } or { 0.93, 0.83, 0.55, 1 }
@@ -231,7 +233,7 @@ local function buildLocationPage(panel)
   search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(C.text)); search:SetTextInsets(10, 10, 0, 0)
   search:SetScript("OnEscapePressed", search.ClearFocus)
   local sb = search:CreateTexture(nil, "BACKGROUND"); sb:SetAllPoints(); sb:SetColorTexture(0.55, 0.50, 0.42, 1)
-  local sf = search:CreateTexture(nil, "BACKGROUND")
+  local sf = search:CreateTexture(nil, "BORDER")
   sf:SetPoint("TOPLEFT", 1, -1); sf:SetPoint("BOTTOMRIGHT", -1, 1); sf:SetColorTexture(unpack(C.cardOff))
   local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
