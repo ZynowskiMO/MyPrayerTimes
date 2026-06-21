@@ -59,7 +59,10 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
       if matched then
         print("|cff33ff99PrayerTimes|r: city set to " .. matched)
       else
-        print("|cffff5555PrayerTimes|r: unknown city '" .. rest .. "' - try /pt settings")
+        -- Escape "|" so a typed escape sequence prints literally, not as a
+        -- colour/hyperlink/texture in the chat frame.
+        local safe = (rest:gsub("|", "||"))
+        print("|cffff5555PrayerTimes|r: unknown city '" .. safe .. "' - try /pt settings")
       end
     end
   elseif cmd == "test" then

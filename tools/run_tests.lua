@@ -709,6 +709,33 @@ end
 check("empty selection resolves to default", Selection.resolve({}).name == "Rotterdam")
 check("unknown saved city falls back", Selection.resolve({ selectedCity = { kind = "city", name = "Atlantis" } }).name == "Rotterdam")
 
+-- Security: user-entered names are sanitised; corrupt entries don't crash.
+do
+  local db = { savedCities = {} }
+  local ok, _, saved = Selection.saveCity(db, "|cffff0000Hack|r|Hitem:1|h[x]|h Town", 48.5, 9.0, {})
+  check("saveCity strips every pipe from the name",
+    ok == true and type(saved) == "string" and saved:find("|", 1, true) == nil)
+  check("sanitised name keeps its readable text", saved:find("Hack", 1, true) and saved:find("Town", 1, true))
+  check("sanitised name is round-trippable", Selection.findSaved(db, saved) ~= nil)
+
+  -- A pipe-only / whitespace name reduces to empty and is rejected.
+  local ok2, err2 = Selection.saveCity(db, "|||", 48.5, 9.0, {})
+  check("name of only escape chars is rejected", ok2 == false and err2 ~= nil)
+
+  -- renameCity sanitises too.
+  Selection.renameCity(db, saved, "|cff00ff00New|r Name")
+  check("renameCity strips escape codes",
+    Selection.findSaved(db, saved) == nil
+    and (function() for _, c in ipairs(db.savedCities) do if not c.name:find("|", 1, true) then return true end end end)())
+
+  -- Corrupt SavedVariables (non-string name) must not error.
+  local cdb = { savedCities = { { name = 12345, latitude = 1, longitude = 1 } } }
+  check("findSaved tolerates non-string entry name",
+    (function() return Selection.findSaved(cdb, "x") == nil end)())
+  check("deleteCity tolerates non-string entry name",
+    (function() return Selection.deleteCity(cdb, "x") == false end)())
+end
+
 -- Manual entry, fixed offset + rule -> flows through the pure pipeline.
 do
   local db = {}

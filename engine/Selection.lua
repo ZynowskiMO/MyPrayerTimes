@@ -63,6 +63,14 @@ local function trim(s)
   return type(s) == "string" and s:gsub("^%s+", ""):gsub("%s+$", "") or ""
 end
 
+-- Sanitise a user-entered name before it is stored and later displayed. WoW
+-- interprets "|"-prefixed escape sequences (|c colour, |H clickable hyperlink,
+-- |T texture, |n newline), so a crafted name could otherwise inject those into
+-- the list, cards or chat output. Stripping every "|" neutralises all of them.
+local function sanitizeName(s)
+  return (trim(s):gsub("|", ""))
+end
+
 function Selection.getSavedCities(db)
   return (db and db.savedCities) or {}
 end
@@ -71,7 +79,9 @@ function Selection.findSaved(db, name)
   if not (db and db.savedCities and type(name) == "string") then return nil end
   local lname = name:lower()
   for _, c in ipairs(db.savedCities) do
-    if c.name:lower() == lname then return c end
+    -- Guard against a hand-edited / corrupt SavedVariables entry whose name is
+    -- not a string (c.name:lower() would otherwise error).
+    if type(c.name) == "string" and c.name:lower() == lname then return c end
   end
   return nil
 end
@@ -80,7 +90,7 @@ end
 -- (+ opts.baseUtcOffset, opts.dstRule). Returns ok, errorMessage, savedName.
 function Selection.saveCity(db, name, lat, lon, opts)
   opts = opts or {}
-  name = trim(name)
+  name = sanitizeName(name)
   if name == "" then return false, "Enter a name for the city" end
   local ok, err = Selection.validateCoords(lat, lon)
   if not ok then return false, err end
@@ -101,7 +111,7 @@ function Selection.deleteCity(db, name)
   if not (db and db.savedCities and type(name) == "string") then return false end
   local lname = name:lower()
   for i, c in ipairs(db.savedCities) do
-    if c.name:lower() == lname then
+    if type(c.name) == "string" and c.name:lower() == lname then
       table.remove(db.savedCities, i)
       if db.selectedCity and db.selectedCity.kind == "saved"
           and db.selectedCity.name:lower() == lname then
@@ -117,7 +127,7 @@ end
 function Selection.renameCity(db, oldName, newName)
   local entry = Selection.findSaved(db, oldName)
   if not entry then return false, "No such saved city" end
-  newName = trim(newName)
+  newName = sanitizeName(newName)
   if newName == "" then return false, "Enter a name" end
   if newName:lower() ~= oldName:lower() and Selection.findSaved(db, newName) then
     return false, "A saved city named '" .. newName .. "' already exists"
