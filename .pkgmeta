@@ -1,0 +1,25 @@
+# CurseForge / BigWigsMods packager metadata.
+# Controls what ends up in the distributed zip. Only the runtime addon ships;
+# all dev-only files (tooling, fixtures, internal docs) are excluded.
+
+package-as: PrayerTimes
+
+enable-nolib-creation: no
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+# Keep the zip to the runtime addon only: bootstrap.lua, engine/, ui/, data/,
+# core/, Media/, the .toc, THIRD_PARTY_LICENSES.md, LICENSE, README, CHANGELOG.
+ignore:
+  - tools
+  - fixtures
+  - docs
+  - node_modules
+  - package.json
+  - package-lock.json
+  - CLAUDE.md
+  - .gitignore
+  - .github
+  - .vscode
