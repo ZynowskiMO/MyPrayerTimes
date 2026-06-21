@@ -622,6 +622,12 @@ local function makeScrollbar(listFrame, vis, height, getCount, getOffset, setOff
     local _, sy = GetCursorPosition()
     sb._startY, sb._startOff = sy, getOffset() or 0
     thumb:SetScript("OnUpdate", function()
+      -- Self-terminate if the button was released anywhere off the thumb (then
+      -- OnMouseUp never fired) -- otherwise the drag leaks and the list would
+      -- keep scrolling as the mouse merely moves over it.
+      if IsMouseButtonDown and not IsMouseButtonDown("LeftButton") then
+        thumb:SetScript("OnUpdate", nil); return
+      end
       local _, cy = GetCursorPosition()
       local scale = UIParent:GetEffectiveScale() or 1
       local dy = (sb._startY - cy) / scale
