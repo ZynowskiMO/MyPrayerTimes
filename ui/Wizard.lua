@@ -92,6 +92,7 @@ function Wizard.go(i)
   if Wizard.stepText then
     Wizard.stepText:SetText(string.format("STEP %d / %d", i, #PAGES))
   end
+  if Wizard.updateSummary then Wizard.updateSummary() end -- keep the Finish page current
 end
 
 function Wizard.next()
@@ -594,6 +595,65 @@ local function buildNotificationsPage(panel)
   Wizard.soundToggle.btn:SetPoint("TOPRIGHT", -24, -202)
 end
 
+-- ----- Finish page (3W-4): summary of the choices --------------------------
+
+function Wizard.selectionText(db)
+  local sel = Selection.get(db)
+  if not sel then return "Rotterdam, Netherlands (default)" end
+  if sel.kind == "city" then
+    local c = Cities.findByName(sel.name)
+    return c and (c.name .. ", " .. c.country) or sel.name
+  elseif sel.kind == "saved" then
+    return sel.name .. " (saved)"
+  end
+  return "Manual location"
+end
+
+function Wizard.notifyText(db)
+  local n = (db and db.notify) or {}
+  local parts = {}
+  local before = n.beforeMinutes or 0
+  parts[#parts + 1] = before == 0 and "no advance alert" or (before .. " min before")
+  if n.atTime ~= false then parts[#parts + 1] = "at prayer time" end
+  parts[#parts + 1] = (n.sound ~= false) and "sound on" or "sound off"
+  return table.concat(parts, "  \194\183  ")
+end
+
+function Wizard.updateSummary()
+  if not Wizard.sumLocation then return end
+  local db = Wizard.db
+  Wizard.sumLocation:SetText(Wizard.selectionText(db))
+  Wizard.sumMethod:SetText(Methods.methodLabel(Methods.resolveMethod(db and db.method)))
+  Wizard.sumAsr:SetText(Methods.madhabLabel(Methods.resolveMadhab(db and db.madhab)))
+  Wizard.sumNotify:SetText(Wizard.notifyText(db))
+end
+
+local function buildFinishPage(panel)
+  local C = Picker.COL
+
+  local intro = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  intro:SetPoint("TOPLEFT", 24, -60); intro:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+  intro:SetJustifyH("LEFT"); intro:SetTextColor(unpack(C.text))
+  intro:SetText("You're all set. Here's what PrayerTimes will use:")
+
+  local function sumRow(y, labelText)
+    local l = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    l:SetPoint("TOPLEFT", 24, y); l:SetText(labelText); l:SetTextColor(unpack(C.gold))
+    local v = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    v:SetPoint("TOPLEFT", 150, y); v:SetWidth(340); v:SetJustifyH("LEFT"); v:SetTextColor(unpack(C.text))
+    return v
+  end
+  Wizard.sumLocation = sumRow(-104, "Location")
+  Wizard.sumMethod   = sumRow(-132, "Method")
+  Wizard.sumAsr      = sumRow(-160, "Asr school")
+  Wizard.sumNotify   = sumRow(-188, "Reminders")
+
+  local note = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  note:SetPoint("TOPLEFT", 24, -228); note:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+  note:SetJustifyH("LEFT"); note:SetTextColor(unpack(C.muted))
+  note:SetText("Click Done to start. You can change any of this later from the settings window (/pt settings).")
+end
+
 -- ----- build ---------------------------------------------------------------
 
 function Wizard.create()
@@ -649,6 +709,7 @@ function Wizard.create()
   buildLocationPage(Wizard.pages[2])
   buildCalculationPage(Wizard.pages[3])
   buildNotificationsPage(Wizard.pages[4])
+  buildFinishPage(Wizard.pages[5])
 
   -- Footer: Skip set apart on the left; Back + Next grouped together on the
   -- right (so the two navigation buttons sit side by side and Skip can't be hit

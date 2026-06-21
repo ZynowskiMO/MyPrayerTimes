@@ -1855,6 +1855,48 @@ do
   check("sound toggle persists", ndb.notify.sound == false)
 end
 
+-- ---- 3W-4b: wizard Finish page summary + first-run gate -------------------
+do
+  local Wizard = require("Wizard")
+  local Methods = require("Methods")
+  local Selection = require("Selection")
+  local fdb = { savedCities = {} }
+  Wizard.frame = nil; Wizard.init(fdb); Wizard.open()
+
+  check("finish summary fields built",
+    Wizard.sumLocation ~= nil and Wizard.sumMethod ~= nil and Wizard.sumAsr ~= nil and Wizard.sumNotify ~= nil)
+
+  -- Make concrete choices, then jump to the Finish page and read the summary.
+  Wizard.selectCity("Sarajevo")
+  Wizard.setMethod("Turkey")
+  Wizard.setMadhab("hanafi")
+  Wizard.setBeforeMinutes(15); Wizard.setAtTime(true); Wizard.setSound(false)
+  Wizard.go(#Wizard.PAGES)
+
+  check("summary location reflects the chosen city",
+    Wizard.sumLocation:GetText():find("Sarajevo", 1, true) ~= nil)
+  check("summary method label correct", Wizard.sumMethod:GetText() == Methods.methodLabel("Turkey"))
+  check("summary asr label correct", Wizard.sumAsr:GetText() == Methods.madhabLabel("hanafi"))
+  check("summary notify text reflects minutes + sound off",
+    Wizard.sumNotify:GetText():find("15 min before", 1, true) ~= nil
+    and Wizard.sumNotify:GetText():find("sound off", 1, true) ~= nil)
+
+  -- Done finishes: welcomed set, never shown again.
+  check("last page Next reads Done", Wizard.nextBtn.label:GetText() == "Done")
+  check("not welcomed before finishing", Wizard.shouldOpen(fdb) == true)
+  Wizard.finish()
+  check("finishing sets welcomed", fdb.welcomed == true)
+  check("shouldOpen false after finishing", Wizard.shouldOpen(fdb) == false)
+
+  -- Default (untouched) summary is valid, never blank.
+  local ddb = {}
+  Wizard.frame = nil; Wizard.init(ddb); Wizard.open(); Wizard.go(#Wizard.PAGES)
+  check("default summary location is the Rotterdam default",
+    Wizard.sumLocation:GetText():find("Rotterdam", 1, true) ~= nil)
+  check("default summary method is the engine default",
+    Wizard.sumMethod:GetText() == Methods.methodLabel(Methods.DEFAULT_METHOD))
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

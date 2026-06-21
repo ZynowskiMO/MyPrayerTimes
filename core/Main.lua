@@ -16,9 +16,9 @@ loader:SetScript("OnEvent", function()
   Picker.init(PrayerTimesDB)
   Wizard.init(PrayerTimesDB)
   Window.create()
-  if Picker.shouldAutoOpen(PrayerTimesDB) then
-    Picker.open() -- first run: welcome / choose a city
-    print("|cff33ff99PrayerTimes|r: choose your city.")
+  if Wizard.shouldOpen(PrayerTimesDB) then
+    Wizard.open() -- first run: guided welcome wizard (ADR-0006)
+    print("|cff33ff99PrayerTimes|r: welcome! Let's get you set up.")
   else
     print("|cff33ff99PrayerTimes|r loaded. |cffffd100/pt settings|r to change city.")
   end
@@ -36,6 +36,7 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     print("  |cffffd100/pt show|r / |cffffd100hide|r - show or hide the window")
     print("  |cffffd100/pt lock|r / |cffffd100unlock|r - lock or free its position")
     print("  |cffffd100/pt settings|r - open the city / settings window")
+    print("  |cffffd100/pt setup|r - run the welcome wizard again")
     print("  |cffffd100/pt city <name>|r - select a city by name")
     print("  |cffffd100/pt test|r - preview a notification")
   elseif cmd == "show" then
@@ -48,8 +49,8 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     Window.setLocked(false); print("|cff33ff99PrayerTimes|r: window unlocked")
   elseif cmd == "settings" or cmd == "config" or cmd == "options" then
     Picker.toggle()
-  elseif cmd == "welcome" then
-    Wizard.open() -- preview the first-run wizard (temporary, until 3W-4 wiring)
+  elseif cmd == "welcome" or cmd == "setup" then
+    Wizard.open() -- re-run the welcome/setup wizard on demand
   elseif cmd == "city" then
     if rest == "" then
       Picker.open()
