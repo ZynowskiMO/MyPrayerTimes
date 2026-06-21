@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120007, 20505
 ## Title: PrayerTimes
 ## Notes: Islamic prayer times calculated locally for European cities.
 ## Author: Muhamed Basic
