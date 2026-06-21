@@ -33,6 +33,7 @@ engine/Cities.lua
 engine/Selection.lua
 
 # UI + entry point.
+ui/Locale.lua
 ui/Alerts.lua
 ui/Icons.lua
 ui/Window.lua

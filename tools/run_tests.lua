@@ -1997,6 +1997,28 @@ do
   check("wizard still builds with icon chrome", Wizard.frame ~= nil)
 end
 
+-- ---- 4-3: localisation scaffold (enUS baseline, key fallback) -------------
+do
+  local Locale = require("Locale")
+  local L = Locale.L
+  check("enUS baseline returns the canonical string", L["Location"] == "Location")
+  check("unwired/unknown key falls back to itself", L["Totally unwired string"] == "Totally unwired string")
+
+  -- A registered overlay locale wins while active; baseline restores on enUS.
+  Locale.register("xxTEST", { ["Location"] = "Lieu" })
+  Locale.use("xxTEST")
+  check("active overlay locale translates", L["Location"] == "Lieu")
+  check("untranslated key still falls back under overlay", L["Calculation"] == "Calculation")
+  Locale.use("enUS")
+  check("switching back to enUS restores baseline", L["Location"] == "Location")
+
+  -- The wizard page titles are wired through L (still English under enUS).
+  local Wizard = require("Wizard")
+  local titles = {}
+  for _, p in ipairs(Wizard.PAGES) do titles[p.key] = p.title end
+  check("wizard titles routed through L", titles.welcome == "Welcome" and titles.calculation == "Calculation")
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

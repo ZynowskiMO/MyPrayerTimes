@@ -12,6 +12,7 @@ local Cities = require("Cities")
 local Selection = require("Selection")
 local Methods = require("Methods")
 local Icons = require("Icons")
+local L = require("Locale").L
 local Picker = require("Picker") -- reuse its pure builders + styled components
 
 local Wizard = {}
@@ -30,11 +31,11 @@ local COL = {
 -- Ordered pages. Only "welcome" has content in 3W-1; the rest are empty cream
 -- containers (with a heading) that later checkpoints populate.
 local PAGES = {
-  { key = "welcome",       title = "Welcome",       sub = "About PrayerTimes" },
-  { key = "location",      title = "Location",      sub = "Where are you?" },
-  { key = "calculation",   title = "Calculation",   sub = "Method & Asr" },
-  { key = "notifications", title = "Notifications",  sub = "Alerts & sound" },
-  { key = "finish",        title = "All set",       sub = "You're ready" },
+  { key = "welcome",       title = L["Welcome"],       sub = "About PrayerTimes" },
+  { key = "location",      title = L["Location"],      sub = "Where are you?" },
+  { key = "calculation",   title = L["Calculation"],   sub = "Method & Asr" },
+  { key = "notifications", title = L["Notifications"], sub = "Alerts & sound" },
+  { key = "finish",        title = L["All set"],       sub = "You're ready" },
 }
 Wizard.PAGES = PAGES
 
