@@ -4,6 +4,30 @@ All notable changes to PrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.0.0] - 2026-06-22
+
+First stable release. Builds on the 0.9.0 beta with a minimap button, a full
+light/dark theme, and interface polish.
+
+### Added
+- Minimap button: left-click toggles the window, right-click opens settings,
+  draggable around the minimap, with the PrayerTimes logo.
+- Light and dark themes, switchable live from the welcome wizard and the
+  Notifications settings tab. Dark is the default.
+- "How to find coordinates" guide (Google Maps → latitude/longitude + UTC
+  offset) in the custom-location form, in both the wizard and settings.
+- Addon version and author shown in the settings sidebar.
+
+### Changed
+- Sunrise now reads in its own accent colour instead of being dimmed.
+- Countdown sits on a dark footer for readability.
+- Spacing, alignment, and header treatment refined across the wizard and
+  settings.
+
+### Fixed
+- Settings sidebar item text was rendered white (undefined colour roles) and
+  is now legible in both themes.
+
 ## [0.9.0] - 2026-06-22
 
 First public beta.
