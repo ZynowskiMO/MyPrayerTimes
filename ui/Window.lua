@@ -256,7 +256,15 @@ function Window.applyMinimized()
   if f.minBtn and f.minBtn.icon then
     Icons.setUI(f.minBtn.icon, mini and "restore" or "minimize", unpack(COL.gold))
   end
+  -- Keep the header fixed while resizing: a CENTER anchor would move the whole
+  -- window on minimise/restore. Pin the current top-left, then grow/shrink down.
+  local top, left = f:GetTop(), f:GetLeft()
   f:SetHeight(mini and MINIMIZED_H or EXPANDED_H)
+  if type(top) == "number" and type(left) == "number" then
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    Window.savePosition()
+  end
 end
 
 function Window.setMinimized(on)

@@ -1708,6 +1708,8 @@ do
     and Window.frame.miniIcon:IsShown() == true and Window.frame.miniTime:IsShown() == true)
   check("minimized hero shows a HH:MM time", Window.frame.miniTime:GetText():match("%d%d:%d%d") ~= nil)
   check("minimized frame is shorter", Window.frame:GetHeight() == 92)
+  check("resize re-anchors to TOPLEFT so the header stays fixed",
+    (select(1, Window.frame:GetPoint(1))) == "TOPLEFT")
 
   Window.toggleMinimize()
   check("restored: rows shown + hero hidden",

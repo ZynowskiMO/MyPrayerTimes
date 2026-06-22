@@ -58,6 +58,9 @@ local function makeFrame()
   function f:SetHeight(h) self._h = h end
   function f:GetWidth() return self._w end
   function f:GetHeight() return self._h end
+  -- rawget: an unset _top/_left would hit NOOP_INDEX and return a function.
+  function f:GetTop() return rawget(self, "_top") or 500 end
+  function f:GetLeft() return rawget(self, "_left") or 100 end
   function f:GetEffectiveScale() return 1 end
   function f:Show() self._shown = true end
   function f:Hide() self._shown = false end
