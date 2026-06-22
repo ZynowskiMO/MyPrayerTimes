@@ -1855,6 +1855,8 @@ do
 
   check("method dropdown built", Wizard.methodDropdown ~= nil and Wizard.methodDropdown.button ~= nil)
   check("two Asr cards built", Wizard.asrCards ~= nil and #Wizard.asrCards == 2)
+  check("Asr cards expose title + desc (for selected-contrast styling)",
+    Wizard.asrCards[1].title ~= nil and Wizard.asrCards[1].desc ~= nil)
 
   -- Defaults persist on first touch; setMethod writes a valid registry key.
   Wizard.setMethod("Egyptian")

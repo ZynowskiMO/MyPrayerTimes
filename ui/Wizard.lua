@@ -465,7 +465,8 @@ function Wizard.updateCalcControls()
       c._selected = on
       if c.bg then c.bg:SetColorTexture(unpack(on and C.cardSel or C.cardOff)) end
       if c.border then if on then c.border:Show() else c.border:Hide() end end
-      if c.title then c.title:SetTextColor(unpack(on and C.gold or C.text)) end
+      if c.title then c.title:SetTextColor(unpack(on and C.cardTitleOn or C.cardTitleOff)) end
+      if c.desc then c.desc:SetTextColor(unpack(on and C.cardDescOn or C.cardDescOff)) end
     end
   end
 end
@@ -511,7 +512,7 @@ local function buildCalculationPage(panel)
     ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(C.text)); card.title = ct
     local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
-    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(C.muted))
+    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(C.cardDescOff)); card.desc = cd
     card:SetScript("OnClick", function() Wizard.setMadhab(a.key) end)
     Wizard.asrCards[i] = card
   end

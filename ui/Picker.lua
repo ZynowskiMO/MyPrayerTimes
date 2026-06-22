@@ -31,6 +31,12 @@ local COL = {
   rowHl   = { 0.85, 0.78, 0.55, 0.55 }, -- gold row highlight
   cardSel = { 0.91, 0.85, 0.67, 1 },    -- selected option card (light gold)
   cardOff = { 1.0, 0.99, 0.96, 1 },     -- unselected option card (near white)
+  -- Option-card text: the SELECTED card reads with the highest contrast (dark,
+  -- crisp) so selection looks active; the unselected card recedes (muted).
+  cardTitleOn  = { 0.14, 0.12, 0.09 },
+  cardTitleOff = { 0.50, 0.47, 0.41 },
+  cardDescOn   = { 0.34, 0.31, 0.26 },
+  cardDescOff  = { 0.60, 0.57, 0.51 },
 }
 
 local Picker = {}
@@ -426,7 +432,8 @@ function Picker.updateCalcControls()
       c._selected = on
       if c.bg then c.bg:SetColorTexture(unpack(on and COL.cardSel or COL.cardOff)) end
       if c.border then if on then c.border:Show() else c.border:Hide() end end
-      if c.title then c.title:SetTextColor(unpack(on and COL.gold or COL.text)) end
+      if c.title then c.title:SetTextColor(unpack(on and COL.cardTitleOn or COL.cardTitleOff)) end
+      if c.desc then c.desc:SetTextColor(unpack(on and COL.cardDescOn or COL.cardDescOff)) end
     end
   end
 end
@@ -1046,7 +1053,7 @@ function Picker.create()
     ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(COL.text)); card.title = ct
     local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
-    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(COL.muted))
+    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(COL.cardDescOff)); card.desc = cd
     card:SetScript("OnClick", function() Picker.setMadhab(a.key) end)
     Picker.asrCards[i] = card
   end
