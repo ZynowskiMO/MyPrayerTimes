@@ -77,18 +77,22 @@ function Minimap.create()
   if Minimap.button then return Minimap.button end
 
   local b = CreateFrame("Button", "PrayerTimesMinimapButton", _G.Minimap)
-  b:SetSize(30, 30); b:SetFrameStrata("MEDIUM"); b:SetFrameLevel(8)
+  b:SetSize(31, 31); b:SetFrameStrata("MEDIUM"); b:SetFrameLevel(8)
   b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   b:RegisterForDrag("LeftButton")
 
-  -- The logo is its own gold-ringed crest, so we mask it to a circle (clipping
-  -- the black corners) rather than adding WoW's tracking-border ring. NOTE: do
-  -- not combine SetMask with SetTexCoord -- together they render garbled.
+  -- Logo masked to a circle, framed by WoW's thick minimap tracking ring (the
+  -- ornate gold border used by standard minimap buttons). Geometry mirrors the
+  -- common LibDBIcon layout. NOTE: don't combine SetMask with SetTexCoord.
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetPoint("TOPLEFT", 2, -2); icon:SetPoint("BOTTOMRIGHT", -2, 2)
+  icon:SetSize(19, 19); icon:SetPoint("TOPLEFT", 6, -6)
   icon:SetTexture(LOGO)
   if icon.SetMask then icon:SetMask(CIRCLE_MASK) end
   b.icon = icon
+
+  local border = b:CreateTexture(nil, "OVERLAY")
+  border:SetSize(53, 53); border:SetPoint("TOPLEFT", 0, 0)
+  border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 
   local hl = b:CreateTexture(nil, "HIGHLIGHT")
   hl:SetAllPoints(icon); hl:SetColorTexture(1, 1, 1, 0.12)
