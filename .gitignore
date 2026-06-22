@@ -17,6 +17,7 @@ yarn-error.log*
 
 # Build artifacts (packaged zips)
 build/
+*.zip
 
 # Project-local, not for the public repo
 INITIAL_PROMPT.md
