@@ -2100,6 +2100,15 @@ do
     (function() Theme.set("dark"); return Theme.current() == "dark" end)())
   check("Picker.COL proxy returns the active theme colour",
     Picker.COL.gold[1] == Theme.color("gold")[1])
+
+  -- T-3: the wizard builds and re-themes via Wizard.applyTheme.
+  local Wizard = require("Wizard")
+  Wizard.frame = nil; Wizard.init({}); Wizard.open()
+  check("Wizard.applyTheme exists", type(Wizard.applyTheme) == "function")
+  check("wizard re-themes to dark cleanly",
+    (function() Theme.set("dark"); return Theme.current() == "dark" end)())
+  check("wizard re-themes back to light cleanly",
+    (function() Theme.set("light"); return Theme.current() == "light" end)())
   Theme.set("light")
 end
 

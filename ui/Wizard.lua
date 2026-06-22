@@ -12,21 +12,13 @@ local Cities = require("Cities")
 local Selection = require("Selection")
 local Methods = require("Methods")
 local Icons = require("Icons")
+local Theme = require("Theme")
 local L = require("Locale").L
 local Picker = require("Picker") -- reuse its pure builders + styled components
 
 local Wizard = {}
 
--- Palette shared with the settings window (cream / charcoal / gold).
-local COL = {
-  header = { 0.30, 0.22, 0.12, 1 }, -- warm brown title bar, distinct from cream
-  headerAccent = { 0.72, 0.58, 0.29, 1 },
-  body   = { 0.96, 0.94, 0.88, 1 }, -- cream
-  gold   = { 0.72, 0.58, 0.29, 1 },
-  text   = { 0.16, 0.14, 0.11 },
-  muted  = { 0.45, 0.42, 0.36 },
-  dotOff = { 0.70, 0.66, 0.58, 1 },
-}
+-- Colours come from the Theme module (ADR-0009).
 
 -- Ordered pages. Only "welcome" has content in 3W-1; the rest are empty cream
 -- containers (with a heading) that later checkpoints populate.
@@ -55,18 +47,18 @@ end
 
 local function makeBtn(parent, text, primary)
   local b = CreateFrame("Button", nil, parent)
-  local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); Theme.tex(border, "line")
   -- Fill on the BORDER layer (one above BACKGROUND) so it always draws on top of
   -- the outline regardless of texture creation order.
   local fill = b:CreateTexture(nil, "BORDER")
   fill:SetPoint("TOPLEFT", 1, -1); fill:SetPoint("BOTTOMRIGHT", -1, 1)
-  local base = primary and { 0.80, 0.63, 0.28, 1 } or { 0.88, 0.76, 0.46, 1 }
-  local hov  = primary and { 0.88, 0.71, 0.35, 1 } or { 0.93, 0.83, 0.55, 1 }
-  fill:SetColorTexture(unpack(base))
+  local baseRole = primary and "btnPrimary" or "btnSecondary"
+  local hovRole = primary and "btnPrimaryHover" or "btnSecondaryHover"
+  Theme.tex(fill, baseRole)
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  fs:SetPoint("CENTER"); fs:SetText(text); fs:SetTextColor(0.16, 0.12, 0.06)
-  b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(hov)) end)
-  b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(base)) end)
+  fs:SetPoint("CENTER"); fs:SetText(text); Theme.txt(fs, "btnText")
+  b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(Theme.color(hovRole))) end)
+  b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(Theme.color(baseRole))) end)
   b.fill, b.label = fill, fs
   return b
 end
@@ -85,7 +77,7 @@ function Wizard.go(i)
   end
   if Wizard.dots then
     for n, d in ipairs(Wizard.dots) do
-      d:SetColorTexture(unpack(n == i and COL.gold or COL.dotOff))
+      d:SetColorTexture(unpack(n == i and Theme.color("gold") or Theme.color("dotOff")))
     end
   end
   if Wizard.backBtn then Wizard.backBtn:SetShown(i > 1) end
@@ -292,24 +284,24 @@ local function buildLocationPage(panel)
 
   -- Current-location card.
   local card = panel:CreateTexture(nil, "BACKGROUND")
-  card:SetPoint("TOPLEFT", 24, -54); card:SetSize(472, 42); card:SetColorTexture(unpack(C.card))
+  card:SetPoint("TOPLEFT", 24, -54); card:SetSize(472, 42); Theme.tex(card, "card")
   local cl = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  cl:SetPoint("TOPLEFT", 36, -60); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(C.gold))
+  cl:SetPoint("TOPLEFT", 36, -60); cl:SetText("CURRENT LOCATION"); Theme.txt(cl, "gold")
   Wizard.cardCity = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  Wizard.cardCity:SetPoint("TOPLEFT", 36, -74); Wizard.cardCity:SetTextColor(0.96, 0.94, 0.88)
+  Wizard.cardCity:SetPoint("TOPLEFT", 36, -74); Theme.txt(Wizard.cardCity, "onDark")
   Wizard.cardCountry = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  Wizard.cardCountry:SetPoint("TOPRIGHT", -36, -76); Wizard.cardCountry:SetTextColor(0.70, 0.67, 0.60)
+  Wizard.cardCountry:SetPoint("TOPRIGHT", -36, -76); Theme.txt(Wizard.cardCountry, "dimText")
 
   -- Search across all cities (flat cream field + placeholder).
   local search = CreateFrame("EditBox", "PrayerTimesWizardSearch", panel)
   search:SetSize(472, 24); search:SetPoint("TOPLEFT", 24, -106); search:SetAutoFocus(false)
-  search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(C.text)); search:SetTextInsets(10, 10, 0, 0)
+  search:SetFontObject("GameFontHighlight"); Theme.txt(search, "text"); search:SetTextInsets(10, 10, 0, 0)
   search:SetScript("OnEscapePressed", search.ClearFocus)
-  local sb = search:CreateTexture(nil, "BACKGROUND"); sb:SetAllPoints(); sb:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local sb = search:CreateTexture(nil, "BACKGROUND"); sb:SetAllPoints(); Theme.tex(sb, "line")
   local sf = search:CreateTexture(nil, "BORDER")
-  sf:SetPoint("TOPLEFT", 1, -1); sf:SetPoint("BOTTOMRIGHT", -1, 1); sf:SetColorTexture(unpack(C.cardOff))
+  sf:SetPoint("TOPLEFT", 1, -1); sf:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(sf, "cardOff")
   local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
+  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); Theme.txt(ph, "muted")
   search:SetScript("OnTextChanged", function(self)
     ph:SetShown(self:GetText() == "")
     Wizard.dScroll = 0; Wizard.refreshLocation(self:GetText())
@@ -324,10 +316,10 @@ local function buildLocationPage(panel)
   for i = 1, MVIS do
     local row = CreateFrame("Button", nil, mlist)
     row:SetSize(200, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
-    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
+    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); Theme.tex(hl, "rowHl"); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 8, 0); label:SetPoint("RIGHT", row, "RIGHT", -22, 0)
-    label:SetJustifyH("LEFT"); label:SetWordWrap(false); label:SetTextColor(unpack(C.text)); row.label = label
+    label:SetJustifyH("LEFT"); label:SetWordWrap(false); Theme.txt(label, "text"); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
     row:SetScript("OnClick", function(self)
@@ -343,7 +335,7 @@ local function buildLocationPage(panel)
 
   local divider = panel:CreateTexture(nil, "ARTWORK")
   divider:SetPoint("TOPLEFT", 234, -140); divider:SetPoint("BOTTOMLEFT", 234, 8)
-  divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
+  divider:SetWidth(1); Theme.tex(divider, "divider")
 
   -- Detail column: cities of the selected country (or search results). Header
   -- sits below the search box, aligned with the master's COUNTRIES row.
@@ -356,12 +348,12 @@ local function buildLocationPage(panel)
   for i = 1, DVIS do
     local row = CreateFrame("Button", nil, dlist)
     row:SetSize(252, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
-    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl)); hl:Hide(); row.hl = hl
+    local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); Theme.tex(hl, "rowHl"); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
     mark:SetSize(16, 16); mark:SetPoint("RIGHT", -6, 0)
-    Icons.setUI(mark, "check", unpack(C.gold)); mark:Hide(); row.mark = mark
+    Icons.setUI(mark, "check", unpack(Theme.color("gold"))); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(C.text)); row.label = label
+    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); Theme.txt(label, "text"); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Wizard.selectCity(self.name) end end)
     Wizard.detailPool[i] = row
   end
@@ -380,7 +372,7 @@ local function buildLocationPage(panel)
   addBtn:SetScript("OnClick", function() Wizard.openAddPanel() end)
   local addSep = panel:CreateTexture(nil, "ARTWORK")
   addSep:SetPoint("BOTTOMLEFT", addBtn, "TOPLEFT", 0, 10); addSep:SetPoint("BOTTOMRIGHT", addBtn, "TOPRIGHT", 0, 10)
-  addSep:SetHeight(1); addSep:SetColorTexture(0, 0, 0, 0.12)
+  addSep:SetHeight(1); Theme.tex(addSep, "divider")
 
   -- Add-custom-location overlay: opaque cream, raised above the browse view and
   -- mouse-enabled so clicks don't fall through to the lists beneath.
@@ -389,11 +381,11 @@ local function buildLocationPage(panel)
   local ap = CreateFrame("Frame", nil, panel)
   ap:SetPoint("TOPLEFT", 0, -50); ap:SetPoint("BOTTOMRIGHT", 0, 8)
   ap:SetFrameLevel(panel:GetFrameLevel() + 10); ap:EnableMouse(true)
-  local apbg = ap:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(C.content))
+  local apbg = ap:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); Theme.tex(apbg, "content")
   ap:Hide(); Wizard.addPanel = ap
 
   local at = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  at:SetPoint("TOPLEFT", 24, -6); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(C.gold))
+  at:SetPoint("TOPLEFT", 24, -6); at:SetText("ADD CUSTOM LOCATION"); Theme.txt(at, "gold")
 
   UI.colLabel(ap, "Lat", 24, -28)
   UI.colLabel(ap, "Lon", 110, -28)
@@ -404,7 +396,7 @@ local function buildLocationPage(panel)
   local offBox = UI.flatEditBox(ap); offBox:SetSize(62, 22); offBox:SetPoint("TOPLEFT", 196, boxY)
   local euCheck = UI.flatCheck(ap); euCheck:SetPoint("TOPLEFT", 272, boxY - 2)
   local euText = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); euText:SetTextColor(unpack(C.text))
+  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); Theme.txt(euText, "text")
 
   local nameLabelY = boxY - 30
   UI.colLabel(ap, "Name", 24, nameLabelY)
@@ -470,10 +462,10 @@ function Wizard.updateCalcControls()
     for _, c in ipairs(Wizard.asrCards) do
       local on = (c.key == cur)
       c._selected = on
-      if c.bg then c.bg:SetColorTexture(unpack(on and C.cardSel or C.cardOff)) end
+      if c.bg then c.bg:SetColorTexture(unpack(on and Theme.color("cardSel") or Theme.color("cardOff"))) end
       if c.border then if on then c.border:Show() else c.border:Hide() end end
-      if c.title then c.title:SetTextColor(unpack(on and C.cardTitleOn or C.cardTitleOff)) end
-      if c.desc then c.desc:SetTextColor(unpack(on and C.cardDescOn or C.cardDescOff)) end
+      if c.title then c.title:SetTextColor(unpack(on and Theme.color("cardTitleOn") or Theme.color("cardTitleOff"))) end
+      if c.desc then c.desc:SetTextColor(unpack(on and Theme.color("cardDescOn") or Theme.color("cardDescOff"))) end
     end
   end
 end
@@ -487,7 +479,7 @@ local function buildCalculationPage(panel)
   local C, UI = Picker.COL, Picker.ui
 
   local mLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  mLabel:SetPoint("TOPLEFT", 24, -58); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(C.gold))
+  mLabel:SetPoint("TOPLEFT", 24, -58); mLabel:SetText("CALCULATION METHOD"); Theme.txt(mLabel, "gold")
 
   -- Content spans the page's 24px margins (left 24, right edge 496 = 520 - 24).
   Wizard.methodDropdown = UI.dropdown(panel, {
@@ -501,10 +493,10 @@ local function buildCalculationPage(panel)
   local mHint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   mHint:SetPoint("TOPLEFT", 24, -108); mHint:SetWidth(472); mHint:SetJustifyH("LEFT")
   mHint:SetText("Sets the Fajr/Isha twilight angles. Default (Muslim World League) suits most of Europe.")
-  mHint:SetTextColor(unpack(C.muted))
+  Theme.txt(mHint, "muted")
 
   local aLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  aLabel:SetPoint("TOPLEFT", 24, -146); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(C.gold))
+  aLabel:SetPoint("TOPLEFT", 24, -146); aLabel:SetText("ASR SCHOOL"); Theme.txt(aLabel, "gold")
 
   Wizard.asrCards = {}
   local cardW = 230 -- two cards + 12 gap span the 472 content width (right edge 496)
@@ -512,15 +504,15 @@ local function buildCalculationPage(panel)
     local card = CreateFrame("Button", nil, panel)
     card:SetSize(cardW, 88); card:SetPoint("TOPLEFT", 24 + (i - 1) * (cardW + 12), -164)
     card.key = a.key
-    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); cbg:SetColorTexture(unpack(C.cardOff)); card.bg = cbg
+    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); Theme.tex(cbg, "cardOff"); card.bg = cbg
     local barT = card:CreateTexture(nil, "ARTWORK")
     barT:SetPoint("TOPLEFT", 0, 0); barT:SetPoint("BOTTOMLEFT", 0, 0); barT:SetWidth(3)
-    barT:SetColorTexture(unpack(C.gold)); barT:Hide(); card.border = barT
+    Theme.tex(barT, "gold"); barT:Hide(); card.border = barT
     local ct = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(C.text)); card.title = ct
+    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); Theme.txt(ct, "text"); card.title = ct
     local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
-    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(C.cardDescOff)); card.desc = cd
+    cd:SetText(ASR_DESC[a.key] or ""); Theme.txt(cd, "cardDescOff"); card.desc = cd
     card:SetScript("OnClick", function() Wizard.setMadhab(a.key) end)
     Wizard.asrCards[i] = card
   end
@@ -564,19 +556,19 @@ local function buildNotificationsPage(panel)
 
   local function notifRow(y, title, desc)
     local t = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("TOPLEFT", 24, y); t:SetText(title); t:SetTextColor(unpack(C.text))
+    t:SetPoint("TOPLEFT", 24, y); t:SetText(title); Theme.txt(t, "text")
     local d = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     d:SetPoint("TOPLEFT", 24, y - 18); d:SetWidth(360); d:SetJustifyH("LEFT")
-    d:SetText(desc); d:SetTextColor(unpack(C.muted))
+    d:SetText(desc); Theme.txt(d, "muted")
   end
   local function separator(y)
     local s = panel:CreateTexture(nil, "ARTWORK")
     s:SetPoint("TOPLEFT", 24, y); s:SetPoint("TOPRIGHT", -24, y); s:SetHeight(1)
-    s:SetColorTexture(0, 0, 0, 0.12)
+    Theme.tex(s, "divider")
   end
 
   local nlabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  nlabel:SetPoint("TOPLEFT", 24, -58); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(C.gold))
+  nlabel:SetPoint("TOPLEFT", 24, -58); nlabel:SetText("REMINDER BEFORE PRAYER"); Theme.txt(nlabel, "gold")
 
   -- Before-prayer minutes stepper.
   notifRow(-80, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
@@ -585,7 +577,7 @@ local function buildNotificationsPage(panel)
   minusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(-1) end)
   Wizard.beforeValue = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Wizard.beforeValue:SetPoint("TOPRIGHT", -64, -84); Wizard.beforeValue:SetWidth(58); Wizard.beforeValue:SetJustifyH("CENTER")
-  Wizard.beforeValue:SetTextColor(unpack(C.text))
+  Theme.txt(Wizard.beforeValue, "text")
   local plusBtn = UI.flatButton(panel, "", false, "plus")
   plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -24, -78)
   plusBtn:SetScript("OnClick", function() Wizard.stepBeforeMinutes(1) end)
@@ -645,14 +637,14 @@ local function buildFinishPage(panel)
 
   local intro = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   intro:SetPoint("TOPLEFT", 24, -60); intro:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
-  intro:SetJustifyH("LEFT"); intro:SetTextColor(unpack(C.text))
+  intro:SetJustifyH("LEFT"); Theme.txt(intro, "text")
   intro:SetText("You're all set. Here's what PrayerTimes will use:")
 
   local function sumRow(y, labelText)
     local l = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    l:SetPoint("TOPLEFT", 24, y); l:SetText(labelText); l:SetTextColor(unpack(C.gold))
+    l:SetPoint("TOPLEFT", 24, y); l:SetText(labelText); Theme.txt(l, "gold")
     local v = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    v:SetPoint("TOPLEFT", 150, y); v:SetWidth(340); v:SetJustifyH("LEFT"); v:SetTextColor(unpack(C.text))
+    v:SetPoint("TOPLEFT", 150, y); v:SetWidth(340); v:SetJustifyH("LEFT"); Theme.txt(v, "text")
     return v
   end
   Wizard.sumLocation = sumRow(-104, "Location")
@@ -662,7 +654,7 @@ local function buildFinishPage(panel)
 
   local note = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   note:SetPoint("TOPLEFT", 24, -228); note:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
-  note:SetJustifyH("LEFT"); note:SetTextColor(unpack(C.muted))
+  note:SetJustifyH("LEFT"); Theme.txt(note, "muted")
   note:SetText("Click Done to start. You can change any of this later from the settings window (/pt settings).")
 end
 
@@ -679,15 +671,15 @@ local function buildWelcomePreview(panel)
   local PW, PH = 290, 148
   local pv = CreateFrame("Frame", nil, panel)
   pv:SetSize(PW, PH); pv:SetPoint("TOP", panel, "TOP", 0, -158)
-  local border = pv:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.10, 0.09, 0.07, 1)
+  local border = pv:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); Theme.tex(border, "winBorder")
   local bg = pv:CreateTexture(nil, "BORDER")
-  bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); bg:SetColorTexture(0.96, 0.94, 0.88, 1)
+  bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(bg, "winBg")
 
   local hdr = pv:CreateTexture(nil, "ARTWORK")
   hdr:SetPoint("TOPLEFT", 1, -1); hdr:SetPoint("TOPRIGHT", -1, -1); hdr:SetHeight(24)
-  hdr:SetColorTexture(unpack(C.header))
+  Theme.tex(hdr, "header")
   local wm = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  wm:SetPoint("LEFT", hdr, "LEFT", 8, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(C.gold))
+  wm:SetPoint("LEFT", hdr, "LEFT", 8, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
   local cty = pv:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   cty:SetPoint("RIGHT", hdr, "RIGHT", -8, 0); cty:SetText("Rotterdam")
 
@@ -696,23 +688,23 @@ local function buildWelcomePreview(panel)
     local row = CreateFrame("Frame", nil, pv)
     row:SetPoint("TOPLEFT", 6, y); row:SetPoint("TOPRIGHT", -6, y); row:SetHeight(24)
     if s.isNext then
-      local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl))
+      local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); Theme.tex(hl, "rowHl")
     end
     local slot = row:CreateTexture(nil, "BORDER"); slot:SetSize(18, 18); slot:SetPoint("LEFT", 6, 0)
-    slot:SetColorTexture(1, 0.99, 0.96, 0.55)
+    Theme.tex(slot, "slot")
     local icon = row:CreateTexture(nil, "ARTWORK"); icon:SetSize(12, 12); icon:SetPoint("CENTER", slot, "CENTER")
     Icons.apply(icon, s.key, s.isNext)
     local nm = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    nm:SetPoint("LEFT", 32, 0); nm:SetText(s.label); nm:SetTextColor(unpack(C.text))
+    nm:SetPoint("LEFT", 32, 0); nm:SetText(s.label); Theme.txt(nm, "text")
     local tm = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    tm:SetPoint("RIGHT", -10, 0); tm:SetText(s.time); tm:SetTextColor(unpack(C.text))
+    tm:SetPoint("RIGHT", -10, 0); tm:SetText(s.time); Theme.txt(tm, "text")
   end
 
   local ftr = pv:CreateTexture(nil, "ARTWORK")
   ftr:SetPoint("BOTTOMLEFT", 1, 1); ftr:SetPoint("BOTTOMRIGHT", -1, 1); ftr:SetHeight(22)
-  ftr:SetColorTexture(unpack(C.header))
+  Theme.tex(ftr, "header")
   local cd = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  cd:SetPoint("CENTER", ftr, "CENTER", 0, 0); cd:SetText("20:30  \194\183  1:35:43"); cd:SetTextColor(0.97, 0.96, 0.92)
+  cd:SetPoint("CENTER", ftr, "CENTER", 0, 0); cd:SetText("20:30  \194\183  1:35:43"); Theme.txt(cd, "onDark")
 
   Wizard.welcomePreview = pv
 end
@@ -731,31 +723,31 @@ function Wizard.create()
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
 
   local body = f:CreateTexture(nil, "BACKGROUND")
-  body:SetAllPoints(); body:SetColorTexture(unpack(COL.body))
+  body:SetAllPoints(); Theme.tex(body, "content")
 
   -- Dark header on the BORDER layer (above the cream body fill) so it always
   -- draws over it -- same deterministic fix used across the addon.
   local header = f:CreateTexture(nil, "BORDER")
   header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
-  header:SetColorTexture(unpack(COL.header))
+  Theme.tex(header, "wizHeader")
   local accent = f:CreateTexture(nil, "ARTWORK")
   accent:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0); accent:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
-  accent:SetHeight(2); accent:SetColorTexture(unpack(COL.headerAccent))
+  accent:SetHeight(2); Theme.tex(accent, "gold")
   -- Header text: wordmark | SETUP (left) + step text (right), all the same size
   -- and vertically centred on the header, with a thin divider bar (matches the
   -- settings window header).
   local HFONT = 14
   local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
   local wmBar = f:CreateTexture(nil, "OVERLAY")
-  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); wmBar:SetColorTexture(0.55, 0.50, 0.42, 0.85)
+  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); Theme.tex(wmBar, "line")
   local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wmSub:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETUP"); wmSub:SetTextColor(0.64, 0.60, 0.52)
+  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETUP"); Theme.txt(wmSub, "dimText")
   Wizard.stepText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Wizard.stepText:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  Wizard.stepText:SetPoint("RIGHT", header, "RIGHT", -16, 0); Wizard.stepText:SetTextColor(0.64, 0.60, 0.52)
+  Wizard.stepText:SetPoint("RIGHT", header, "RIGHT", -16, 0); Theme.txt(Wizard.stepText, "dimText")
 
   -- One frame per page (content area between header and footer).
   Wizard.pages = {}
@@ -764,7 +756,7 @@ function Wizard.create()
     panel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -46)
     panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 58)
     local h = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    h:SetPoint("TOPLEFT", 24, -22); h:SetText(p.title); h:SetTextColor(unpack(COL.text))
+    h:SetPoint("TOPLEFT", 24, -22); h:SetText(p.title); Theme.txt(h, "text")
     panel.heading = h
     Wizard.pages[i] = panel
   end
@@ -772,7 +764,7 @@ function Wizard.create()
   -- Welcome page content (3W-1).
   local intro = Wizard.pages[1]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   intro:SetPoint("TOPLEFT", 24, -64); intro:SetPoint("RIGHT", Wizard.pages[1], "RIGHT", -24, 0)
-  intro:SetJustifyH("LEFT"); intro:SetJustifyV("TOP"); intro:SetTextColor(unpack(COL.text))
+  intro:SetJustifyH("LEFT"); intro:SetJustifyV("TOP"); Theme.txt(intro, "text")
   intro:SetText(
     "PrayerTimes shows the five daily prayer times for your location, "
     .. "calculated right here in the game \226\128\148 no internet needed.\n"
@@ -813,7 +805,7 @@ function Wizard.create()
     -- Raised above the Back/Skip/Next row (button top ~44px) so the dots never
     -- slide underneath the buttons.
     dot:SetPoint("BOTTOM", f, "BOTTOM", -totalW / 2 + (i - 1) * gap, 58)
-    dot:SetColorTexture(unpack(COL.dotOff))
+    Theme.tex(dot, "dotOff")
     Wizard.dots[i] = dot
   end
 
@@ -840,6 +832,17 @@ end
 function Wizard.close()
   if Wizard.frame then Wizard.frame:Hide() end
 end
+
+-- Repaint the state-dependent colours on a theme change (the static chrome is
+-- handled by Theme.apply's registry); only matters while the wizard is built.
+function Wizard.applyTheme()
+  if not Wizard.frame then return end
+  Wizard.go(Wizard.step or 1)        -- step dots
+  if Wizard.refreshLocation then Wizard.refreshLocation() end
+  if Wizard.updateCalcControls then Wizard.updateCalcControls() end
+  if Wizard.updateNotifyControls then Wizard.updateNotifyControls() end
+end
+Theme.addHook(function() Wizard.applyTheme() end)
 
 if PrayerTimesNS then PrayerTimesNS.modules.Wizard = Wizard end
 return Wizard
