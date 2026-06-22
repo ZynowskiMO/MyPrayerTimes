@@ -521,9 +521,12 @@ Window.refresh()
 local sched1 = Window.lastSchedule
 local now1 = Clock.cityNow(Cities.findByName("Rotterdam"), E1)
 local untilSec1 = Schedule.untilSeconds(sched1, now1.secondOfDay)
-check("countdown text shows next prayer + time",
-  Window.frame.countdown:GetText()
-    == PROPER[sched1.nextKey] .. " in " .. Schedule.formatCountdown(untilSec1))
+-- Footer shows the city's current local time + countdown (no prayer name).
+local clock1 = string.format("%02d:%02d", math.floor(now1.minuteOfDay / 60), now1.minuteOfDay % 60)
+check("countdown text shows current time + remaining (no name)",
+  Window.frame.countdown:GetText() == clock1 .. "  \194\183  " .. Schedule.formatCountdown(untilSec1))
+check("footer omits the prayer name",
+  Window.frame.countdown:GetText():find(PROPER[sched1.nextKey], 1, true) == nil)
 
 -- Advance the clock just past the next prayer -> highlight must move on.
 WowMock.setNow(E1 + untilSec1 + 60)
@@ -1691,15 +1694,17 @@ do
     Window.frame.rows.fajr.frame:IsShown() == true and Window.frame.nextLine:IsShown() == false)
 
   Window.toggleMinimize()
-  check("minimized: rows hidden + next-line shown + flag set",
+  check("minimized: rows hidden + hero (name/icon/time) shown + flag set",
     wdb.minimized == true and Window.frame.rows.fajr.frame:IsShown() == false
-    and Window.frame.nextLine:IsShown() == true)
+    and Window.frame.nextLine:IsShown() == true
+    and Window.frame.miniIcon:IsShown() == true and Window.frame.miniTime:IsShown() == true)
+  check("minimized hero shows a HH:MM time", Window.frame.miniTime:GetText():match("%d%d:%d%d") ~= nil)
   check("minimized frame is shorter", Window.frame:GetHeight() == 92)
 
   Window.toggleMinimize()
-  check("restored: rows shown + next-line hidden",
+  check("restored: rows shown + hero hidden",
     wdb.minimized == false and Window.frame.rows.fajr.frame:IsShown() == true
-    and Window.frame.nextLine:IsShown() == false)
+    and Window.frame.nextLine:IsShown() == false and Window.frame.miniIcon:IsShown() == false)
   check("restored frame is taller", Window.frame:GetHeight() == 226)
 
   -- Persisted minimized state is applied on load.

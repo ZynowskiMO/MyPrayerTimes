@@ -35,6 +35,7 @@ local function makeTexture()
   function tx:SetTexture() end
   function tx:Show() self._shown = true end
   function tx:Hide() self._shown = false end
+  function tx:SetShown(b) self._shown = b and true or false end
   function tx:IsShown() return self._shown end
   function tx:SetWidth() end
   function tx:SetHeight() end

@@ -124,11 +124,21 @@ function Window.create()
     f.rows[key] = { frame = row, label = label, time = timeText, hl = hl, icon = icon, iconBg = iconBg }
   end
 
-  -- Compact next-prayer line, shown only while minimized.
+  -- Minimised "hero" line: the next prayer as icon + name + time, mirroring a
+  -- main row so it stays aligned. Shown only while minimised; centred in the
+  -- band between the header and the footer strip.
+  local miniIconBg = f:CreateTexture(nil, "BORDER")
+  miniIconBg:SetSize(22, 22); miniIconBg:SetPoint("LEFT", f, "TOPLEFT", 10, -46)
+  miniIconBg:SetColorTexture(1, 0.99, 0.96, 0.55); miniIconBg:Hide()
+  local miniIcon = f:CreateTexture(nil, "ARTWORK")
+  miniIcon:SetSize(15, 15); miniIcon:SetPoint("CENTER", miniIconBg, "CENTER"); miniIcon:Hide()
   local nextLine = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  nextLine:SetPoint("TOPLEFT", 12, -36); nextLine:SetTextColor(unpack(COL.text))
+  nextLine:SetPoint("LEFT", miniIconBg, "RIGHT", 8, 0); nextLine:SetTextColor(unpack(COL.text))
   nextLine:Hide()
-  f.nextLine = nextLine
+  local miniTime = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  miniTime:SetPoint("RIGHT", f, "TOPRIGHT", -14, -46); miniTime:SetTextColor(unpack(COL.text))
+  miniTime:Hide()
+  f.nextLine, f.miniIcon, f.miniIconBg, f.miniTime = nextLine, miniIcon, miniIconBg, miniTime
 
   -- Countdown sits on a dark footer strip (mirrors the dark header) with white
   -- text, so the most-glanced info stands out against the cream body.
@@ -238,7 +248,10 @@ function Window.applyMinimized()
   if not f then return end
   local mini = Window.db and Window.db.minimized
   for _, key in ipairs(ORDER) do f.rows[key].frame:SetShown(not mini) end
-  if f.nextLine then f.nextLine:SetShown(mini and true or false) end
+  -- The minimised hero group (icon + name + time) toggles as a unit.
+  for _, region in ipairs({ f.nextLine, f.miniIcon, f.miniIconBg, f.miniTime }) do
+    if region then region:SetShown(mini and true or false) end
+  end
   if f.minBtn and f.minBtn.icon then
     Icons.setUI(f.minBtn.icon, mini and "restore" or "minimize", unpack(COL.gold))
   end
@@ -268,15 +281,20 @@ local function renderNow(now)
     end
     if f.rows[key].icon then Icons.apply(f.rows[key].icon, key, isNext) end
   end
+  -- Footer: the city's current local time + time to the next prayer (no prayer
+  -- name -- the highlighted row / minimised hero already names it).
+  local clock = string.format("%02d:%02d", math.floor(now.minuteOfDay / 60), now.minuteOfDay % 60)
   if sched.nextKey and sched.untilMinutes then
     local untilSec = Schedule.untilSeconds(sched, now.secondOfDay)
-    f.countdown:SetText(LABELS[sched.nextKey] .. " in " .. Schedule.formatCountdown(untilSec))
-    if f.nextLine then
-      f.nextLine:SetText(LABELS[sched.nextKey] .. "   " .. (f.rows[sched.nextKey].time:GetText() or ""))
-    end
+    f.countdown:SetText(clock .. "  \194\183  " .. Schedule.formatCountdown(untilSec))
+    -- Minimised hero line: icon + name + time of the next prayer.
+    if f.nextLine then f.nextLine:SetText(LABELS[sched.nextKey]) end
+    if f.miniTime then f.miniTime:SetText(f.rows[sched.nextKey].time:GetText() or "") end
+    if f.miniIcon then Icons.apply(f.miniIcon, sched.nextKey, true) end
   else
-    f.countdown:SetText("--:--")
+    f.countdown:SetText(clock .. "  \194\183  --:--")
     if f.nextLine then f.nextLine:SetText("--:--") end
+    if f.miniTime then f.miniTime:SetText("") end
   end
   Window.checkNotifications(now)
   Window.lastSchedule = sched -- exposed for tests
