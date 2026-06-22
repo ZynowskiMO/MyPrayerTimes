@@ -941,11 +941,17 @@ function Picker.create()
     function() return Picker.dScroll or 0 end,
     function(o) Picker.dScroll = o; Picker.refreshDetail() end)
 
-  -- Aligned with the detail column (left 214, right edge = panel right - 10),
-  -- with equal bottom + right margins.
+  -- Global "Add custom location": a full-width bar below BOTH columns, with a
+  -- separator, so it reads as "enter your own coordinates" rather than "add a
+  -- city to the selected country".
   local addBtn = makeFlatButton(browse, "+ Add custom location", true)
-  addBtn:SetSize(247, 24); addBtn:SetPoint("BOTTOMLEFT", 214, 10)
+  addBtn:SetHeight(26)
+  addBtn:SetPoint("BOTTOMLEFT", browse, "BOTTOMLEFT", 8, 10)
+  addBtn:SetPoint("BOTTOMRIGHT", browse, "BOTTOMRIGHT", -10, 10)
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
+  local addSep = browse:CreateTexture(nil, "ARTWORK")
+  addSep:SetPoint("BOTTOMLEFT", addBtn, "TOPLEFT", 0, 10); addSep:SetPoint("BOTTOMRIGHT", addBtn, "TOPRIGHT", 0, 10)
+  addSep:SetHeight(1); addSep:SetColorTexture(0, 0, 0, 0.12)
 
   -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
   -- background, raised above the browse container so nothing shows through.

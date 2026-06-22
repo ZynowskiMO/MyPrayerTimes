@@ -286,10 +286,9 @@ end
 -- styled component factories exported by the settings window.
 local function buildLocationPage(panel)
   local C, UI = Picker.COL, Picker.ui
-  -- Master (countries) has no button beneath it, so it runs taller — its bottom
-  -- lines up with the Add-custom button's bottom edge, using the otherwise empty
-  -- left-column space. Detail stays shorter to leave room for the Add button.
-  local MVIS, DVIS, RH = 9, 6, 18
+  -- Both columns end at about the same height; the global "Add custom location"
+  -- action is a full-width bar below them (built further down).
+  local MVIS, DVIS, RH = 7, 6, 18
 
   -- Current-location card.
   local card = panel:CreateTexture(nil, "BACKGROUND")
@@ -371,11 +370,17 @@ local function buildLocationPage(panel)
     function() return Wizard.dScroll or 0 end,
     function(o) Wizard.dScroll = o; Wizard.refreshDetail() end)
 
-  -- "+ Add custom location" opens the add-form overlay. Anchored just below the
-  -- detail list (fixed gap) so it never crowds the step dots near the footer.
+  -- Global "Add custom location": a full-width bar below BOTH columns, with a
+  -- separator, so it reads as "enter your own coordinates" rather than "add a
+  -- city to the selected country".
   local addBtn = UI.flatButton(panel, "+ Add custom location", true)
-  addBtn:SetSize(252, 24); addBtn:SetPoint("TOPRIGHT", dlist, "BOTTOMRIGHT", 0, -12)
+  addBtn:SetHeight(26)
+  addBtn:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 24, 12)
+  addBtn:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -24, 12)
   addBtn:SetScript("OnClick", function() Wizard.openAddPanel() end)
+  local addSep = panel:CreateTexture(nil, "ARTWORK")
+  addSep:SetPoint("BOTTOMLEFT", addBtn, "TOPLEFT", 0, 10); addSep:SetPoint("BOTTOMRIGHT", addBtn, "TOPRIGHT", 0, 10)
+  addSep:SetHeight(1); addSep:SetColorTexture(0, 0, 0, 0.12)
 
   -- Add-custom-location overlay: opaque cream, raised above the browse view and
   -- mouse-enabled so clicks don't fall through to the lists beneath.
