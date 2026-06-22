@@ -489,8 +489,9 @@ local function buildCalculationPage(panel)
   local mLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   mLabel:SetPoint("TOPLEFT", 24, -58); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(C.gold))
 
+  -- Content spans the page's 24px margins (left 24, right edge 496 = 520 - 24).
   Wizard.methodDropdown = UI.dropdown(panel, {
-    width = 448, rows = 10,
+    width = 472, rows = 10,
     getOptions = function() return Methods.list() end,
     getCurrent = function() return Methods.resolveMethod(Wizard.db and Wizard.db.method) end,
     onSelect = function(key) Wizard.setMethod(key) end,
@@ -498,7 +499,7 @@ local function buildCalculationPage(panel)
   Wizard.methodDropdown.button:SetPoint("TOPLEFT", 24, -76)
 
   local mHint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  mHint:SetPoint("TOPLEFT", 24, -108); mHint:SetWidth(448); mHint:SetJustifyH("LEFT")
+  mHint:SetPoint("TOPLEFT", 24, -108); mHint:SetWidth(472); mHint:SetJustifyH("LEFT")
   mHint:SetText("Sets the Fajr/Isha twilight angles. Default (Muslim World League) suits most of Europe.")
   mHint:SetTextColor(unpack(C.muted))
 
@@ -506,7 +507,7 @@ local function buildCalculationPage(panel)
   aLabel:SetPoint("TOPLEFT", 24, -146); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(C.gold))
 
   Wizard.asrCards = {}
-  local cardW = 226
+  local cardW = 230 -- two cards + 12 gap span the 472 content width (right edge 496)
   for i, a in ipairs(Methods.asrList()) do
     local card = CreateFrame("Button", nil, panel)
     card:SetSize(cardW, 88); card:SetPoint("TOPLEFT", 24 + (i - 1) * (cardW + 12), -164)
