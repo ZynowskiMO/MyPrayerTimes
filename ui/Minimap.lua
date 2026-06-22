@@ -88,7 +88,7 @@ function Minimap.create()
   -- while the logo still fills its own texture so the mask clips cleanly at its
   -- gold ring (padding the texture instead would show the logo's dark corners).
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetPoint("TOPLEFT", 4, -4); icon:SetPoint("BOTTOMRIGHT", -4, 4)
+  icon:SetPoint("TOPLEFT", 2, -2); icon:SetPoint("BOTTOMRIGHT", -2, 2)
   icon:SetTexture(LOGO)
   if icon.SetMask then icon:SetMask(CIRCLE_MASK) end
   b.icon = icon
