@@ -851,7 +851,8 @@ function Picker.create()
 
   -- Current-location card. (Panel content uses a consistent 10px left/right
   -- margin: card, search, lists, the add form and its buttons all line up.)
-  local card = locP:CreateTexture(nil, "BACKGROUND")
+  -- ARTWORK (above the BACKGROUND tab fill) so the dark card always shows.
+  local card = locP:CreateTexture(nil, "ARTWORK")
   card:SetPoint("TOPLEFT", 10, -4); card:SetSize(451, 46); card:SetColorTexture(unpack(COL.card))
   local cl = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   cl:SetPoint("TOPLEFT", 20, -10); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(COL.gold))
@@ -886,12 +887,12 @@ function Picker.create()
 
   -- Master column: My Cities + countries (with counts).
   local mlist = CreateFrame("Frame", nil, browse)
-  mlist:SetPoint("TOPLEFT", 10, -90); mlist:SetSize(196, MVIS * RH)
+  mlist:SetPoint("TOPLEFT", 10, -90); mlist:SetSize(186, MVIS * RH)
   mlist:EnableMouseWheel(true); mlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollMaster(d) end)
   Picker.masterPool = {}
   for i = 1, MVIS do
     local row = CreateFrame("Button", nil, mlist)
-    row:SetSize(196, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    row:SetSize(186, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -912,21 +913,17 @@ function Picker.create()
     function() return Picker.mScroll or 0 end,
     function(o) Picker.mScroll = o; Picker.refreshMaster() end)
 
-  -- Divider.
-  local divider = browse:CreateTexture(nil, "ARTWORK")
-  divider:SetPoint("TOPLEFT", 208, -88); divider:SetPoint("BOTTOMLEFT", 208, 40)
-  divider:SetWidth(1); divider:SetColorTexture(0, 0, 0, 0.15)
-
-  -- Detail column: cities of the selected country (or search results).
+  -- Detail column: cities of the selected country (or search results). Pushed
+  -- clear of the master scrollbar (no separator line between the columns).
   Picker.detailHeader = browse:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  Picker.detailHeader:SetPoint("TOPLEFT", 216, -92)
+  Picker.detailHeader:SetPoint("TOPLEFT", 230, -92)
   local dlist = CreateFrame("Frame", nil, browse)
-  dlist:SetPoint("TOPLEFT", 214, -110); dlist:SetSize(247, DVIS * RH)
+  dlist:SetPoint("TOPLEFT", 230, -110); dlist:SetSize(221, DVIS * RH)
   dlist:EnableMouseWheel(true); dlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollDetail(d) end)
   Picker.detailPool = {}
   for i = 1, DVIS do
     local row = CreateFrame("Button", nil, dlist)
-    row:SetSize(247, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
+    row:SetSize(221, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
