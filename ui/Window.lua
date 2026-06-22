@@ -130,12 +130,16 @@ function Window.create()
   nextLine:Hide()
   f.nextLine = nextLine
 
-  -- Countdown is the most-glanced info, so lift it above the row text: larger
-  -- and bolder (outline), in gold. FRIZQT is the default font on both clients.
-  local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  countdown:SetFont("Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
-  countdown:SetPoint("BOTTOM", 0, 12)
-  countdown:SetTextColor(unpack(COL.gold))
+  -- Countdown sits on a dark footer strip (mirrors the dark header) with white
+  -- text, so the most-glanced info stands out against the cream body.
+  local footer = f:CreateTexture(nil, "ARTWORK")
+  footer:SetPoint("BOTTOMLEFT", 1, 1); footer:SetPoint("BOTTOMRIGHT", -1, 1); footer:SetHeight(26)
+  footer:SetColorTexture(unpack(COL.header))
+  f.footer = footer
+  local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  countdown:SetFont("Fonts\\FRIZQT__.TTF", 14, "")
+  countdown:SetPoint("CENTER", footer, "CENTER", 0, 0)
+  countdown:SetTextColor(0.97, 0.96, 0.92)
   f.countdown = countdown
 
   Window.frame = f
