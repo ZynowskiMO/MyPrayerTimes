@@ -582,13 +582,14 @@ local function makeToggle(parent, getter, onToggle)
   local track = btn:CreateTexture(nil, "BACKGROUND"); track:SetAllPoints()
   local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   label:SetTextColor(0.98, 0.97, 0.94)
-  local thumb = btn:CreateTexture(nil, "ARTWORK"); thumb:SetSize(18, 18)
+  local thumb = btn:CreateTexture(nil, "ARTWORK"); thumb:SetSize(14, 14)
   t.btn, t.track, t.thumb, t.label = btn, track, thumb, label
   function t:update()
     local on = getter() and true or false
     t.on = on
     track:SetColorTexture(unpack(on and TOGGLE_ON or TOGGLE_OFF))
-    thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -3 or 3, 0)
+    -- 14px knob in a 22px track -> 4px gap top/bottom; match it left/right.
+    thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -4 or 4, 0)
     thumb:SetColorTexture(0.98, 0.97, 0.94)
     -- Text sits on the open side of the track, opposite the knob.
     label:ClearAllPoints()
