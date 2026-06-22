@@ -320,7 +320,9 @@ local function renderNow(now)
     -- Minimised hero line: icon + name + time of the next prayer.
     if f.nextLine then f.nextLine:SetText(LABELS[sched.nextKey]) end
     if f.miniTime then f.miniTime:SetText(f.rows[sched.nextKey].time:GetText() or "") end
-    if f.miniIcon then Icons.apply(f.miniIcon, sched.nextKey, true) end
+    -- The minimised hero has no gold bar behind it, so its icon uses the idle
+    -- (visible-on-body) tint rather than the dark on-highlight colour.
+    if f.miniIcon then Icons.apply(f.miniIcon, sched.nextKey, false) end
   else
     f.countdown:SetText(clock .. "  \194\183  --:--")
     if f.nextLine then f.nextLine:SetText("--:--") end

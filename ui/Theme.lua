@@ -31,7 +31,7 @@ local PALETTES = {
     dimText    = { 0.66, 0.62, 0.54, 1 },    -- muted light text on dark surfaces
     -- fills
     rowHl      = { 0.85, 0.78, 0.55, 0.6 },
-    slot       = { 1.00, 0.99, 0.96, 0.55 },
+    slot       = { 1.00, 0.99, 0.96, 0 }, -- transparent: prayer icons sit bare
     cardOff    = { 1.00, 0.99, 0.96, 1 },    -- input/unselected fill
     cardSel    = { 0.91, 0.85, 0.67, 1 },    -- selected option card
     knob       = { 0.98, 0.97, 0.94, 1 },    -- toggle/scrollbar knob
@@ -68,7 +68,7 @@ local PALETTES = {
     onDark     = { 0.95, 0.93, 0.86, 1 },
     dimText    = { 0.66, 0.62, 0.54, 1 },
     rowHl      = { 0.80, 0.66, 0.34, 0.5 },
-    slot       = { 1.00, 0.99, 0.96, 0.08 },
+    slot       = { 1.00, 0.99, 0.96, 0 },
     cardOff    = { 0.20, 0.19, 0.17, 1 },
     cardSel    = { 0.42, 0.34, 0.18, 1 },
     knob       = { 0.92, 0.90, 0.85, 1 },
