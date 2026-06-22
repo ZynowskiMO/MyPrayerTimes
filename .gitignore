@@ -15,6 +15,9 @@ yarn-error.log*
 .idea/
 *.swp
 
+# Build artifacts (packaged zips)
+build/
+
 # Project-local, not for the public repo
 INITIAL_PROMPT.md
 local-notes/
