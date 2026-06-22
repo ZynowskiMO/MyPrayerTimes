@@ -2101,6 +2101,15 @@ do
   check("Picker.COL proxy returns the active theme colour",
     Picker.COL.gold[1] == Theme.color("gold")[1])
 
+  -- T-4: the Notifications tab has a dark-theme toggle wired to Theme.set.
+  check("settings has a theme toggle", Picker.themeToggle ~= nil)
+  Theme.set("light"); Picker.themeToggle:update()
+  check("theme toggle reads light = off", Picker.themeToggle.on == false)
+  Picker.themeToggle.btn:GetScript("OnClick")() -- flip on -> dark
+  check("toggling it switches to dark", Theme.current() == "dark" and Picker.themeToggle.on == true)
+  Picker.themeToggle.btn:GetScript("OnClick")() -- flip off -> light
+  check("toggling again switches to light", Theme.current() == "light")
+
   -- T-3: the wizard builds and re-themes via Wizard.applyTheme.
   local Wizard = require("Wizard")
   Wizard.frame = nil; Wizard.init({}); Wizard.open()

@@ -354,6 +354,7 @@ function Picker.updateNotifyControls()
   end
   if Picker.atToggle then Picker.atToggle:update() end
   if Picker.soundToggle then Picker.soundToggle:update() end
+  if Picker.themeToggle then Picker.themeToggle:update() end
 end
 
 -- Step the before-minutes value (stepper buttons); clamps at 0 = Off.
@@ -802,6 +803,13 @@ function Picker.create()
   side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
   Theme.tex(side, "sidebar")
 
+  -- Sidebar footer: addon version + author.
+  local ver = (GetAddOnMetadata and GetAddOnMetadata("PrayerTimes", "Version")) or "0.9.0"
+  local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("PrayerTimes v" .. ver); Theme.txt(author, "muted")
+  local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  credit:SetPoint("BOTTOMLEFT", 16, 10); credit:SetText("by Morhak"); Theme.txt(credit, "muted")
+
   -- Sidebar nav items + content panels.
   Picker.navItems, Picker.tabButtons, Picker.panels = {}, {}, {}
   for i, t in ipairs(TABS) do
@@ -1108,6 +1116,16 @@ function Picker.create()
     function() return Picker.db and Picker.db.notify and Picker.db.notify.sound ~= false end,
     function(v) Picker.setSound(v) end)
   Picker.soundToggle.btn:SetPoint("TOPRIGHT", -10, -164)
+
+  separator(-212)
+
+  -- Appearance: dark-theme toggle (ON = dark). Flipping it re-themes everything
+  -- live via Theme.set's hooks.
+  notifRow(-228, "Dark theme", "Use a dark colour palette across the addon.")
+  Picker.themeToggle = makeToggle(notifP,
+    function() return Theme.isDark() end,
+    function(v) Theme.set(v and "dark" or "light") end)
+  Picker.themeToggle.btn:SetPoint("TOPRIGHT", -10, -228)
 
   Picker.frame = f
   Picker.mScroll, Picker.dScroll = 0, 0
