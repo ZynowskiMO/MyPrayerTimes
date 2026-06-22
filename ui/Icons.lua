@@ -62,7 +62,10 @@ function Icons.apply(tex, key, active)
     tex:SetColorTexture(t[1], t[2], t[3], t[4] or 1)
   else
     tex:SetTexture(Icons.path(key))
-    tex:SetVertexColor(unpack(Theme.color(active and "iconActive" or "iconIdle")))
+    -- The "active" (next-prayer) icon sits on the gold highlight bar, so it uses
+    -- the same dark on-highlight colour as the row text (a gold tint would be
+    -- gold-on-gold and disappear).
+    tex:SetVertexColor(unpack(Theme.color(active and "nextText" or "iconIdle")))
   end
 end
 

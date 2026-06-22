@@ -20,7 +20,6 @@ local PALETTES = {
     rowHl      = { 0.85, 0.78, 0.55, 0.7 },   -- next-prayer highlight bar
     slot       = { 1.00, 0.99, 0.96, 0.55 },  -- icon slot
     onDark     = { 0.97, 0.96, 0.92, 1 },     -- text on the dark header/footer
-    iconActive = { 0.80, 0.63, 0.28, 1 },     -- next-prayer icon tint
     iconIdle   = { 0.30, 0.26, 0.20, 1 },     -- other prayer icons
   },
   dark = {
@@ -34,7 +33,6 @@ local PALETTES = {
     rowHl      = { 0.80, 0.66, 0.34, 0.5 },
     slot       = { 1.00, 0.99, 0.96, 0.08 },
     onDark     = { 0.95, 0.93, 0.86, 1 },
-    iconActive = { 0.92, 0.74, 0.38, 1 },
     iconIdle   = { 0.60, 0.56, 0.48, 1 },
   },
 }
