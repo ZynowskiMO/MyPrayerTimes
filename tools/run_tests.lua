@@ -2090,6 +2090,17 @@ do
     (function() Theme.set("dark"); return Theme.current() == "dark" end)())
   check("live switch back to light repaints cleanly",
     (function() Theme.set("light"); return Theme.current() == "light" end)())
+
+  -- T-2: the settings window builds and re-themes via Picker.applyTheme.
+  local Picker = require("Picker")
+  Picker.frame = nil; Picker.init({ savedCities = {} }); Picker.open()
+  check("settings registered themed regions", #Theme.registry > before)
+  check("Picker.applyTheme exists", type(Picker.applyTheme) == "function")
+  check("settings re-themes to dark cleanly",
+    (function() Theme.set("dark"); return Theme.current() == "dark" end)())
+  check("Picker.COL proxy returns the active theme colour",
+    Picker.COL.gold[1] == Theme.color("gold")[1])
+  Theme.set("light")
 end
 
 -- ---- M-1: minimap button (angle math, init, show/hide, build) ------------

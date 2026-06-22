@@ -9,35 +9,12 @@ local Selection = require("Selection")
 local Window = require("Window")
 local Methods = require("Methods")
 local Icons = require("Icons")
+local Theme = require("Theme")
 
 local VISIBLE_ROWS = 14
 local ROW_HEIGHT = 16
 
--- Palette (cream / charcoal / gold). Declared up here so every function can use
--- it. Content stays dark on not-yet-restyled tabs so light text reads; each tab
--- is converted to cream + dark text as it is rebuilt (3S-2/3S-4/3S-5).
-local COL = {
-  header  = { 0.13, 0.11, 0.09, 1 },
-  bg      = { 0.07, 0.06, 0.05, 0.97 },
-  sidebar = { 0.91, 0.88, 0.81, 1 },
-  navHl   = { 0.97, 0.95, 0.90, 1 },
-  gold    = { 0.72, 0.58, 0.29, 1 },
-  navText = { 0.16, 0.14, 0.11 },
-  navSub  = { 0.45, 0.42, 0.36 },
-  content = { 0.96, 0.94, 0.88, 1 }, -- cream tab background
-  card    = { 0.16, 0.13, 0.10, 1 }, -- dark current-location card
-  text    = { 0.16, 0.14, 0.11 },    -- dark body text on cream
-  muted   = { 0.45, 0.42, 0.36 },
-  rowHl   = { 0.85, 0.78, 0.55, 0.55 }, -- gold row highlight
-  cardSel = { 0.91, 0.85, 0.67, 1 },    -- selected option card (light gold)
-  cardOff = { 1.0, 0.99, 0.96, 1 },     -- unselected option card (near white)
-  -- Option-card text: the SELECTED card reads with the highest contrast (dark,
-  -- crisp) so selection looks active; the unselected card recedes (muted).
-  cardTitleOn  = { 0.14, 0.12, 0.09 },
-  cardTitleOff = { 0.50, 0.47, 0.41 },
-  cardDescOn   = { 0.34, 0.31, 0.26 },
-  cardDescOff  = { 0.60, 0.57, 0.51 },
-}
+-- Colours come from the Theme module (ADR-0009); see ui/Theme.lua.
 
 local Picker = {}
 
@@ -430,10 +407,10 @@ function Picker.updateCalcControls()
     for _, c in ipairs(Picker.asrCards) do
       local on = (c.key == cur)
       c._selected = on
-      if c.bg then c.bg:SetColorTexture(unpack(on and COL.cardSel or COL.cardOff)) end
+      if c.bg then c.bg:SetColorTexture(unpack(on and Theme.color("cardSel") or Theme.color("cardOff"))) end
       if c.border then if on then c.border:Show() else c.border:Hide() end end
-      if c.title then c.title:SetTextColor(unpack(on and COL.cardTitleOn or COL.cardTitleOff)) end
-      if c.desc then c.desc:SetTextColor(unpack(on and COL.cardDescOn or COL.cardDescOff)) end
+      if c.title then c.title:SetTextColor(unpack(on and Theme.color("cardTitleOn") or Theme.color("cardTitleOff"))) end
+      if c.desc then c.desc:SetTextColor(unpack(on and Theme.color("cardDescOn") or Theme.color("cardDescOff"))) end
     end
   end
 end
@@ -462,18 +439,18 @@ local function makeDropdown(parent, opts)
   -- Blizzard button template, so it matches the cream palette.)
   local button = CreateFrame("Button", nil, parent)
   button:SetSize(width, 26)
-  local bborder = button:CreateTexture(nil, "BACKGROUND"); bborder:SetAllPoints(); bborder:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local bborder = button:CreateTexture(nil, "BACKGROUND"); bborder:SetAllPoints(); Theme.tex(bborder, "line")
   local bfill = button:CreateTexture(nil, "BORDER")
-  bfill:SetPoint("TOPLEFT", 1, -1); bfill:SetPoint("BOTTOMRIGHT", -1, 1); bfill:SetColorTexture(unpack(COL.cardOff))
+  bfill:SetPoint("TOPLEFT", 1, -1); bfill:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(bfill, "cardOff")
   local blabel = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  blabel:SetPoint("LEFT", 10, 0); blabel:SetPoint("RIGHT", -24, 0); blabel:SetJustifyH("LEFT"); blabel:SetTextColor(unpack(COL.text))
+  blabel:SetPoint("LEFT", 10, 0); blabel:SetPoint("RIGHT", -24, 0); blabel:SetJustifyH("LEFT"); Theme.txt(blabel, "text")
   dd.labelFS = blabel
   -- Down-arrow texture (a Unicode glyph renders as a "tofu" box in WoW's font).
   local barrow = button:CreateTexture(nil, "OVERLAY")
   barrow:SetSize(13, 13); barrow:SetPoint("RIGHT", -8, 0)
-  Icons.setUI(barrow, "chevron", 0.35, 0.32, 0.27)
-  button:SetScript("OnEnter", function() bfill:SetColorTexture(unpack(COL.cardSel)) end)
-  button:SetScript("OnLeave", function() bfill:SetColorTexture(unpack(COL.cardOff)) end)
+  Icons.setUI(barrow, "chevron", unpack(Theme.color("arrow")))
+  button:SetScript("OnEnter", function() bfill:SetColorTexture(unpack(Theme.color("cardSel"))) end)
+  button:SetScript("OnLeave", function() bfill:SetColorTexture(unpack(Theme.color("cardOff"))) end)
   dd.button = button
 
   -- Full-screen catcher: clicking outside the open list closes it. Parented to
@@ -493,9 +470,9 @@ local function makeDropdown(parent, opts)
   popup:EnableMouseWheel(true)
   popup:SetScript("OnMouseWheel", function(_, delta) dd:scroll(delta) end)
   local pborder = popup:CreateTexture(nil, "BACKGROUND")
-  pborder:SetAllPoints(); pborder:SetColorTexture(0.55, 0.50, 0.42, 1)
+  pborder:SetAllPoints(); Theme.tex(pborder, "line")
   local pbg = popup:CreateTexture(nil, "BORDER")
-  pbg:SetPoint("TOPLEFT", 1, -1); pbg:SetPoint("BOTTOMRIGHT", -1, 1); pbg:SetColorTexture(unpack(COL.cardOff))
+  pbg:SetPoint("TOPLEFT", 1, -1); pbg:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(pbg, "cardOff")
   popup:Hide()
   dd.popup = popup
 
@@ -505,14 +482,14 @@ local function makeDropdown(parent, opts)
     row:SetSize(width - 8, DD_ROW_H)
     row:SetPoint("TOPLEFT", 4, -4 - (i - 1) * DD_ROW_H)
     local hl = row:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide()
+    hl:SetAllPoints(); Theme.tex(hl, "rowHl"); hl:Hide()
     row.hl = hl
     -- Check icon marks the current option (replaces a ">" text prefix).
     local mark = row:CreateTexture(nil, "OVERLAY")
     mark:SetSize(12, 12); mark:SetPoint("LEFT", 6, 0)
-    Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide(); row.mark = mark
+    Icons.setUI(mark, "check", unpack(Theme.color("gold"))); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 24, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text))
+    label:SetPoint("LEFT", 24, 0); label:SetJustifyH("LEFT"); Theme.txt(label, "text")
     row.label = label
     row:SetScript("OnClick", function(self) if self.key then dd:select(self.key) end end)
     dd.rows[i] = row
@@ -592,7 +569,7 @@ local function makeToggle(parent, getter, onToggle)
   btn:SetSize(54, 22)
   local track = btn:CreateTexture(nil, "BACKGROUND"); track:SetAllPoints()
   local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  label:SetTextColor(0.98, 0.97, 0.94)
+  Theme.txt(label, "onDark")
   local thumb = btn:CreateTexture(nil, "ARTWORK"); thumb:SetSize(14, 14)
   t.btn, t.track, t.thumb, t.label = btn, track, thumb, label
   function t:update()
@@ -601,7 +578,7 @@ local function makeToggle(parent, getter, onToggle)
     track:SetColorTexture(unpack(on and TOGGLE_ON or TOGGLE_OFF))
     -- 14px knob in a 22px track -> 4px gap top/bottom; match it left/right.
     thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -4 or 4, 0)
-    thumb:SetColorTexture(0.98, 0.97, 0.94)
+    thumb:SetColorTexture(unpack(Theme.color("knob")))
     -- Text sits on the open side of the track, opposite the knob.
     label:ClearAllPoints()
     if on then
@@ -624,10 +601,10 @@ local function makeScrollbar(listFrame, vis, height, getCount, getOffset, setOff
   local track = listFrame:CreateTexture(nil, "BACKGROUND")
   track:SetPoint("TOPRIGHT", listFrame, "TOPRIGHT", 10, 0)
   track:SetPoint("BOTTOMRIGHT", listFrame, "BOTTOMRIGHT", 10, 0)
-  track:SetWidth(6); track:SetColorTexture(0, 0, 0, 0.10)
+  track:SetWidth(6); Theme.tex(track, "divider")
   local thumb = CreateFrame("Button", nil, listFrame)
   thumb:SetWidth(6)
-  local tt = thumb:CreateTexture(nil, "ARTWORK"); tt:SetAllPoints(); tt:SetColorTexture(unpack(COL.gold))
+  local tt = thumb:CreateTexture(nil, "ARTWORK"); tt:SetAllPoints(); Theme.tex(tt, "gold")
   sb.track, sb.thumb = track, thumb
 
   function sb:update()
@@ -678,26 +655,26 @@ end
 -- minus/plus stepper or a trash button), tinted dark to match the button text.
 local function makeFlatButton(parent, text, primary, iconName)
   local b = CreateFrame("Button", nil, parent)
-  local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local border = b:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); Theme.tex(border, "line")
   -- Fill on the BORDER layer (one above BACKGROUND) so it always draws over the
   -- outline regardless of texture creation order.
   local fill = b:CreateTexture(nil, "BORDER")
   fill:SetPoint("TOPLEFT", 1, -1); fill:SetPoint("BOTTOMRIGHT", -1, 1)
-  -- Gold buttons (primary = deeper gold, secondary = lighter gold).
-  local base = primary and { 0.80, 0.63, 0.28, 1 } or { 0.88, 0.76, 0.46, 1 }
-  local hov = primary and { 0.88, 0.71, 0.35, 1 } or { 0.93, 0.83, 0.55, 1 }
-  fill:SetColorTexture(unpack(base))
+  -- Gold buttons (primary = deeper gold, secondary = lighter gold), themed.
+  local baseRole = primary and "btnPrimary" or "btnSecondary"
+  local hovRole = primary and "btnPrimaryHover" or "btnSecondaryHover"
+  Theme.tex(fill, baseRole) -- registered so it repaints on a theme change
   local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   fs:SetPoint("CENTER"); fs:SetText(text)
-  fs:SetTextColor(0.16, 0.12, 0.06)
+  Theme.txt(fs, "btnText")
   if iconName then
     fs:SetText("")
     local ic = b:CreateTexture(nil, "OVERLAY"); ic:SetPoint("CENTER"); ic:SetSize(13, 13)
-    Icons.setUI(ic, iconName, 0.16, 0.12, 0.06)
+    Icons.setUI(ic, iconName, unpack(Theme.color("btnText")))
     b.icon = ic
   end
-  b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(hov)) end)
-  b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(base)) end)
+  b:SetScript("OnEnter", function() fill:SetColorTexture(unpack(Theme.color(hovRole))) end)
+  b:SetScript("OnLeave", function() fill:SetColorTexture(unpack(Theme.color(baseRole))) end)
   b.fill, b.label = fill, fs
   return b
 end
@@ -706,11 +683,11 @@ end
 local function makeFlatEditBox(parent)
   local eb = CreateFrame("EditBox", nil, parent)
   eb:SetAutoFocus(false)
-  eb:SetFontObject("GameFontHighlight"); eb:SetTextColor(unpack(COL.text)); eb:SetTextInsets(8, 8, 0, 0)
+  eb:SetFontObject("GameFontHighlight"); Theme.txt(eb, "text"); eb:SetTextInsets(8, 8, 0, 0)
   eb:SetScript("OnEscapePressed", eb.ClearFocus)
-  local bd = eb:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); bd:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local bd = eb:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); Theme.tex(bd, "line")
   local fl = eb:CreateTexture(nil, "BORDER")
-  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
+  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(fl, "cardOff")
   return eb
 end
 
@@ -719,11 +696,11 @@ end
 local function makeFlatCheck(parent)
   local c = CreateFrame("Button", nil, parent)
   c:SetSize(18, 18)
-  local bd = c:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); bd:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local bd = c:CreateTexture(nil, "BACKGROUND"); bd:SetAllPoints(); Theme.tex(bd, "line")
   local fl = c:CreateTexture(nil, "BORDER")
-  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); fl:SetColorTexture(unpack(COL.cardOff))
+  fl:SetPoint("TOPLEFT", 1, -1); fl:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(fl, "cardOff")
   local mark = c:CreateTexture(nil, "OVERLAY")
-  mark:SetPoint("CENTER"); mark:SetSize(16, 16); Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide()
+  mark:SetPoint("CENTER"); mark:SetSize(16, 16); Icons.setUI(mark, "check", unpack(Theme.color("gold"))); mark:Hide()
   c._checked = false
   function c:GetChecked() return self._checked end
   function c:SetChecked(v) self._checked = v and true or false; if self._checked then mark:Show() else mark:Hide() end end
@@ -785,12 +762,12 @@ function Picker.create()
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
 
   local bg = f:CreateTexture(nil, "BACKGROUND")
-  bg:SetAllPoints(); bg:SetColorTexture(unpack(COL.bg))
+  bg:SetAllPoints(); Theme.tex(bg, "bg")
 
   -- Dark header bar: wordmark + "SETTINGS", current location (right), close X.
   local header = f:CreateTexture(nil, "BACKGROUND")
   header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
-  header:SetColorTexture(unpack(COL.header))
+  Theme.tex(header, "header")
 
   -- Header text: wordmark | SETTINGS (left), current location (right), close X.
   -- All three are the same font size and vertically centred on the header,
@@ -798,32 +775,32 @@ function Picker.create()
   local HFONT = 14
   local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
 
   local wmBar = f:CreateTexture(nil, "OVERLAY")
-  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); wmBar:SetColorTexture(0.55, 0.50, 0.42, 0.85)
+  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); Theme.tex(wmBar, "line")
 
   local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wmSub:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETTINGS"); wmSub:SetTextColor(0.64, 0.60, 0.52)
+  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETTINGS"); Theme.txt(wmSub, "dimText")
 
   local x = CreateFrame("Button", nil, f)
   x:SetSize(26, 26); x:SetPoint("RIGHT", header, "RIGHT", -10, 0)
   local xi = x:CreateTexture(nil, "OVERLAY"); xi:SetPoint("CENTER"); xi:SetSize(16, 16)
-  Icons.setUI(xi, "close", unpack(COL.gold))
+  Icons.setUI(xi, "close", unpack(Theme.color("gold")))
   x:SetScript("OnEnter", function() xi:SetVertexColor(1, 0.9, 0.6) end)
-  x:SetScript("OnLeave", function() xi:SetVertexColor(unpack(COL.gold)) end)
+  x:SetScript("OnLeave", function() xi:SetVertexColor(unpack(Theme.color("gold"))) end)
   x:SetScript("OnClick", function() Picker.close() end)
 
   Picker.headerLoc = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Picker.headerLoc:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  Picker.headerLoc:SetPoint("RIGHT", x, "LEFT", -12, 0); Picker.headerLoc:SetTextColor(unpack(COL.gold))
+  Picker.headerLoc:SetPoint("RIGHT", x, "LEFT", -12, 0); Theme.txt(Picker.headerLoc, "gold")
 
   -- Left sidebar. On the BORDER layer (above the dark BACKGROUND fill) so the
   -- cream always draws over it -- same deterministic fix as the other panels.
   local side = f:CreateTexture(nil, "BORDER")
   side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
-  side:SetColorTexture(unpack(COL.sidebar))
+  Theme.tex(side, "sidebar")
 
   -- Sidebar nav items + content panels.
   Picker.navItems, Picker.tabButtons, Picker.panels = {}, {}, {}
@@ -832,14 +809,14 @@ function Picker.create()
     btn:SetSize(188, 58)
     btn:SetPoint("TOPLEFT", 0, -46 - (i - 1) * 58)
     local hl = btn:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.navHl)); hl:Hide()
+    hl:SetAllPoints(); Theme.tex(hl, "navHl"); hl:Hide()
     local bar = btn:CreateTexture(nil, "ARTWORK")
     bar:SetPoint("TOPLEFT", 0, 0); bar:SetPoint("BOTTOMLEFT", 0, 0); bar:SetWidth(4)
-    bar:SetColorTexture(unpack(COL.gold)); bar:Hide()
+    Theme.tex(bar, "gold"); bar:Hide()
     local title = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", 16, -12); title:SetText(t.label); title:SetTextColor(unpack(COL.navText))
+    title:SetPoint("TOPLEFT", 16, -12); title:SetText(t.label); Theme.txt(title, "navText")
     local sub = btn:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    sub:SetPoint("TOPLEFT", 16, -30); sub:SetText(t.sub); sub:SetTextColor(unpack(COL.navSub))
+    sub:SetPoint("TOPLEFT", 16, -30); sub:SetText(t.sub); Theme.txt(sub, "navSub")
     btn:SetScript("OnClick", function() Picker.showTab(t.key) end)
     Picker.navItems[t.key] = { btn = btn, hl = hl, bar = bar }
     Picker.tabButtons[t.key] = btn -- back-compat alias
@@ -854,12 +831,12 @@ function Picker.create()
   -- Thin divider between the cream sidebar and the cream content.
   local vdiv = f:CreateTexture(nil, "ARTWORK")
   vdiv:SetPoint("TOPLEFT", 188, -46); vdiv:SetPoint("BOTTOMLEFT", 188, 0)
-  vdiv:SetWidth(1); vdiv:SetColorTexture(0, 0, 0, 0.18)
+  vdiv:SetWidth(1); Theme.tex(vdiv, "divider")
 
   -- ===== Location tab (master-detail: country -> city, search, card) =====
   local MVIS, DVIS, RH = 20, 18, 18
   local locBg = locP:CreateTexture(nil, "BACKGROUND")
-  locBg:SetAllPoints(); locBg:SetColorTexture(unpack(COL.content))
+  locBg:SetAllPoints(); Theme.tex(locBg, "content")
 
   -- Legacy indicator kept (hidden) so updateSelected + older tests still work.
   Picker.selectedLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -869,26 +846,26 @@ function Picker.create()
   -- margin: card, search, lists, the add form and its buttons all line up.)
   -- ARTWORK (above the BACKGROUND tab fill) so the dark card always shows.
   local card = locP:CreateTexture(nil, "ARTWORK")
-  card:SetPoint("TOPLEFT", 10, -4); card:SetSize(451, 46); card:SetColorTexture(unpack(COL.card))
+  card:SetPoint("TOPLEFT", 10, -4); card:SetSize(451, 46); Theme.tex(card, "card")
   local cl = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  cl:SetPoint("TOPLEFT", 20, -10); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(COL.gold))
+  cl:SetPoint("TOPLEFT", 20, -10); cl:SetText("CURRENT LOCATION"); Theme.txt(cl, "gold")
   Picker.cardCity = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  Picker.cardCity:SetPoint("TOPLEFT", 20, -24); Picker.cardCity:SetTextColor(0.96, 0.94, 0.88)
+  Picker.cardCity:SetPoint("TOPLEFT", 20, -24); Theme.txt(Picker.cardCity, "onDark")
   Picker.cardCountry = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  Picker.cardCountry:SetPoint("TOPRIGHT", -16, -26); Picker.cardCountry:SetTextColor(0.70, 0.67, 0.60)
+  Picker.cardCountry:SetPoint("TOPRIGHT", -16, -26); Theme.txt(Picker.cardCountry, "dimText")
 
   -- Search across all cities -- a flat cream field (no Blizzard InputBox skin)
   -- with a placeholder shown while empty.
   local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP)
   search:SetSize(451, 24); search:SetPoint("TOPLEFT", 10, -58); search:SetAutoFocus(false)
-  search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(COL.text))
+  search:SetFontObject("GameFontHighlight"); Theme.txt(search, "text")
   search:SetTextInsets(10, 10, 0, 0)
   search:SetScript("OnEscapePressed", search.ClearFocus)
-  local sborder = search:CreateTexture(nil, "BACKGROUND"); sborder:SetAllPoints(); sborder:SetColorTexture(0.55, 0.50, 0.42, 1)
+  local sborder = search:CreateTexture(nil, "BACKGROUND"); sborder:SetAllPoints(); Theme.tex(sborder, "line")
   local sfill = search:CreateTexture(nil, "BORDER")
-  sfill:SetPoint("TOPLEFT", 1, -1); sfill:SetPoint("BOTTOMRIGHT", -1, 1); sfill:SetColorTexture(unpack(COL.cardOff))
+  sfill:SetPoint("TOPLEFT", 1, -1); sfill:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(sfill, "cardOff")
   local ph = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); ph:SetTextColor(0.55, 0.52, 0.46)
+  ph:SetPoint("LEFT", 10, 0); ph:SetText("Search all cities..."); Theme.txt(ph, "muted")
   search:SetScript("OnTextChanged", function(self)
     ph:SetShown(self:GetText() == "")
     Picker.dScroll = 0; Picker.refreshLocation(self:GetText())
@@ -910,10 +887,10 @@ function Picker.create()
     local row = CreateFrame("Button", nil, mlist)
     row:SetSize(186, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
+    hl:SetAllPoints(); Theme.tex(hl, "rowHl"); hl:Hide(); row.hl = hl
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("LEFT", 8, 0); label:SetPoint("RIGHT", row, "RIGHT", -24, 0)
-    label:SetJustifyH("LEFT"); label:SetWordWrap(false); label:SetTextColor(unpack(COL.text)); row.label = label
+    label:SetJustifyH("LEFT"); label:SetWordWrap(false); Theme.txt(label, "text"); row.label = label
     local count = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     count:SetPoint("RIGHT", -8, 0); row.count = count
     local del = makeFlatButton(row, "", false, "trash")
@@ -941,12 +918,12 @@ function Picker.create()
     local row = CreateFrame("Button", nil, dlist)
     row:SetSize(221, RH); row:SetPoint("TOPLEFT", 0, -(i - 1) * RH)
     local hl = row:CreateTexture(nil, "BACKGROUND")
-    hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide(); row.hl = hl
+    hl:SetAllPoints(); Theme.tex(hl, "rowHl"); hl:Hide(); row.hl = hl
     local mark = row:CreateTexture(nil, "OVERLAY")
     mark:SetSize(16, 16); mark:SetPoint("RIGHT", -6, 0)
-    Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide(); row.mark = mark
+    Icons.setUI(mark, "check", unpack(Theme.color("gold"))); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text)); row.label = label
+    label:SetPoint("LEFT", 10, 0); label:SetJustifyH("LEFT"); Theme.txt(label, "text"); row.label = label
     row:SetScript("OnClick", function(self) if self.name then Picker.selectCity(self.name) end end)
     Picker.detailPool[i] = row
   end
@@ -965,7 +942,7 @@ function Picker.create()
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
   local addSep = browse:CreateTexture(nil, "ARTWORK")
   addSep:SetPoint("BOTTOMLEFT", addBtn, "TOPLEFT", 0, 10); addSep:SetPoint("BOTTOMRIGHT", addBtn, "TOPRIGHT", 0, 10)
-  addSep:SetHeight(1); addSep:SetColorTexture(0, 0, 0, 0.12)
+  addSep:SetHeight(1); Theme.tex(addSep, "divider")
 
   -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
   -- background, raised above the browse container so nothing shows through.
@@ -974,11 +951,11 @@ function Picker.create()
   local addPanel = CreateFrame("Frame", nil, locP)
   addPanel:SetPoint("TOPLEFT", 0, -86); addPanel:SetPoint("BOTTOMRIGHT", 0, 8)
   addPanel:SetFrameLevel(locP:GetFrameLevel() + 10)
-  local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(COL.content))
+  local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); Theme.tex(apbg, "content")
   addPanel:Hide(); Picker.addPanel = addPanel
 
   local at = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  at:SetPoint("TOPLEFT", 10, -8); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(COL.gold))
+  at:SetPoint("TOPLEFT", 10, -8); at:SetText("ADD CUSTOM LOCATION"); Theme.txt(at, "gold")
 
   -- Coordinates row, spread across the width; EU DST to the right. Labels sit
   -- directly above their boxes (10 / 96 / 182).
@@ -996,7 +973,7 @@ function Picker.create()
   euCheck:SetPoint("TOPLEFT", 258, boxY - 2)
   Picker.euCheck = euCheck
   local euText = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); euText:SetTextColor(unpack(COL.text))
+  euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); Theme.txt(euText, "text")
 
   -- Name on its own full-width line.
   local nameLabelY = boxY - 30
@@ -1040,10 +1017,10 @@ function Picker.create()
 
   -- ===== Calculation tab (method dropdown + Asr description cards) =====
   local calcBg = calcP:CreateTexture(nil, "BACKGROUND")
-  calcBg:SetAllPoints(); calcBg:SetColorTexture(unpack(COL.content))
+  calcBg:SetAllPoints(); Theme.tex(calcBg, "content")
 
   local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  mLabel:SetPoint("TOPLEFT", 10, -16); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(COL.gold))
+  mLabel:SetPoint("TOPLEFT", 10, -16); mLabel:SetText("CALCULATION METHOD"); Theme.txt(mLabel, "gold")
 
   Picker.methodDropdown = makeDropdown(calcP, {
     width = 451, rows = 10,
@@ -1054,7 +1031,7 @@ function Picker.create()
   Picker.methodDropdown.button:SetPoint("TOPLEFT", 10, -34)
 
   local aLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  aLabel:SetPoint("TOPLEFT", 10, -78); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(COL.gold))
+  aLabel:SetPoint("TOPLEFT", 10, -78); aLabel:SetText("ASR SCHOOL"); Theme.txt(aLabel, "gold")
 
   -- Two selectable description cards, one per school (mutually exclusive).
   local ASR_DESC = {
@@ -1067,40 +1044,40 @@ function Picker.create()
     local card = CreateFrame("Button", nil, calcP)
     card:SetSize(cardW, 72); card:SetPoint("TOPLEFT", 10 + (i - 1) * (cardW + 11), -96)
     card.key = a.key
-    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); cbg:SetColorTexture(unpack(COL.cardOff))
+    local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); Theme.tex(cbg, "cardOff")
     card.bg = cbg
     local barT = card:CreateTexture(nil, "ARTWORK")
     barT:SetPoint("TOPLEFT", 0, 0); barT:SetPoint("BOTTOMLEFT", 0, 0); barT:SetWidth(3)
-    barT:SetColorTexture(unpack(COL.gold)); barT:Hide(); card.border = barT
+    Theme.tex(barT, "gold"); barT:Hide(); card.border = barT
     local ct = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); ct:SetTextColor(unpack(COL.text)); card.title = ct
+    ct:SetPoint("TOPLEFT", 12, -12); ct:SetText(a.label); Theme.txt(ct, "text"); card.title = ct
     local cd = card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     cd:SetPoint("TOPLEFT", 12, -32); cd:SetWidth(cardW - 24); cd:SetJustifyH("LEFT")
-    cd:SetText(ASR_DESC[a.key] or ""); cd:SetTextColor(unpack(COL.cardDescOff)); card.desc = cd
+    cd:SetText(ASR_DESC[a.key] or ""); Theme.txt(cd, "cardDescOff"); card.desc = cd
     card:SetScript("OnClick", function() Picker.setMadhab(a.key) end)
     Picker.asrCards[i] = card
   end
 
   -- ===== Notifications tab (stepper + toggle switches) =====
   local notifBg = notifP:CreateTexture(nil, "BACKGROUND")
-  notifBg:SetAllPoints(); notifBg:SetColorTexture(unpack(COL.content))
+  notifBg:SetAllPoints(); Theme.tex(notifBg, "content")
 
   -- Row helper: title + description, returns the row's y for the control.
   local function notifRow(y, title, desc)
     local t = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("TOPLEFT", 10, y); t:SetText(title); t:SetTextColor(unpack(COL.text))
+    t:SetPoint("TOPLEFT", 10, y); t:SetText(title); Theme.txt(t, "text")
     local d = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     d:SetPoint("TOPLEFT", 10, y - 18); d:SetWidth(300); d:SetJustifyH("LEFT")
-    d:SetText(desc); d:SetTextColor(unpack(COL.muted))
+    d:SetText(desc); Theme.txt(d, "muted")
   end
   local function separator(y)
     local s = notifP:CreateTexture(nil, "ARTWORK")
     s:SetPoint("TOPLEFT", 10, y); s:SetPoint("TOPRIGHT", -10, y); s:SetHeight(1)
-    s:SetColorTexture(0, 0, 0, 0.12)
+    Theme.tex(s, "divider")
   end
 
   local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  nlabel:SetPoint("TOPLEFT", 10, -16); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(COL.gold))
+  nlabel:SetPoint("TOPLEFT", 10, -16); nlabel:SetText("REMINDER BEFORE PRAYER"); Theme.txt(nlabel, "gold")
 
   -- Before-prayer minutes stepper.
   notifRow(-36, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
@@ -1109,7 +1086,7 @@ function Picker.create()
   minusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(-1) end)
   Picker.beforeValue = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Picker.beforeValue:SetPoint("TOPRIGHT", -50, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
-  Picker.beforeValue:SetTextColor(unpack(COL.text))
+  Theme.txt(Picker.beforeValue, "text")
   local plusBtn = makeFlatButton(notifP, "", false, "plus")
   plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -10, -34)
   plusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(1) end)
@@ -1162,10 +1139,23 @@ function Picker.toggle()
   if Picker.frame and Picker.frame:IsShown() then Picker.close() else Picker.open() end
 end
 
--- Styled component factories + palette, exposed so the welcome wizard (ADR-0006)
--- reuses the exact same cream/gold widgets instead of duplicating them. Pure
--- builders (masterRows/detailRows/defaultCountry) are already on Picker above.
-Picker.COL = COL
+-- Repaint the non-registry, state-dependent bits on a theme change: re-run the
+-- updaters that read Theme.color live (selection card, calc cards, notify
+-- toggles, the city lists). The static chrome is repainted by Theme.apply's
+-- registry; this hook covers the dynamic colours.
+function Picker.applyTheme()
+  if not Picker.frame then return end
+  if Picker.updateCalcControls then Picker.updateCalcControls() end
+  if Picker.updateNotifyControls then Picker.updateNotifyControls() end
+  if Picker.refreshLocation then Picker.refreshLocation() end
+  Picker.updateSelected()
+end
+Theme.addHook(function() Picker.applyTheme() end)
+
+-- Styled component factories, exposed so the welcome wizard (ADR-0006) reuses
+-- the exact same widgets. Picker.COL is a live proxy onto the Theme palette
+-- (kept until the wizard is routed through Theme directly in T-3).
+Picker.COL = setmetatable({}, { __index = function(_, role) return Theme.color(role) end })
 Picker.ui = {
   flatButton = makeFlatButton,
   flatEditBox = makeFlatEditBox,
