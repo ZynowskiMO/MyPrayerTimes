@@ -66,10 +66,13 @@ function Window.create()
     Window.savePosition()
   end)
 
-  -- Cream card with a dark border + a dark header strip.
+  -- Cream card with a dark border + a dark header strip. The cream fill sits on
+  -- the BORDER layer (one above the BACKGROUND outline) so it always draws over
+  -- the dark border regardless of texture creation order (same fix as the flat
+  -- widgets -- otherwise the window can render all-dark).
   local border = f:CreateTexture(nil, "BACKGROUND")
   border:SetAllPoints(); border:SetColorTexture(unpack(COL.border))
-  local bg = f:CreateTexture(nil, "BACKGROUND")
+  local bg = f:CreateTexture(nil, "BORDER")
   bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); bg:SetColorTexture(unpack(COL.bg))
   local header = f:CreateTexture(nil, "ARTWORK")
   header:SetPoint("TOPLEFT", 1, -1); header:SetPoint("TOPRIGHT", -1, -1); header:SetHeight(26)
