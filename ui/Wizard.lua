@@ -435,10 +435,10 @@ local function buildLocationPage(panel)
   -- Short how-to for the empty space below the form: getting exact coordinates
   -- from Google Maps. Kept brief and word-wrapped to the panel width.
   local helpHead = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  helpHead:SetPoint("TOPLEFT", 24, btnY - 70); helpHead:SetText("HOW TO FIND COORDINATES")
+  helpHead:SetPoint("TOPLEFT", 24, btnY - 46); helpHead:SetText("HOW TO FIND COORDINATES")
   Theme.txt(helpHead, "gold")
   local help = ap:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  help:SetPoint("TOPLEFT", 24, btnY - 90); help:SetPoint("RIGHT", ap, "RIGHT", -24, 0)
+  help:SetPoint("TOPLEFT", 24, btnY - 66); help:SetPoint("RIGHT", ap, "RIGHT", -24, 0)
   help:SetJustifyH("LEFT"); help:SetJustifyV("TOP"); help:SetSpacing(3)
   help:SetText(
     "1. Open Google Maps and right-click your city (or search for it).\n"

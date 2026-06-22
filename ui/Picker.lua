@@ -1023,6 +1023,22 @@ function Picker.create()
   Picker.errorLabel = addPanel:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Picker.errorLabel:SetPoint("TOPLEFT", 10, btnY - 24)
 
+  -- Short how-to for the empty space below the form: getting exact coordinates
+  -- from Google Maps (mirrors the wizard's custom-location help).
+  local helpHead = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  helpHead:SetPoint("TOPLEFT", 10, btnY - 52); helpHead:SetText("HOW TO FIND COORDINATES")
+  Theme.txt(helpHead, "gold")
+  local help = addPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  help:SetPoint("TOPLEFT", 10, btnY - 72); help:SetPoint("RIGHT", addPanel, "RIGHT", -10, 0)
+  help:SetJustifyH("LEFT"); help:SetJustifyV("TOP"); help:SetSpacing(3)
+  help:SetText(
+    "1. Open Google Maps and right-click your city (or search for it).\n"
+    .. "2. Click the latitude, longitude numbers at the top of the menu \226\128\148 "
+    .. "the first number is Lat, the second is Lon.\n"
+    .. "3. UTC+/- is your offset from GMT (Central Europe = 1). Tick EU DST if "
+    .. "your country follows European summer time.")
+  Theme.txt(help, "muted")
+
   -- ===== Calculation tab (method dropdown + Asr description cards) =====
   local calcBg = calcP:CreateTexture(nil, "BACKGROUND")
   calcBg:SetAllPoints(); Theme.tex(calcBg, "content")
