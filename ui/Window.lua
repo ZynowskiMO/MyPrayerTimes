@@ -130,8 +130,11 @@ function Window.create()
   nextLine:Hide()
   f.nextLine = nextLine
 
-  local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  countdown:SetPoint("BOTTOM", 0, 10)
+  -- Countdown is the most-glanced info, so lift it above the row text: larger
+  -- and bolder (outline), in gold. FRIZQT is the default font on both clients.
+  local countdown = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  countdown:SetFont("Fonts\\FRIZQT__.TTF", 16, "OUTLINE")
+  countdown:SetPoint("BOTTOM", 0, 12)
   countdown:SetTextColor(unpack(COL.gold))
   f.countdown = countdown
 
