@@ -81,18 +81,14 @@ function Minimap.create()
   b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   b:RegisterForDrag("LeftButton")
 
-  -- Logo masked to a circle, framed by WoW's thick minimap tracking ring (the
-  -- ornate gold border used by standard minimap buttons). Geometry mirrors the
-  -- common LibDBIcon layout. NOTE: don't combine SetMask with SetTexCoord.
+  -- The logo already carries its own thick gold ring, so it fills the whole
+  -- button (centred) and is masked to a circle -- its ring is the border, no
+  -- second WoW ring. NOTE: don't combine SetMask with SetTexCoord.
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(19, 19); icon:SetPoint("TOPLEFT", 6, -6)
+  icon:SetAllPoints(b)
   icon:SetTexture(LOGO)
   if icon.SetMask then icon:SetMask(CIRCLE_MASK) end
   b.icon = icon
-
-  local border = b:CreateTexture(nil, "OVERLAY")
-  border:SetSize(53, 53); border:SetPoint("TOPLEFT", 0, 0)
-  border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 
   local hl = b:CreateTexture(nil, "HIGHLIGHT")
   hl:SetAllPoints(icon); hl:SetColorTexture(1, 1, 1, 0.12)
