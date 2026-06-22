@@ -13,6 +13,8 @@ import sharp from 'sharp'
 const SRC = 'Media/logo-source.png'
 const OUT = 'Media/logo.tga'
 const SIZE = 64
+const INNER = 52 // logo scaled to INNER, padded to SIZE with transparency, so it
+                 // sits a little in from the circle edge (more breathing room)
 
 // Uncompressed 32-bit true-colour TGA, top-left origin, BGRA pixel order.
 function encodeTGA(rgba, w, h) {
@@ -32,8 +34,10 @@ function encodeTGA(rgba, w, h) {
   return Buffer.concat([header, body])
 }
 
+const pad = Math.round((SIZE - INNER) / 2)
 const { data, info } = await sharp(SRC)
-  .resize(SIZE, SIZE, { fit: 'fill' })
+  .resize(INNER, INNER, { fit: 'fill' })
+  .extend({ top: pad, bottom: pad, left: pad, right: pad, background: { r: 0, g: 0, b: 0, alpha: 0 } })
   .ensureAlpha()
   .raw()
   .toBuffer({ resolveWithObject: true })
