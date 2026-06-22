@@ -1030,18 +1030,18 @@ function Picker.create()
   calcBg:SetAllPoints(); calcBg:SetColorTexture(unpack(COL.content))
 
   local mLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  mLabel:SetPoint("TOPLEFT", 16, -16); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(COL.gold))
+  mLabel:SetPoint("TOPLEFT", 10, -16); mLabel:SetText("CALCULATION METHOD"); mLabel:SetTextColor(unpack(COL.gold))
 
   Picker.methodDropdown = makeDropdown(calcP, {
-    width = 430, rows = 10,
+    width = 451, rows = 10,
     getOptions = function() return Methods.list() end,
     getCurrent = function() return Methods.resolveMethod(Picker.db and Picker.db.method) end,
     onSelect = function(key) Picker.setMethod(key) end,
   })
-  Picker.methodDropdown.button:SetPoint("TOPLEFT", 16, -34)
+  Picker.methodDropdown.button:SetPoint("TOPLEFT", 10, -34)
 
   local aLabel = calcP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  aLabel:SetPoint("TOPLEFT", 16, -78); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(COL.gold))
+  aLabel:SetPoint("TOPLEFT", 10, -78); aLabel:SetText("ASR SCHOOL"); aLabel:SetTextColor(unpack(COL.gold))
 
   -- Two selectable description cards, one per school (mutually exclusive).
   local ASR_DESC = {
@@ -1049,10 +1049,10 @@ function Picker.create()
     hanafi = "Shadow = twice the object length.",
   }
   Picker.asrCards = {}
-  local cardW = 210
+  local cardW = 220
   for i, a in ipairs(Methods.asrList()) do
     local card = CreateFrame("Button", nil, calcP)
-    card:SetSize(cardW, 72); card:SetPoint("TOPLEFT", 16 + (i - 1) * (cardW + 10), -96)
+    card:SetSize(cardW, 72); card:SetPoint("TOPLEFT", 10 + (i - 1) * (cardW + 11), -96)
     card.key = a.key
     local cbg = card:CreateTexture(nil, "BACKGROUND"); cbg:SetAllPoints(); cbg:SetColorTexture(unpack(COL.cardOff))
     card.bg = cbg
@@ -1075,30 +1075,30 @@ function Picker.create()
   -- Row helper: title + description, returns the row's y for the control.
   local function notifRow(y, title, desc)
     local t = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    t:SetPoint("TOPLEFT", 16, y); t:SetText(title); t:SetTextColor(unpack(COL.text))
+    t:SetPoint("TOPLEFT", 10, y); t:SetText(title); t:SetTextColor(unpack(COL.text))
     local d = notifP:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    d:SetPoint("TOPLEFT", 16, y - 18); d:SetWidth(300); d:SetJustifyH("LEFT")
+    d:SetPoint("TOPLEFT", 10, y - 18); d:SetWidth(300); d:SetJustifyH("LEFT")
     d:SetText(desc); d:SetTextColor(unpack(COL.muted))
   end
   local function separator(y)
     local s = notifP:CreateTexture(nil, "ARTWORK")
-    s:SetPoint("TOPLEFT", 16, y); s:SetPoint("TOPRIGHT", -16, y); s:SetHeight(1)
+    s:SetPoint("TOPLEFT", 10, y); s:SetPoint("TOPRIGHT", -10, y); s:SetHeight(1)
     s:SetColorTexture(0, 0, 0, 0.12)
   end
 
   local nlabel = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  nlabel:SetPoint("TOPLEFT", 16, -16); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(COL.gold))
+  nlabel:SetPoint("TOPLEFT", 10, -16); nlabel:SetText("REMINDER BEFORE PRAYER"); nlabel:SetTextColor(unpack(COL.gold))
 
   -- Before-prayer minutes stepper.
   notifRow(-36, "Alert before each prayer", "Applies to all five daily prayers. Set to Off to disable.")
   local minusBtn = makeFlatButton(notifP, "", false, "minus")
-  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -120, -34)
+  minusBtn:SetSize(28, 24); minusBtn:SetPoint("TOPRIGHT", -114, -34)
   minusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(-1) end)
   Picker.beforeValue = notifP:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  Picker.beforeValue:SetPoint("TOPRIGHT", -56, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
+  Picker.beforeValue:SetPoint("TOPRIGHT", -50, -40); Picker.beforeValue:SetWidth(58); Picker.beforeValue:SetJustifyH("CENTER")
   Picker.beforeValue:SetTextColor(unpack(COL.text))
   local plusBtn = makeFlatButton(notifP, "", false, "plus")
-  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -16, -34)
+  plusBtn:SetSize(28, 24); plusBtn:SetPoint("TOPRIGHT", -10, -34)
   plusBtn:SetScript("OnClick", function() Picker.stepBeforeMinutes(1) end)
 
   separator(-84)
@@ -1108,7 +1108,7 @@ function Picker.create()
   Picker.atToggle = makeToggle(notifP,
     function() return Picker.db and Picker.db.notify and Picker.db.notify.atTime end,
     function(v) Picker.setAtTime(v) end)
-  Picker.atToggle.btn:SetPoint("TOPRIGHT", -16, -100)
+  Picker.atToggle.btn:SetPoint("TOPRIGHT", -10, -100)
 
   separator(-148)
 
@@ -1117,7 +1117,7 @@ function Picker.create()
   Picker.soundToggle = makeToggle(notifP,
     function() return Picker.db and Picker.db.notify and Picker.db.notify.sound ~= false end,
     function(v) Picker.setSound(v) end)
-  Picker.soundToggle.btn:SetPoint("TOPRIGHT", -16, -164)
+  Picker.soundToggle.btn:SetPoint("TOPRIGHT", -10, -164)
 
   Picker.frame = f
   Picker.mScroll, Picker.dScroll = 0, 0
