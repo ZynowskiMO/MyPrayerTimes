@@ -804,7 +804,7 @@ function Picker.create()
   Theme.tex(side, "sidebar")
 
   -- Sidebar footer: addon version + author.
-  local ver = (GetAddOnMetadata and GetAddOnMetadata("PrayerTimes", "Version")) or "0.9.0"
+  local ver = (GetAddOnMetadata and GetAddOnMetadata("PrayerTimes", "Version")) or "1.0.0"
   local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("PrayerTimes v" .. ver); Theme.txt(author, "muted")
   local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
