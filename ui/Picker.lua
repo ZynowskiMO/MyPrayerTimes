@@ -819,8 +819,9 @@ function Picker.create()
   Picker.headerLoc:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
   Picker.headerLoc:SetPoint("RIGHT", x, "LEFT", -12, 0); Picker.headerLoc:SetTextColor(unpack(COL.gold))
 
-  -- Left sidebar.
-  local side = f:CreateTexture(nil, "BACKGROUND")
+  -- Left sidebar. On the BORDER layer (above the dark BACKGROUND fill) so the
+  -- cream always draws over it -- same deterministic fix as the other panels.
+  local side = f:CreateTexture(nil, "BORDER")
   side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
   side:SetColorTexture(unpack(COL.sidebar))
 

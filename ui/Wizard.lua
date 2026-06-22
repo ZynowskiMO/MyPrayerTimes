@@ -733,8 +733,9 @@ function Wizard.create()
   local body = f:CreateTexture(nil, "BACKGROUND")
   body:SetAllPoints(); body:SetColorTexture(unpack(COL.body))
 
-  -- Dark header: wordmark + step text.
-  local header = f:CreateTexture(nil, "BACKGROUND")
+  -- Dark header on the BORDER layer (above the cream body fill) so it always
+  -- draws over it -- same deterministic fix used across the addon.
+  local header = f:CreateTexture(nil, "BORDER")
   header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
   header:SetColorTexture(unpack(COL.header))
   local accent = f:CreateTexture(nil, "ARTWORK")
