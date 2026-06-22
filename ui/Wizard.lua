@@ -384,30 +384,32 @@ local function buildLocationPage(panel)
 
   -- Add-custom-location overlay: opaque cream, raised above the browse view and
   -- mouse-enabled so clicks don't fall through to the lists beneath.
+  -- Flush to the page so the form's fields share the same 24px margins as the
+  -- card/search/lists above (the cream bg matches the page, so flush is invisible).
   local ap = CreateFrame("Frame", nil, panel)
-  ap:SetPoint("TOPLEFT", 24, -50); ap:SetPoint("BOTTOMRIGHT", -24, 8)
+  ap:SetPoint("TOPLEFT", 0, -50); ap:SetPoint("BOTTOMRIGHT", 0, 8)
   ap:SetFrameLevel(panel:GetFrameLevel() + 10); ap:EnableMouse(true)
   local apbg = ap:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(C.content))
   ap:Hide(); Wizard.addPanel = ap
 
   local at = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  at:SetPoint("TOPLEFT", 4, -6); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(C.gold))
+  at:SetPoint("TOPLEFT", 24, -6); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(C.gold))
 
-  UI.colLabel(ap, "Lat", 6, -28)
-  UI.colLabel(ap, "Lon", 92, -28)
-  UI.colLabel(ap, "UTC+/-", 178, -28)
+  UI.colLabel(ap, "Lat", 24, -28)
+  UI.colLabel(ap, "Lon", 110, -28)
+  UI.colLabel(ap, "UTC+/-", 196, -28)
   local boxY = -42
-  local latBox = UI.flatEditBox(ap); latBox:SetSize(76, 22); latBox:SetPoint("TOPLEFT", 4, boxY)
-  local lonBox = UI.flatEditBox(ap); lonBox:SetSize(76, 22); lonBox:SetPoint("TOPLEFT", 90, boxY)
-  local offBox = UI.flatEditBox(ap); offBox:SetSize(62, 22); offBox:SetPoint("TOPLEFT", 176, boxY)
-  local euCheck = UI.flatCheck(ap); euCheck:SetPoint("TOPLEFT", 252, boxY - 2)
+  local latBox = UI.flatEditBox(ap); latBox:SetSize(76, 22); latBox:SetPoint("TOPLEFT", 24, boxY)
+  local lonBox = UI.flatEditBox(ap); lonBox:SetSize(76, 22); lonBox:SetPoint("TOPLEFT", 110, boxY)
+  local offBox = UI.flatEditBox(ap); offBox:SetSize(62, 22); offBox:SetPoint("TOPLEFT", 196, boxY)
+  local euCheck = UI.flatCheck(ap); euCheck:SetPoint("TOPLEFT", 272, boxY - 2)
   local euText = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   euText:SetPoint("LEFT", euCheck, "RIGHT", 6, 0); euText:SetText("EU DST"); euText:SetTextColor(unpack(C.text))
 
   local nameLabelY = boxY - 30
-  UI.colLabel(ap, "Name", 6, nameLabelY)
+  UI.colLabel(ap, "Name", 24, nameLabelY)
   local nameBox = UI.flatEditBox(ap); nameBox:SetHeight(22)
-  nameBox:SetPoint("TOPLEFT", 4, nameLabelY - 16); nameBox:SetPoint("RIGHT", ap, "RIGHT", -4, 0)
+  nameBox:SetPoint("TOPLEFT", 24, nameLabelY - 16); nameBox:SetPoint("RIGHT", ap, "RIGHT", -24, 0)
   Wizard.nameBox, Wizard.latBox, Wizard.lonBox, Wizard.offsetBox, Wizard.euCheck =
     nameBox, latBox, lonBox, offBox, euCheck
 
@@ -417,14 +419,14 @@ local function buildLocationPage(panel)
 
   local btnY = nameLabelY - 46
   local saveBtn = UI.flatButton(ap, "Save as My City", true)
-  saveBtn:SetSize(170, 26); saveBtn:SetPoint("TOPLEFT", 4, btnY)
+  saveBtn:SetSize(170, 26); saveBtn:SetPoint("TOPLEFT", 24, btnY)
   saveBtn:SetScript("OnClick", function()
     if Wizard.saveManual(nameBox:GetText(), latBox:GetText(), lonBox:GetText(), offBox:GetText(), euCheck:GetChecked()) then
       Wizard.closeAddPanel()
     end
   end)
   local backBtn = UI.flatButton(ap, "Back")
-  backBtn:SetSize(90, 26); backBtn:SetPoint("TOPRIGHT", ap, "TOPRIGHT", -4, btnY)
+  backBtn:SetSize(90, 26); backBtn:SetPoint("TOPRIGHT", ap, "TOPRIGHT", -24, btnY)
   backBtn:SetScript("OnClick", function() Wizard.closeAddPanel() end)
   local useBtn = UI.flatButton(ap, "Use once")
   useBtn:SetSize(120, 26); useBtn:SetPoint("LEFT", saveBtn, "RIGHT", 10, 0)
@@ -436,7 +438,7 @@ local function buildLocationPage(panel)
   tabTo(latBox, lonBox); tabTo(lonBox, offBox); tabTo(offBox, nameBox); tabTo(nameBox, latBox)
 
   Wizard.errorLabel = ap:CreateFontString(nil, "OVERLAY", "GameFontRed")
-  Wizard.errorLabel:SetPoint("TOPLEFT", 4, btnY - 24)
+  Wizard.errorLabel:SetPoint("TOPLEFT", 24, btnY - 24)
 end
 
 -- ----- Calculation page (3W-3): method dropdown + Asr cards -----------------

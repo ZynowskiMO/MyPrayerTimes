@@ -849,9 +849,10 @@ function Picker.create()
   Picker.selectedLabel = locP:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   Picker.selectedLabel:SetPoint("TOPLEFT", 0, 0); Picker.selectedLabel:Hide()
 
-  -- Current-location card.
+  -- Current-location card. (Panel content uses a consistent 10px left/right
+  -- margin: card, search, lists, the add form and its buttons all line up.)
   local card = locP:CreateTexture(nil, "BACKGROUND")
-  card:SetPoint("TOPLEFT", 6, -4); card:SetSize(442, 46); card:SetColorTexture(unpack(COL.card))
+  card:SetPoint("TOPLEFT", 10, -4); card:SetSize(451, 46); card:SetColorTexture(unpack(COL.card))
   local cl = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   cl:SetPoint("TOPLEFT", 20, -10); cl:SetText("CURRENT LOCATION"); cl:SetTextColor(unpack(COL.gold))
   Picker.cardCity = locP:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -862,7 +863,7 @@ function Picker.create()
   -- Search across all cities -- a flat cream field (no Blizzard InputBox skin)
   -- with a placeholder shown while empty.
   local search = CreateFrame("EditBox", "PrayerTimesPickerSearch", locP)
-  search:SetSize(434, 24); search:SetPoint("TOPLEFT", 12, -58); search:SetAutoFocus(false)
+  search:SetSize(451, 24); search:SetPoint("TOPLEFT", 10, -58); search:SetAutoFocus(false)
   search:SetFontObject("GameFontHighlight"); search:SetTextColor(unpack(COL.text))
   search:SetTextInsets(10, 10, 0, 0)
   search:SetScript("OnEscapePressed", search.ClearFocus)
@@ -885,7 +886,7 @@ function Picker.create()
 
   -- Master column: My Cities + countries (with counts).
   local mlist = CreateFrame("Frame", nil, browse)
-  mlist:SetPoint("TOPLEFT", 8, -90); mlist:SetSize(196, MVIS * RH)
+  mlist:SetPoint("TOPLEFT", 10, -90); mlist:SetSize(196, MVIS * RH)
   mlist:EnableMouseWheel(true); mlist:SetScript("OnMouseWheel", function(_, d) Picker.scrollMaster(d) end)
   Picker.masterPool = {}
   for i = 1, MVIS do
@@ -946,7 +947,7 @@ function Picker.create()
   -- city to the selected country".
   local addBtn = makeFlatButton(browse, "+ Add custom location", true)
   addBtn:SetHeight(26)
-  addBtn:SetPoint("BOTTOMLEFT", browse, "BOTTOMLEFT", 8, 10)
+  addBtn:SetPoint("BOTTOMLEFT", browse, "BOTTOMLEFT", 10, 10)
   addBtn:SetPoint("BOTTOMRIGHT", browse, "BOTTOMRIGHT", -10, 10)
   addBtn:SetScript("OnClick", function() Picker.openAddPanel() end)
   local addSep = browse:CreateTexture(nil, "ARTWORK")
@@ -955,8 +956,10 @@ function Picker.create()
 
   -- Add-custom-location form (overlay; logic unchanged from 3R-3). Opaque cream
   -- background, raised above the browse container so nothing shows through.
+  -- Flush to the panel so the form's fields share the same 10px margins as the
+  -- card/search above (the cream bg matches the tab, so flush is invisible).
   local addPanel = CreateFrame("Frame", nil, locP)
-  addPanel:SetPoint("TOPLEFT", 6, -86); addPanel:SetPoint("BOTTOMRIGHT", -6, 8)
+  addPanel:SetPoint("TOPLEFT", 0, -86); addPanel:SetPoint("BOTTOMRIGHT", 0, 8)
   addPanel:SetFrameLevel(locP:GetFrameLevel() + 10)
   local apbg = addPanel:CreateTexture(nil, "BACKGROUND"); apbg:SetAllPoints(); apbg:SetColorTexture(unpack(COL.content))
   addPanel:Hide(); Picker.addPanel = addPanel
@@ -964,10 +967,11 @@ function Picker.create()
   local at = addPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   at:SetPoint("TOPLEFT", 10, -8); at:SetText("ADD CUSTOM LOCATION"); at:SetTextColor(unpack(COL.gold))
 
-  -- Coordinates row, spread across the width; EU DST to the right.
-  makeColLabel(addPanel, "Lat", 12, -32)
-  makeColLabel(addPanel, "Lon", 98, -32)
-  makeColLabel(addPanel, "UTC+/-", 184, -32)
+  -- Coordinates row, spread across the width; EU DST to the right. Labels sit
+  -- directly above their boxes (10 / 96 / 182).
+  makeColLabel(addPanel, "Lat", 10, -32)
+  makeColLabel(addPanel, "Lon", 96, -32)
+  makeColLabel(addPanel, "UTC+/-", 182, -32)
   local boxY = -46
   local latBox = makeFlatEditBox(addPanel)
   latBox:SetSize(76, 22); latBox:SetPoint("TOPLEFT", 10, boxY)
@@ -983,7 +987,7 @@ function Picker.create()
 
   -- Name on its own full-width line.
   local nameLabelY = boxY - 30
-  makeColLabel(addPanel, "Name", 12, nameLabelY)
+  makeColLabel(addPanel, "Name", 10, nameLabelY)
   local nameBox = makeFlatEditBox(addPanel)
   nameBox:SetHeight(22)
   nameBox:SetPoint("TOPLEFT", 10, nameLabelY - 16); nameBox:SetPoint("RIGHT", addPanel, "RIGHT", -10, 0)
