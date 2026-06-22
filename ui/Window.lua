@@ -30,7 +30,7 @@ local COL = {
 }
 local NEXT_COLOR = { 0.20, 0.14, 0.05 }  -- dark text on the gold next-row bar
 local NORMAL_COLOR = { 0.16, 0.14, 0.11 } -- dark text on cream
-local SUNRISE_COLOR = { 0.50, 0.47, 0.40 } -- muted: Sunrise is a marker, not a prayer
+local SUNRISE_COLOR = { 0.78, 0.49, 0.18 } -- distinct sunrise amber: a marker, not a prayer
 
 local Window = {}
 
@@ -268,8 +268,8 @@ function Window.toggleMinimize()
   Window.setMinimized(not (Window.db and Window.db.minimized))
 end
 
--- Row text colour: dark-on-gold when it's the next event, muted for the Sunrise
--- marker (not a prayer, so it recedes), normal dark otherwise.
+-- Row text colour: dark-on-gold when it's the next event, a distinct sunrise
+-- amber for the Sunrise marker (not a prayer), normal dark otherwise.
 function Window.rowColor(key, isNext)
   if isNext then return NEXT_COLOR end
   if key == "sunrise" then return SUNRISE_COLOR end
@@ -290,8 +290,8 @@ local function renderNow(now)
     end
     if f.rows[key].icon then
       Icons.apply(f.rows[key].icon, key, isNext)
-      -- Dim the Sunrise icon to match its muted text (unless it's next).
-      if key == "sunrise" and not isNext then f.rows[key].icon:SetVertexColor(0.55, 0.52, 0.46) end
+      -- Tint the Sunrise icon in its marker colour to match the text (unless next).
+      if key == "sunrise" and not isNext then f.rows[key].icon:SetVertexColor(unpack(SUNRISE_COLOR)) end
     end
   end
   -- Footer: the city's current local time + time to the next prayer (no prayer
