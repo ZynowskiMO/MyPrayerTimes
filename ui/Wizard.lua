@@ -542,6 +542,7 @@ function Wizard.updateNotifyControls()
   end
   if Wizard.atToggle then Wizard.atToggle:update() end
   if Wizard.soundToggle then Wizard.soundToggle:update() end
+  if Wizard.themeToggle then Wizard.themeToggle:update() end
 end
 
 function Wizard.stepBeforeMinutes(delta)
@@ -597,6 +598,14 @@ local function buildNotificationsPage(panel)
     function() return Wizard.db and Wizard.db.notify and Wizard.db.notify.sound ~= false end,
     function(v) Wizard.setSound(v) end)
   Wizard.soundToggle.btn:SetPoint("TOPRIGHT", -24, -202)
+
+  separator(-254)
+
+  notifRow(-270, "Dark theme", "Use a dark colour palette across the addon.")
+  Wizard.themeToggle = UI.toggle(panel,
+    function() return Theme.isDark() end,
+    function(v) Theme.set(v and "dark" or "light") end)
+  Wizard.themeToggle.btn:SetPoint("TOPRIGHT", -24, -270)
 end
 
 -- ----- Finish page (3W-4): summary of the choices --------------------------
