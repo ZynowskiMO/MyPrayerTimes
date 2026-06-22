@@ -84,8 +84,11 @@ function Minimap.create()
   -- The logo already carries its own thick gold ring, so it fills the whole
   -- button (centred) and is masked to a circle -- its ring is the border, no
   -- second WoW ring. NOTE: don't combine SetMask with SetTexCoord.
+  -- Inset a little so the logo sits in from the button edge (breathing room),
+  -- while the logo still fills its own texture so the mask clips cleanly at its
+  -- gold ring (padding the texture instead would show the logo's dark corners).
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetAllPoints(b)
+  icon:SetPoint("TOPLEFT", 3, -3); icon:SetPoint("BOTTOMRIGHT", -3, 3)
   icon:SetTexture(LOGO)
   if icon.SetMask then icon:SetMask(CIRCLE_MASK) end
   b.icon = icon
