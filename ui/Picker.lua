@@ -788,21 +788,32 @@ function Picker.create()
   header:SetPoint("TOPLEFT", 0, 0); header:SetPoint("TOPRIGHT", 0, 0); header:SetHeight(46)
   header:SetColorTexture(unpack(COL.header))
 
-  local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  wm:SetPoint("TOPLEFT", 16, -14); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
-  local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  wmSub:SetPoint("LEFT", wm, "RIGHT", 6, -1); wmSub:SetText("SETTINGS")
+  -- Header text: wordmark | SETTINGS (left), current location (right), close X.
+  -- All three are the same font size and vertically centred on the header,
+  -- in line with the X button. A thin vertical bar separates the wordmark.
+  local HFONT = 14
+  local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
 
-  Picker.headerLoc = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  Picker.headerLoc:SetPoint("TOPRIGHT", -44, -16); Picker.headerLoc:SetTextColor(unpack(COL.gold))
+  local wmBar = f:CreateTexture(nil, "OVERLAY")
+  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); wmBar:SetColorTexture(0.55, 0.50, 0.42, 0.85)
+
+  local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  wmSub:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETTINGS"); wmSub:SetTextColor(0.64, 0.60, 0.52)
 
   local x = CreateFrame("Button", nil, f)
-  x:SetSize(26, 26); x:SetPoint("TOPRIGHT", -10, -10)
+  x:SetSize(26, 26); x:SetPoint("RIGHT", header, "RIGHT", -10, 0)
   local xi = x:CreateTexture(nil, "OVERLAY"); xi:SetPoint("CENTER"); xi:SetSize(16, 16)
   Icons.setUI(xi, "close", unpack(COL.gold))
   x:SetScript("OnEnter", function() xi:SetVertexColor(1, 0.9, 0.6) end)
   x:SetScript("OnLeave", function() xi:SetVertexColor(unpack(COL.gold)) end)
   x:SetScript("OnClick", function() Picker.close() end)
+
+  Picker.headerLoc = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  Picker.headerLoc:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  Picker.headerLoc:SetPoint("RIGHT", x, "LEFT", -12, 0); Picker.headerLoc:SetTextColor(unpack(COL.gold))
 
   -- Left sidebar.
   local side = f:CreateTexture(nil, "BACKGROUND")
