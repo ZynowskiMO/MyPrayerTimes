@@ -4,6 +4,7 @@
 ## Author: Muhamed Basic
 ## Version: 0.9.0
 ## SavedVariablesPerCharacter: PrayerTimesDB
+## X-Curse-Project-ID: 1584276
 ## X-License: MIT
 ## X-Credits: Prayer-time math ported from adhan-js (batoulapps), MIT.
 
