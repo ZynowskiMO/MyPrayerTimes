@@ -431,6 +431,22 @@ local function buildLocationPage(panel)
 
   Wizard.errorLabel = ap:CreateFontString(nil, "OVERLAY", "GameFontRed")
   Wizard.errorLabel:SetPoint("TOPLEFT", 24, btnY - 24)
+
+  -- Short how-to for the empty space below the form: getting exact coordinates
+  -- from Google Maps. Kept brief and word-wrapped to the panel width.
+  local helpHead = ap:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  helpHead:SetPoint("TOPLEFT", 24, btnY - 70); helpHead:SetText("HOW TO FIND COORDINATES")
+  Theme.txt(helpHead, "gold")
+  local help = ap:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  help:SetPoint("TOPLEFT", 24, btnY - 90); help:SetPoint("RIGHT", ap, "RIGHT", -24, 0)
+  help:SetJustifyH("LEFT"); help:SetJustifyV("TOP"); help:SetSpacing(3)
+  help:SetText(
+    "1. Open Google Maps and right-click your city (or search for it).\n"
+    .. "2. Click the latitude, longitude numbers at the top of the menu \226\128\148 "
+    .. "the first number is Lat, the second is Lon.\n"
+    .. "3. UTC+/- is your offset from GMT (Central Europe = 1). Tick EU DST if "
+    .. "your country follows European summer time.")
+  Theme.txt(help, "muted")
 end
 
 -- ----- Calculation page (3W-3): method dropdown + Asr cards -----------------

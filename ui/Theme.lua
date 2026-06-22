@@ -94,7 +94,7 @@ local PALETTES = {
   },
 }
 
-Theme.activeName = "light"
+Theme.activeName = "dark" -- default palette (overridden by saved PrayerTimesDB.theme)
 
 function Theme.color(role)
   local p = PALETTES[Theme.activeName] or PALETTES.light
