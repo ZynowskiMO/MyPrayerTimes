@@ -7,12 +7,14 @@ local Window = require("Window")
 local Picker = require("Picker")
 local Wizard = require("Wizard")
 local Minimap = require("Minimap")
+local Theme = require("Theme")
 local Selection = require("Selection")
 
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
   PrayerTimesDB = PrayerTimesDB or {}
+  Theme.init(PrayerTimesDB) -- pick the saved palette before any window is built
   Window.init(PrayerTimesDB)
   Picker.init(PrayerTimesDB)
   Wizard.init(PrayerTimesDB)
@@ -41,6 +43,7 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     print("  |cffffd100/pt settings|r - open the city / settings window")
     print("  |cffffd100/pt setup|r - run the welcome wizard again")
     print("  |cffffd100/pt minimap|r - show or hide the minimap button")
+    print("  |cffffd100/pt theme light|dark|r - switch the colour theme")
     print("  |cffffd100/pt city <name>|r - select a city by name")
     print("  |cffffd100/pt test|r - preview a notification")
   elseif cmd == "show" then
@@ -59,6 +62,13 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     Minimap.toggle()
     print("|cff33ff99PrayerTimes|r: minimap button "
       .. ((PrayerTimesDB.minimap and PrayerTimesDB.minimap.hide) and "hidden" or "shown"))
+  elseif cmd == "theme" then
+    local name = (rest or ""):lower()
+    if name == "light" or name == "dark" then
+      Theme.set(name); print("|cff33ff99PrayerTimes|r: theme set to " .. name)
+    else
+      print("|cff33ff99PrayerTimes|r: usage |cffffd100/pt theme light|r or |cffffd100dark|r (now: " .. Theme.current() .. ")")
+    end
   elseif cmd == "city" then
     if rest == "" then
       Picker.open()

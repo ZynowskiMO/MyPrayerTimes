@@ -5,6 +5,8 @@
 -- is verifiable in-game now. Icons.apply is the single place that sets a row's
 -- icon, so swapping placeholders for final art is a one-flag / one-line change.
 
+local Theme = require("Theme")
+
 local Icons = {}
 
 Icons.MEDIA = "Interface\\AddOns\\PrayerTimes\\Media\\icons\\"
@@ -60,7 +62,7 @@ function Icons.apply(tex, key, active)
     tex:SetColorTexture(t[1], t[2], t[3], t[4] or 1)
   else
     tex:SetTexture(Icons.path(key))
-    if active then tex:SetVertexColor(0.80, 0.63, 0.28) else tex:SetVertexColor(0.30, 0.26, 0.20) end
+    tex:SetVertexColor(unpack(Theme.color(active and "iconActive" or "iconIdle")))
   end
 end
 

@@ -2059,6 +2059,39 @@ do
     Picker.atToggle and Picker.atToggle.label ~= nil and Picker.soundToggle and Picker.soundToggle.label ~= nil)
 end
 
+-- ---- T-1: theming (palettes, registry, live switch on the main window) ---
+do
+  local Theme = require("Theme")
+
+  Theme.activeName = "light"
+  check("default theme is light", Theme.current() == "light")
+  local lightText = { Theme.color("text") }
+  Theme.set("dark")
+  check("set('dark') switches active", Theme.current() == "dark" and Theme.isDark())
+  local darkText = { Theme.color("text") }
+  check("dark text differs from light text", darkText[1] ~= lightText[1])
+  check("unknown role falls back, never nil", Theme.color("nope") ~= nil)
+  check("set() rejects unknown theme", Theme.set("disco") == false and Theme.current() == "dark")
+  Theme.set("light")
+
+  -- init reads the saved theme.
+  Theme.init({ theme = "dark" })
+  check("init applies saved theme", Theme.current() == "dark")
+  Theme.init({}); Theme.set("light")
+
+  -- Build the window, then a live theme switch repaints it without errors and
+  -- the registry holds the window's themed regions.
+  local Window = require("Window")
+  Window.frame = nil
+  Window.init({}); WowMock.setNow(1766318400); Window.create()
+  local before = #Theme.registry
+  check("window registered themed regions", before > 0)
+  check("live switch to dark repaints cleanly",
+    (function() Theme.set("dark"); return Theme.current() == "dark" end)())
+  check("live switch back to light repaints cleanly",
+    (function() Theme.set("light"); return Theme.current() == "light" end)())
+end
+
 -- ---- M-1: minimap button (angle math, init, show/hide, build) ------------
 do
   local Minimap = require("Minimap")
