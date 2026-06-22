@@ -10,7 +10,7 @@ local Picker = require("Picker")
 
 local Minimap = {}
 local LOGO = "Interface\\AddOns\\PrayerTimes\\Media\\logo.tga"
-local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+local CIRCLE_MASK = "Interface\\Masks\\CircleMaskScalable"
 local DEFAULT_ANGLE = 220
 
 function Minimap.init(db)
@@ -82,10 +82,11 @@ function Minimap.create()
   b:RegisterForDrag("LeftButton")
 
   -- The logo is its own gold-ringed crest, so we mask it to a circle (clipping
-  -- the black corners) rather than adding WoW's tracking-border ring.
+  -- the black corners) rather than adding WoW's tracking-border ring. NOTE: do
+  -- not combine SetMask with SetTexCoord -- together they render garbled.
   local icon = b:CreateTexture(nil, "ARTWORK")
-  icon:SetPoint("TOPLEFT", 3, -3); icon:SetPoint("BOTTOMRIGHT", -3, 3)
-  icon:SetTexture(LOGO); icon:SetTexCoord(0.04, 0.96, 0.04, 0.96)
+  icon:SetPoint("TOPLEFT", 2, -2); icon:SetPoint("BOTTOMRIGHT", -2, 2)
+  icon:SetTexture(LOGO)
   if icon.SetMask then icon:SetMask(CIRCLE_MASK) end
   b.icon = icon
 
