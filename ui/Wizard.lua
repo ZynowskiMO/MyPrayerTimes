@@ -761,9 +761,11 @@ function Wizard.create()
   -- One frame per page (content area between header and footer).
   Wizard.pages = {}
   for i, p in ipairs(PAGES) do
+    -- Bottom edge raised to 68 (from 58) so the page content clears the step
+    -- dots with the same gap the dots have to the footer buttons below them.
     local panel = CreateFrame("Frame", nil, f)
-    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -46)
-    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 58)
+    panel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -36)
+    panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 68)
     local h = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     h:SetPoint("TOPLEFT", 24, -22); h:SetText(p.title); Theme.txt(h, "text")
     panel.heading = h
