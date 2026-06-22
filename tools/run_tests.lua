@@ -1740,6 +1740,7 @@ do
 
   Wizard.open()
   check("opens on page 1", Wizard.step == 1)
+  check("welcome page has a main-window preview", Wizard.welcomePreview ~= nil)
   check("page 1 shown, page 2 hidden",
     Wizard.pages[1]:IsShown() == true and Wizard.pages[2]:IsShown() == false)
   check("Back hidden on first page", Wizard.backBtn:IsShown() == false)

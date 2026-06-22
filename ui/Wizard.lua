@@ -665,6 +665,57 @@ local function buildFinishPage(panel)
   note:SetText("Click Done to start. You can change any of this later from the settings window (/pt settings).")
 end
 
+-- A small, static preview of the main window for the Welcome page, so the first
+-- screen has visual weight rather than text over empty space. Decorative only:
+-- fixed sample values, no logic.
+local PREVIEW_ROWS = {
+  { key = "fajr",    label = "Fajr",    time = "04:20" },
+  { key = "dhuhr",   label = "Dhuhr",   time = "13:45" },
+  { key = "maghrib", label = "Maghrib", time = "22:06", isNext = true },
+}
+local function buildWelcomePreview(panel)
+  local C = Picker.COL
+  local PW, PH = 290, 148
+  local pv = CreateFrame("Frame", nil, panel)
+  pv:SetSize(PW, PH); pv:SetPoint("TOP", panel, "TOP", 0, -158)
+  local border = pv:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); border:SetColorTexture(0.10, 0.09, 0.07, 1)
+  local bg = pv:CreateTexture(nil, "BORDER")
+  bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); bg:SetColorTexture(0.96, 0.94, 0.88, 1)
+
+  local hdr = pv:CreateTexture(nil, "ARTWORK")
+  hdr:SetPoint("TOPLEFT", 1, -1); hdr:SetPoint("TOPRIGHT", -1, -1); hdr:SetHeight(24)
+  hdr:SetColorTexture(unpack(C.header))
+  local wm = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  wm:SetPoint("LEFT", hdr, "LEFT", 8, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(C.gold))
+  local cty = pv:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  cty:SetPoint("RIGHT", hdr, "RIGHT", -8, 0); cty:SetText("Rotterdam")
+
+  for i, s in ipairs(PREVIEW_ROWS) do
+    local y = -28 - (i - 1) * 26
+    local row = CreateFrame("Frame", nil, pv)
+    row:SetPoint("TOPLEFT", 6, y); row:SetPoint("TOPRIGHT", -6, y); row:SetHeight(24)
+    if s.isNext then
+      local hl = row:CreateTexture(nil, "BACKGROUND"); hl:SetAllPoints(); hl:SetColorTexture(unpack(C.rowHl))
+    end
+    local slot = row:CreateTexture(nil, "BORDER"); slot:SetSize(18, 18); slot:SetPoint("LEFT", 6, 0)
+    slot:SetColorTexture(1, 0.99, 0.96, 0.55)
+    local icon = row:CreateTexture(nil, "ARTWORK"); icon:SetSize(12, 12); icon:SetPoint("CENTER", slot, "CENTER")
+    Icons.apply(icon, s.key, s.isNext)
+    local nm = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    nm:SetPoint("LEFT", 32, 0); nm:SetText(s.label); nm:SetTextColor(unpack(C.text))
+    local tm = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    tm:SetPoint("RIGHT", -10, 0); tm:SetText(s.time); tm:SetTextColor(unpack(C.text))
+  end
+
+  local ftr = pv:CreateTexture(nil, "ARTWORK")
+  ftr:SetPoint("BOTTOMLEFT", 1, 1); ftr:SetPoint("BOTTOMRIGHT", -1, 1); ftr:SetHeight(22)
+  ftr:SetColorTexture(unpack(C.header))
+  local cd = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  cd:SetPoint("CENTER", ftr, "CENTER", 0, 0); cd:SetText("20:30  \194\183  1:35:43"); cd:SetTextColor(0.97, 0.96, 0.92)
+
+  Wizard.welcomePreview = pv
+end
+
 -- ----- build ---------------------------------------------------------------
 
 function Wizard.create()
@@ -711,10 +762,10 @@ function Wizard.create()
   intro:SetJustifyH("LEFT"); intro:SetJustifyV("TOP"); intro:SetTextColor(unpack(COL.text))
   intro:SetText(
     "PrayerTimes shows the five daily prayer times for your location, "
-    .. "calculated right here in the game \226\128\148 no internet needed.\n\n"
-    .. "In the next few steps you'll choose your city, pick a calculation "
-    .. "method and Asr school, and set up reminders before each prayer.\n\n"
-    .. "You can change any of this later from the settings window. Let's begin.")
+    .. "calculated right here in the game \226\128\148 no internet needed.\n"
+    .. "Let's set up your city, calculation method and reminders.")
+  -- A small preview of the main window fills the rest of the first screen.
+  buildWelcomePreview(Wizard.pages[1])
 
   -- Location (3W-2) + Calculation (3W-3) + Notifications (3W-4) pages.
   buildLocationPage(Wizard.pages[2])
