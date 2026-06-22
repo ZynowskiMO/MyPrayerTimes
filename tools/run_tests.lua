@@ -528,6 +528,14 @@ check("countdown text shows current time + remaining (no name)",
 check("footer omits the prayer name",
   Window.frame.countdown:GetText():find(PROPER[sched1.nextKey], 1, true) == nil)
 
+-- 5-3: Sunrise is a muted marker, distinct from the five prayers.
+check("Sunrise marker colour differs from a prayer's",
+  Window.rowColor("sunrise", false) ~= Window.rowColor("dhuhr", false))
+check("a prayer uses the normal colour",
+  Window.rowColor("dhuhr", false) == Window.rowColor("asr", false))
+check("being next overrides the marker dimming",
+  Window.rowColor("sunrise", true) == Window.rowColor("dhuhr", true))
+
 -- Advance the clock just past the next prayer -> highlight must move on.
 WowMock.setNow(E1 + untilSec1 + 60)
 Window.tick()

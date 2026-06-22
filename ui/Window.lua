@@ -30,6 +30,7 @@ local COL = {
 }
 local NEXT_COLOR = { 0.20, 0.14, 0.05 }  -- dark text on the gold next-row bar
 local NORMAL_COLOR = { 0.16, 0.14, 0.11 } -- dark text on cream
+local SUNRISE_COLOR = { 0.50, 0.47, 0.40 } -- muted: Sunrise is a marker, not a prayer
 
 local Window = {}
 
@@ -267,19 +268,31 @@ function Window.toggleMinimize()
   Window.setMinimized(not (Window.db and Window.db.minimized))
 end
 
+-- Row text colour: dark-on-gold when it's the next event, muted for the Sunrise
+-- marker (not a prayer, so it recedes), normal dark otherwise.
+function Window.rowColor(key, isNext)
+  if isNext then return NEXT_COLOR end
+  if key == "sunrise" then return SUNRISE_COLOR end
+  return NORMAL_COLOR
+end
+
 -- Update highlight + countdown for the current moment, from the cached times.
 local function renderNow(now)
   local f = Window.frame
   local sched = Schedule.compute(Window.localTimes, now.minuteOfDay)
   for _, key in ipairs(ORDER) do
     local isNext = (key == sched.nextKey)
-    local c = isNext and NEXT_COLOR or NORMAL_COLOR
+    local c = Window.rowColor(key, isNext)
     f.rows[key].label:SetTextColor(c[1], c[2], c[3])
     f.rows[key].time:SetTextColor(c[1], c[2], c[3])
     if f.rows[key].hl then
       if isNext then f.rows[key].hl:Show() else f.rows[key].hl:Hide() end
     end
-    if f.rows[key].icon then Icons.apply(f.rows[key].icon, key, isNext) end
+    if f.rows[key].icon then
+      Icons.apply(f.rows[key].icon, key, isNext)
+      -- Dim the Sunrise icon to match its muted text (unless it's next).
+      if key == "sunrise" and not isNext then f.rows[key].icon:SetVertexColor(0.55, 0.52, 0.46) end
+    end
   end
   -- Footer: the city's current local time + time to the next prayer (no prayer
   -- name -- the highlighted row / minimised hero already names it).
