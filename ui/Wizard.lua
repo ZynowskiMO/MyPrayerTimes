@@ -740,10 +740,21 @@ function Wizard.create()
   local accent = f:CreateTexture(nil, "ARTWORK")
   accent:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0); accent:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, 0)
   accent:SetHeight(2); accent:SetColorTexture(unpack(COL.headerAccent))
-  local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  wm:SetPoint("TOPLEFT", 16, -14); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
-  Wizard.stepText = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  Wizard.stepText:SetPoint("TOPRIGHT", -16, -18)
+  -- Header text: wordmark | SETUP (left) + step text (right), all the same size
+  -- and vertically centred on the header, with a thin divider bar (matches the
+  -- settings window header).
+  local HFONT = 14
+  local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); wm:SetTextColor(unpack(COL.gold))
+  local wmBar = f:CreateTexture(nil, "OVERLAY")
+  wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); wmBar:SetColorTexture(0.55, 0.50, 0.42, 0.85)
+  local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  wmSub:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  wmSub:SetPoint("LEFT", wmBar, "RIGHT", 9, 0); wmSub:SetText("SETUP"); wmSub:SetTextColor(0.64, 0.60, 0.52)
+  Wizard.stepText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  Wizard.stepText:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
+  Wizard.stepText:SetPoint("RIGHT", header, "RIGHT", -16, 0); Wizard.stepText:SetTextColor(0.64, 0.60, 0.52)
 
   -- One frame per page (content area between header and footer).
   Wizard.pages = {}

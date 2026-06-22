@@ -507,8 +507,12 @@ local function makeDropdown(parent, opts)
     local hl = row:CreateTexture(nil, "BACKGROUND")
     hl:SetAllPoints(); hl:SetColorTexture(unpack(COL.rowHl)); hl:Hide()
     row.hl = hl
+    -- Check icon marks the current option (replaces a ">" text prefix).
+    local mark = row:CreateTexture(nil, "OVERLAY")
+    mark:SetSize(12, 12); mark:SetPoint("LEFT", 6, 0)
+    Icons.setUI(mark, "check", unpack(COL.gold)); mark:Hide(); row.mark = mark
     local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("LEFT", 6, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text))
+    label:SetPoint("LEFT", 24, 0); label:SetJustifyH("LEFT"); label:SetTextColor(unpack(COL.text))
     row.label = label
     row:SetScript("OnClick", function(self) if self.key then dd:select(self.key) end end)
     dd.rows[i] = row
@@ -534,12 +538,12 @@ local function makeDropdown(parent, opts)
       local o = options[dd.scrollOffset + i]
       if not o then
         row.key, row._selected = nil, false
-        row.hl:Hide(); row:Hide()
+        row.hl:Hide(); row.mark:Hide(); row:Hide()
       else
         local isSel = (o.key == cur)
         row.key, row._selected = o.key, isSel
-        row.label:SetText((isSel and "> " or "   ") .. o.label)
-        if isSel then row.hl:Show() else row.hl:Hide() end
+        row.label:SetText(o.label)
+        if isSel then row.hl:Show(); row.mark:Show() else row.hl:Hide(); row.mark:Hide() end
         row:Show()
       end
     end
