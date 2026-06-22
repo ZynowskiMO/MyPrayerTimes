@@ -113,6 +113,9 @@ function M.install()
   _G.GetServerTime = function() return nowEpoch end
   _G.time = function() return nowEpoch end
   _G.GetCursorPosition = function() return 0, 0 end
+  _G.Minimap = makeFrame(); _G.Minimap:SetSize(140, 140)
+  function _G.Minimap:GetCenter() return 0, 0 end
+  _G.GameTooltip = makeFrame()
   _G.GameFontNormal = {}
   _G.GameFontHighlight = {}
   _G.SlashCmdList = {}

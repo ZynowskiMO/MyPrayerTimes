@@ -2059,6 +2059,39 @@ do
     Picker.atToggle and Picker.atToggle.label ~= nil and Picker.soundToggle and Picker.soundToggle.label ~= nil)
 end
 
+-- ---- M-1: minimap button (angle math, init, show/hide, build) ------------
+do
+  local Minimap = require("Minimap")
+
+  -- Pure offset math: angle 0 -> (+r, 0); 90 -> (~0, +r).
+  local x0, y0 = Minimap.offset(0, 100)
+  check("offset at 0deg is (+r, 0)", math.abs(x0 - 100) < 1e-6 and math.abs(y0) < 1e-6)
+  local x9, y9 = Minimap.offset(90, 100)
+  check("offset at 90deg is (~0, +r)", math.abs(x9) < 1e-6 and math.abs(y9 - 100) < 1e-6)
+
+  -- init seeds defaults.
+  local mdb = {}
+  Minimap.init(mdb)
+  check("init seeds minimap angle + hide", mdb.minimap.angle ~= nil and mdb.minimap.hide == false)
+
+  -- create builds the button; show/hide drives the flag + visibility.
+  Minimap.button = nil
+  Minimap.create()
+  check("button built on the minimap", Minimap.button ~= nil)
+  check("button shown by default", Minimap.button:IsShown() == true)
+
+  Minimap.setShown(false)
+  check("setShown(false) hides + sets flag", Minimap.button:IsShown() == false and mdb.minimap.hide == true)
+  Minimap.toggle()
+  check("toggle re-shows when hidden", Minimap.button:IsShown() == true and mdb.minimap.hide == false)
+
+  -- A hidden saved state is applied on (re)build.
+  Minimap.button = nil
+  local hdb = { minimap = { angle = 100, hide = true } }
+  Minimap.init(hdb); Minimap.create()
+  check("saved hidden state applied on build", Minimap.button:IsShown() == false)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

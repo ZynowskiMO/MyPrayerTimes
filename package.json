@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "build:icons": "node tools/build_icons.mjs",
+    "build:logo": "node tools/build_logo.mjs",
     "fixtures:methods": "node tools/generate_methods_fixtures.mjs",
     "fixtures:highlat": "node tools/generate_highlat_fixtures.mjs",
     "fixtures:tz": "node tools/generate_tz_fixtures.mjs",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",
     "adhan": "4.4.4",
-    "lucide-static": "1.21.0"
+    "lucide-static": "1.21.0",
+    "sharp": "0.35.2"
   }
 }

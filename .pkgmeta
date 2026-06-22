@@ -16,6 +16,7 @@ ignore:
   - tools
   - fixtures
   - docs
+  - Media/logo-source.png # source art; only the rasterised Media/logo.tga ships
   - node_modules
   - package.json
   - package-lock.json

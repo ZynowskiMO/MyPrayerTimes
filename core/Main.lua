@@ -6,6 +6,7 @@
 local Window = require("Window")
 local Picker = require("Picker")
 local Wizard = require("Wizard")
+local Minimap = require("Minimap")
 local Selection = require("Selection")
 
 local loader = CreateFrame("Frame")
@@ -15,7 +16,9 @@ loader:SetScript("OnEvent", function()
   Window.init(PrayerTimesDB)
   Picker.init(PrayerTimesDB)
   Wizard.init(PrayerTimesDB)
+  Minimap.init(PrayerTimesDB)
   Window.create()
+  Minimap.create()
   if Wizard.shouldOpen(PrayerTimesDB) then
     Wizard.open() -- first run: guided welcome wizard (ADR-0006)
     print("|cff33ff99PrayerTimes|r: welcome! Let's get you set up.")
@@ -37,6 +40,7 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     print("  |cffffd100/pt lock|r / |cffffd100unlock|r - lock or free its position")
     print("  |cffffd100/pt settings|r - open the city / settings window")
     print("  |cffffd100/pt setup|r - run the welcome wizard again")
+    print("  |cffffd100/pt minimap|r - show or hide the minimap button")
     print("  |cffffd100/pt city <name>|r - select a city by name")
     print("  |cffffd100/pt test|r - preview a notification")
   elseif cmd == "show" then
@@ -51,6 +55,10 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     Picker.toggle()
   elseif cmd == "welcome" or cmd == "setup" then
     Wizard.open() -- re-run the welcome/setup wizard on demand
+  elseif cmd == "minimap" then
+    Minimap.toggle()
+    print("|cff33ff99PrayerTimes|r: minimap button "
+      .. ((PrayerTimesDB.minimap and PrayerTimesDB.minimap.hide) and "hidden" or "shown"))
   elseif cmd == "city" then
     if rest == "" then
       Picker.open()

@@ -40,4 +40,5 @@ ui/Icons.lua
 ui/Window.lua
 ui/Picker.lua
 ui/Wizard.lua
+ui/Minimap.lua
 core/Main.lua
