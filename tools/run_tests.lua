@@ -2019,6 +2019,28 @@ do
   check("wizard titles routed through L", titles.welcome == "Welcome" and titles.calculation == "Calculation")
 end
 
+-- ---- 5-1: tri-modal notification toggle (colour + position + text) --------
+do
+  local Picker = require("Picker")
+  local state = true
+  local tg = Picker.ui.toggle(WowMock.makeFrame(), function() return state end, function(v) state = v end)
+  tg:update()
+  check("toggle ON: flag + 'ON' label", tg.on == true and tg.label:GetText() == "ON")
+  state = false; tg:update()
+  check("toggle OFF: flag + 'OFF' label", tg.on == false and tg.label:GetText() == "OFF")
+
+  -- Clicking flips state, text follows.
+  tg.btn:GetScript("OnClick")()
+  check("toggle click flips OFF->ON + label", state == true and tg.label:GetText() == "ON")
+  tg.btn:GetScript("OnClick")()
+  check("toggle click flips ON->OFF + label", state == false and tg.label:GetText() == "OFF")
+
+  -- Both notification toggles in the settings window use it.
+  Picker.frame = nil; Picker.init({ savedCities = {} }); Picker.open()
+  check("settings at-time + sound toggles built with labels",
+    Picker.atToggle and Picker.atToggle.label ~= nil and Picker.soundToggle and Picker.soundToggle.label ~= nil)
+end
+
 -- ---- (fixture comparison wired in a later checkpoint) ---------------------
 
 -- ---- Summary --------------------------------------------------------------

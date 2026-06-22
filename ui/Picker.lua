@@ -568,22 +568,35 @@ local function makeDropdown(parent, opts)
   return dd
 end
 
--- Reusable faux-pill toggle (no Blizzard art): a track that turns gold when on
--- with a thumb that slides right. getter()/onToggle(bool) wire it to the DB;
--- state lives on the returned table so the runner can drive it under the mock.
+-- Reusable faux-pill toggle (no Blizzard art). State is shown three ways at once
+-- so it reads unambiguously, including for red-green colourblind users (never
+-- colour alone): ON = green track, knob right, "ON" text; OFF = red track, knob
+-- left, "OFF" text. getter()/onToggle(bool) wire it to the DB; state lives on the
+-- returned table so the runner can drive it under the mock.
+local TOGGLE_ON  = { 0.27, 0.55, 0.30, 1 } -- green
+local TOGGLE_OFF = { 0.72, 0.27, 0.24, 1 } -- red
 local function makeToggle(parent, getter, onToggle)
   local t = {}
   local btn = CreateFrame("Button", nil, parent)
-  btn:SetSize(46, 22)
+  btn:SetSize(54, 22)
   local track = btn:CreateTexture(nil, "BACKGROUND"); track:SetAllPoints()
+  local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  label:SetTextColor(0.98, 0.97, 0.94)
   local thumb = btn:CreateTexture(nil, "ARTWORK"); thumb:SetSize(18, 18)
-  t.btn, t.track, t.thumb = btn, track, thumb
+  t.btn, t.track, t.thumb, t.label = btn, track, thumb, label
   function t:update()
     local on = getter() and true or false
     t.on = on
-    if on then track:SetColorTexture(unpack(COL.gold)) else track:SetColorTexture(0.62, 0.60, 0.54, 1) end
-    thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -2 or 2, 0)
+    track:SetColorTexture(unpack(on and TOGGLE_ON or TOGGLE_OFF))
+    thumb:ClearAllPoints(); thumb:SetPoint(on and "RIGHT" or "LEFT", on and -3 or 3, 0)
     thumb:SetColorTexture(0.98, 0.97, 0.94)
+    -- Text sits on the open side of the track, opposite the knob.
+    label:ClearAllPoints()
+    if on then
+      label:SetText("ON"); label:SetPoint("LEFT", 7, 0)
+    else
+      label:SetText("OFF"); label:SetPoint("RIGHT", -7, 0)
+    end
   end
   btn:SetScript("OnClick", function() onToggle(not (getter() and true or false)); t:update() end)
   t:update()
