@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to PrayerTimes are documented here. The format follows
+All notable changes to MyPrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
