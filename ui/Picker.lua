@@ -803,8 +803,11 @@ function Picker.create()
   side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
   Theme.tex(side, "sidebar")
 
-  -- Sidebar footer: addon version + author.
-  local ver = (GetAddOnMetadata and GetAddOnMetadata("PrayerTimes", "Version")) or "1.0.0"
+  -- Sidebar footer: addon version + author. Retail moved GetAddOnMetadata into
+  -- the C_AddOns namespace (the global was removed); Classic still has the
+  -- global. Prefer the namespaced one, fall back to the global, then a literal.
+  local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  local ver = (getMeta and getMeta("PrayerTimes", "Version")) or "1.0.0"
   local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("PrayerTimes v" .. ver); Theme.txt(author, "muted")
   local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
