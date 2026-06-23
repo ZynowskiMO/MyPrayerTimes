@@ -1,0 +1,24 @@
+name: Package and release
+
+# On every pushed version tag (e.g. v1.0.1), build the addon zip from .pkgmeta
+# and upload it to CurseForge (project id is read from the .toc) and attach it
+# to a GitHub release. Requires a CF_API_KEY repository secret; GITHUB_TOKEN is
+# provided automatically by Actions.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Clone project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the packager can build the changelog
+      - name: Package and release
+        uses: BigWigsMods/packager@v2
