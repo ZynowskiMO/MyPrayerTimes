@@ -803,15 +803,23 @@ function Picker.create()
   side:SetPoint("TOPLEFT", 0, -46); side:SetPoint("BOTTOMLEFT", 0, 0); side:SetWidth(188)
   Theme.tex(side, "sidebar")
 
-  -- Sidebar footer: addon version + author. Retail moved GetAddOnMetadata into
+  -- Branding logo above the footer text. Full coin + banner art (the minimap
+  -- button uses the same Media/logo.tga, circle-masked); shown unmasked here so
+  -- the "MyPrayerTimes" banner reads. Centred in the 188px sidebar.
+  local logo = f:CreateTexture(nil, "ARTWORK")
+  logo:SetSize(120, 120)
+  logo:SetPoint("BOTTOM", f, "BOTTOMLEFT", 94, 46)
+  logo:SetTexture("Interface\\AddOns\\MyPrayerTimes\\Media\\logo.tga")
+
+  -- Sidebar footer: addon version + author, centred under the logo. Retail moved GetAddOnMetadata into
   -- the C_AddOns namespace (the global was removed); Classic still has the
   -- global. Prefer the namespaced one, fall back to the global, then a literal.
   local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-  local ver = (getMeta and getMeta("MyPrayerTimes", "Version")) or "1.0.1"
+  local ver = (getMeta and getMeta("MyPrayerTimes", "Version")) or "1.0.2"
   local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("MyPrayerTimes v" .. ver); Theme.txt(author, "muted")
+  author:SetPoint("BOTTOM", f, "BOTTOMLEFT", 94, 24); author:SetText("MyPrayerTimes v" .. ver); Theme.txt(author, "muted")
   local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  credit:SetPoint("BOTTOMLEFT", 16, 10); credit:SetText("by Morhak"); Theme.txt(credit, "muted")
+  credit:SetPoint("BOTTOM", f, "BOTTOMLEFT", 94, 10); credit:SetText("by Morhak"); Theme.txt(credit, "muted")
 
   -- Sidebar nav items + content panels.
   Picker.navItems, Picker.tabButtons, Picker.panels = {}, {}, {}

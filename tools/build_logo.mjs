@@ -12,7 +12,7 @@ import sharp from 'sharp'
 
 const SRC = 'Media/logo-source.png'
 const OUT = 'Media/logo.tga'
-const SIZE = 64
+const SIZE = 128 // crisp for the settings-sidebar logo; the minimap downscales fine
 
 // Uncompressed 32-bit true-colour TGA, top-left origin, BGRA pixel order.
 function encodeTGA(rgba, w, h) {

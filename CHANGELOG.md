@@ -4,6 +4,12 @@ All notable changes to PrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.0.2] - 2026-06-23
+
+### Changed
+- New final logo (the gold "M" coin) on the minimap button and in the settings
+  sidebar, with the version and author centred beneath it.
+
 ## [1.0.1] - 2026-06-23
 
 ### Changed
