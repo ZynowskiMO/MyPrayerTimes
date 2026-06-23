@@ -23,7 +23,7 @@ local Wizard = {}
 -- Ordered pages. Only "welcome" has content in 3W-1; the rest are empty cream
 -- containers (with a heading) that later checkpoints populate.
 local PAGES = {
-  { key = "welcome",       title = L["Welcome"],       sub = "About PrayerTimes" },
+  { key = "welcome",       title = L["Welcome"],       sub = "About MyPrayerTimes" },
   { key = "location",      title = L["Location"],      sub = "Where are you?" },
   { key = "calculation",   title = L["Calculation"],   sub = "Method & Asr" },
   { key = "notifications", title = L["Notifications"], sub = "Alerts & sound" },
@@ -663,7 +663,7 @@ local function buildFinishPage(panel)
   local intro = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
   intro:SetPoint("TOPLEFT", 24, -60); intro:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
   intro:SetJustifyH("LEFT"); Theme.txt(intro, "text")
-  intro:SetText("You're all set. Here's what PrayerTimes will use:")
+  intro:SetText("You're all set. Here's what MyPrayerTimes will use:")
 
   local function sumRow(y, labelText)
     local l = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -704,7 +704,7 @@ local function buildWelcomePreview(panel)
   hdr:SetPoint("TOPLEFT", 1, -1); hdr:SetPoint("TOPRIGHT", -1, -1); hdr:SetHeight(24)
   Theme.tex(hdr, "header")
   local wm = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  wm:SetPoint("LEFT", hdr, "LEFT", 8, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
+  wm:SetPoint("LEFT", hdr, "LEFT", 8, 0); wm:SetText("MyPrayerTimes"); Theme.txt(wm, "gold")
   local cty = pv:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   cty:SetPoint("RIGHT", hdr, "RIGHT", -8, 0); cty:SetText("Rotterdam")
 
@@ -764,7 +764,7 @@ function Wizard.create()
   local HFONT = 14
   local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("MyPrayerTimes"); Theme.txt(wm, "gold")
   local wmBar = f:CreateTexture(nil, "OVERLAY")
   wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); Theme.tex(wmBar, "line")
   local wmSub = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -793,7 +793,7 @@ function Wizard.create()
   intro:SetPoint("TOPLEFT", 24, -64); intro:SetPoint("RIGHT", Wizard.pages[1], "RIGHT", -24, 0)
   intro:SetJustifyH("LEFT"); intro:SetJustifyV("TOP"); Theme.txt(intro, "text")
   intro:SetText(
-    "PrayerTimes shows the five daily prayer times for your location, "
+    "MyPrayerTimes shows the five daily prayer times for your location, "
     .. "calculated right here in the game \226\128\148 no internet needed.\n"
     .. "Let's set up your city, calculation method and reminders.")
   -- A small preview of the main window fills the rest of the first screen.

@@ -9,7 +9,7 @@ local Theme = require("Theme")
 
 local Icons = {}
 
-Icons.MEDIA = "Interface\\AddOns\\PrayerTimes\\Media\\icons\\"
+Icons.MEDIA = "Interface\\AddOns\\MyPrayerTimes\\Media\\icons\\"
 Icons.USE_PLACEHOLDER = false -- final Lucide .tga art present (Media/icons); see 3I-2
 
 -- Lucide icon name behind each prayer (also the .tga file name for 3I-2).

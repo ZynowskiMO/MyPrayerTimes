@@ -9,7 +9,7 @@ local Window = require("Window")
 local Picker = require("Picker")
 
 local Minimap = {}
-local LOGO = "Interface\\AddOns\\PrayerTimes\\Media\\logo.tga"
+local LOGO = "Interface\\AddOns\\MyPrayerTimes\\Media\\logo.tga"
 local CIRCLE_MASK = "Interface\\Masks\\CircleMaskScalable"
 local DEFAULT_ANGLE = 220
 
@@ -102,7 +102,7 @@ function Minimap.create()
   b:SetScript("OnDragStop", function() b:SetScript("OnUpdate", nil) end)
   b:SetScript("OnEnter", function()
     GameTooltip:SetOwner(b, "ANCHOR_LEFT")
-    GameTooltip:AddLine("PrayerTimes")
+    GameTooltip:AddLine("MyPrayerTimes")
     GameTooltip:AddLine("Left-click: show/hide window", 1, 1, 1)
     GameTooltip:AddLine("Right-click: settings", 1, 1, 1)
     GameTooltip:Show()

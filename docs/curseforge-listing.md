@@ -10,7 +10,7 @@ reminders, calculation methods, and a clean setup wizard.
 
 ## Description
 
-**PrayerTimes** shows the five daily Islamic prayer times (plus sunrise) for your
+**MyPrayerTimes** shows the five daily Islamic prayer times (plus sunrise) for your
 location, computed right inside the game — no internet connection needed.
 
 - Five daily prayers + sunrise, with a live countdown and the next prayer

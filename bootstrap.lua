@@ -25,7 +25,7 @@ local function ptRequire(name)
   local mod = ns.modules[key]
   if mod then return mod end
   if prevRequire then return prevRequire(name) end
-  error("PrayerTimes: module '" .. tostring(name)
+  error("MyPrayerTimes: module '" .. tostring(name)
     .. "' not loaded yet (check .toc order)")
 end
 

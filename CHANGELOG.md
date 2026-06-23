@@ -4,6 +4,16 @@ All notable changes to PrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.0.1] - 2026-06-23
+
+### Changed
+- Renamed the addon to **MyPrayerTimes**. Saved settings (city, method,
+  reminders, theme) carry over from earlier versions.
+
+### Fixed
+- Version number shown in the settings sidebar was stale on Retail
+  (GetAddOnMetadata moved into the C_AddOns namespace); it now reads correctly.
+
 ## [1.0.0] - 2026-06-22
 
 First stable release. Builds on the 0.9.0 beta with a minimap button, a full

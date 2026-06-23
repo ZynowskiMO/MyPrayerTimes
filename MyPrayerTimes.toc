@@ -1,8 +1,8 @@
 ## Interface: 120007, 20505
-## Title: PrayerTimes
+## Title: MyPrayerTimes
 ## Notes: Islamic prayer times calculated locally for European cities.
 ## Author: Morhak
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariablesPerCharacter: PrayerTimesDB
 ## X-Curse-Project-ID: 1584276
 ## X-License: MIT

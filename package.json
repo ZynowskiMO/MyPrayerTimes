@@ -2,7 +2,7 @@
   "name": "prayertimes-devtools",
   "version": "0.0.0",
   "private": true,
-  "description": "Dev-only tooling for the PrayerTimes WoW addon: icon rasterisation and adhan-js verification fixtures. Not shipped to players (the addon itself is pure Lua; only files listed in PrayerTimes.toc load in WoW).",
+  "description": "Dev-only tooling for the MyPrayerTimes WoW addon: icon rasterisation and adhan-js verification fixtures. Not shipped to players (the addon itself is pure Lua; only files listed in MyPrayerTimes.toc load in WoW).",
   "license": "MIT",
   "type": "module",
   "scripts": {

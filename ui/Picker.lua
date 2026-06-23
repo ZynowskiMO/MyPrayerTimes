@@ -776,7 +776,7 @@ function Picker.create()
   local HFONT = 14
   local wm = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   wm:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
-  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("PrayerTimes"); Theme.txt(wm, "gold")
+  wm:SetPoint("LEFT", header, "LEFT", 16, 0); wm:SetText("MyPrayerTimes"); Theme.txt(wm, "gold")
 
   local wmBar = f:CreateTexture(nil, "OVERLAY")
   wmBar:SetSize(1, 16); wmBar:SetPoint("LEFT", wm, "RIGHT", 9, 0); Theme.tex(wmBar, "line")
@@ -807,9 +807,9 @@ function Picker.create()
   -- the C_AddOns namespace (the global was removed); Classic still has the
   -- global. Prefer the namespaced one, fall back to the global, then a literal.
   local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-  local ver = (getMeta and getMeta("PrayerTimes", "Version")) or "1.0.0"
+  local ver = (getMeta and getMeta("MyPrayerTimes", "Version")) or "1.0.1"
   local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("PrayerTimes v" .. ver); Theme.txt(author, "muted")
+  author:SetPoint("BOTTOMLEFT", 16, 24); author:SetText("MyPrayerTimes v" .. ver); Theme.txt(author, "muted")
   local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   credit:SetPoint("BOTTOMLEFT", 16, 10); credit:SetText("by Morhak"); Theme.txt(credit, "muted")
 

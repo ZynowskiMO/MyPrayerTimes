@@ -2,7 +2,7 @@
 # Controls what ends up in the distributed zip. Only the runtime addon ships;
 # all dev-only files (tooling, fixtures, internal docs) are excluded.
 
-package-as: PrayerTimes
+package-as: MyPrayerTimes
 
 enable-nolib-creation: no
 

@@ -1,5 +1,5 @@
 -- wow_load_check.lua
--- Emulates the WoW addon load path under luajit: reads PrayerTimes.toc and
+-- Emulates the WoW addon load path under luajit: reads MyPrayerTimes.toc and
 -- loads each listed Lua file in order through the bootstrap require() shim,
 -- with the WoW API mocked. Catches .toc order / module-bridge regressions
 -- (which the require-based runner would not) before testing in-game.
@@ -23,11 +23,11 @@ _G.print = function(...) printed[#printed + 1] = table.concat({ ... }, " ") end
 -- (this is what makes the emulation faithful to the in-game environment).
 _G.require = nil
 
-local addonName, ns = "PrayerTimes", {}
+local addonName, ns = "MyPrayerTimes", {}
 
 -- Parse the .toc for .lua files (skip comments/blanks).
 local files = {}
-for line in io.lines("PrayerTimes.toc") do
+for line in io.lines("MyPrayerTimes.toc") do
   line = line:gsub("%s+$", "")
   if line ~= "" and not line:match("^#") and line:match("%.lua$") then
     files[#files + 1] = line

@@ -23,9 +23,9 @@ loader:SetScript("OnEvent", function()
   Minimap.create()
   if Wizard.shouldOpen(PrayerTimesDB) then
     Wizard.open() -- first run: guided welcome wizard (ADR-0006)
-    print("|cff33ff99PrayerTimes|r: welcome! Let's get you set up.")
+    print("|cff33ff99MyPrayerTimes|r: welcome! Let's get you set up.")
   else
-    print("|cff33ff99PrayerTimes|r loaded. |cffffd100/pt settings|r to change city.")
+    print("|cff33ff99MyPrayerTimes|r loaded. |cffffd100/pt settings|r to change city.")
   end
 end)
 
@@ -37,7 +37,7 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
   cmd = (cmd or ""):lower()
 
   if cmd == "" or cmd == "help" then
-    print("|cff33ff99PrayerTimes|r commands:")
+    print("|cff33ff99MyPrayerTimes|r commands:")
     print("  |cffffd100/pt show|r / |cffffd100hide|r - show or hide the window")
     print("  |cffffd100/pt lock|r / |cffffd100unlock|r - lock or free its position")
     print("  |cffffd100/pt settings|r - open the city / settings window")
@@ -51,23 +51,23 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
   elseif cmd == "hide" then
     if Window.frame then Window.frame:Hide() end
   elseif cmd == "lock" then
-    Window.setLocked(true); print("|cff33ff99PrayerTimes|r: window locked")
+    Window.setLocked(true); print("|cff33ff99MyPrayerTimes|r: window locked")
   elseif cmd == "unlock" then
-    Window.setLocked(false); print("|cff33ff99PrayerTimes|r: window unlocked")
+    Window.setLocked(false); print("|cff33ff99MyPrayerTimes|r: window unlocked")
   elseif cmd == "settings" or cmd == "config" or cmd == "options" then
     Picker.toggle()
   elseif cmd == "welcome" or cmd == "setup" then
     Wizard.open() -- re-run the welcome/setup wizard on demand
   elseif cmd == "minimap" then
     Minimap.toggle()
-    print("|cff33ff99PrayerTimes|r: minimap button "
+    print("|cff33ff99MyPrayerTimes|r: minimap button "
       .. ((PrayerTimesDB.minimap and PrayerTimesDB.minimap.hide) and "hidden" or "shown"))
   elseif cmd == "theme" then
     local name = (rest or ""):lower()
     if name == "light" or name == "dark" then
-      Theme.set(name); print("|cff33ff99PrayerTimes|r: theme set to " .. name)
+      Theme.set(name); print("|cff33ff99MyPrayerTimes|r: theme set to " .. name)
     else
-      print("|cff33ff99PrayerTimes|r: usage |cffffd100/pt theme light|r or |cffffd100dark|r (now: " .. Theme.current() .. ")")
+      print("|cff33ff99MyPrayerTimes|r: usage |cffffd100/pt theme light|r or |cffffd100dark|r (now: " .. Theme.current() .. ")")
     end
   elseif cmd == "city" then
     if rest == "" then
@@ -75,17 +75,17 @@ SlashCmdList["PRAYERTIMES"] = function(msg)
     else
       local matched = Picker.selectCityByName(rest)
       if matched then
-        print("|cff33ff99PrayerTimes|r: city set to " .. matched)
+        print("|cff33ff99MyPrayerTimes|r: city set to " .. matched)
       else
         -- Escape "|" so a typed escape sequence prints literally, not as a
         -- colour/hyperlink/texture in the chat frame.
         local safe = (rest:gsub("|", "||"))
-        print("|cffff5555PrayerTimes|r: unknown city '" .. safe .. "' - try /pt settings")
+        print("|cffff5555MyPrayerTimes|r: unknown city '" .. safe .. "' - try /pt settings")
       end
     end
   elseif cmd == "test" then
     Window.testNotification()
   else
-    print("|cffff5555PrayerTimes|r: unknown command - try |cffffd100/pt help|r")
+    print("|cffff5555MyPrayerTimes|r: unknown command - try |cffffd100/pt help|r")
   end
 end

@@ -1,4 +1,4 @@
-# PrayerTimes
+# MyPrayerTimes
 
 A World of Warcraft addon that shows the five daily Islamic prayer times (plus
 sunrise) for your location, calculated **locally inside the game** — no internet
@@ -25,12 +25,12 @@ window, reminders, and a first-run setup wizard.
 ## Installation
 
 **From CurseForge (recommended):** install via the CurseForge app, or download
-the zip and extract the `PrayerTimes` folder into:
+the zip and extract the `MyPrayerTimes` folder into:
 
 - Retail: `World of Warcraft/_retail_/Interface/AddOns/`
 - Classic: `World of Warcraft/_classic_/Interface/AddOns/`
 
-Restart the game (or `/reload`) and enable **PrayerTimes** in the AddOns list.
+Restart the game (or `/reload`) and enable **MyPrayerTimes** in the AddOns list.
 
 ## First use
 

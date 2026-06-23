@@ -32,7 +32,7 @@ function Alerts.show(text, settings)
     local color = ChatTypeInfo and ChatTypeInfo["RAID_WARNING"] or { r = 1, g = 1, b = 1 }
     RaidNotice_AddMessage(RaidWarningFrame, text, color)
   end
-  print("|cff33ff99PrayerTimes|r: " .. text)
+  print("|cff33ff99MyPrayerTimes|r: " .. text)
 end
 
 function Alerts.fire(ev, settings)
