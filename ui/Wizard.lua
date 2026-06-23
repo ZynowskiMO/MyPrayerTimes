@@ -695,7 +695,7 @@ local function buildWelcomePreview(panel)
   local C = Picker.COL
   local PW, PH = 290, 148
   local pv = CreateFrame("Frame", nil, panel)
-  pv:SetSize(PW, PH); pv:SetPoint("TOP", panel, "TOP", 0, -158)
+  pv:SetSize(PW, PH); pv:SetPoint("TOP", panel, "TOP", 0, -170)
   local border = pv:CreateTexture(nil, "BACKGROUND"); border:SetAllPoints(); Theme.tex(border, "winBorder")
   local bg = pv:CreateTexture(nil, "BORDER")
   bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1); Theme.tex(bg, "winBg")
@@ -730,6 +730,17 @@ local function buildWelcomePreview(panel)
   Theme.tex(ftr, "header")
   local cd = pv:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
   cd:SetPoint("CENTER", ftr, "CENTER", 0, 0); cd:SetText("20:30  \194\183  1:35:43"); Theme.txt(cd, "onDark")
+
+  -- Brand crest centred on the preview's top edge: the coin rises above it, the
+  -- banner overlaps the header. On its own frame above the preview rows so it
+  -- always draws on top.
+  local crest = CreateFrame("Frame", nil, pv)
+  crest:SetFrameLevel(pv:GetFrameLevel() + 20)
+  crest:SetSize(104, 104)
+  crest:SetPoint("CENTER", pv, "TOP", 0, -8)
+  local crestTex = crest:CreateTexture(nil, "OVERLAY")
+  crestTex:SetAllPoints()
+  crestTex:SetTexture("Interface\\AddOns\\MyPrayerTimes\\Media\\logo.tga")
 
   Wizard.welcomePreview = pv
 end
@@ -773,6 +784,7 @@ function Wizard.create()
   Wizard.stepText = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   Wizard.stepText:SetFont("Fonts\\FRIZQT__.TTF", HFONT, "")
   Wizard.stepText:SetPoint("RIGHT", header, "RIGHT", -16, 0); Theme.txt(Wizard.stepText, "dimText")
+
 
   -- One frame per page (content area between header and footer).
   Wizard.pages = {}
