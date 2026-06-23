@@ -815,7 +815,7 @@ function Picker.create()
   -- the C_AddOns namespace (the global was removed); Classic still has the
   -- global. Prefer the namespaced one, fall back to the global, then a literal.
   local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-  local ver = (getMeta and getMeta("MyPrayerTimes", "Version")) or "1.0.2"
+  local ver = (getMeta and getMeta("MyPrayerTimes", "Version")) or "1.0.3"
   local author = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
   author:SetPoint("BOTTOM", f, "BOTTOMLEFT", 94, 24); author:SetText("MyPrayerTimes v" .. ver); Theme.txt(author, "muted")
   local credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")

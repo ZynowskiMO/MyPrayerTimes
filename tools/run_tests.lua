@@ -649,18 +649,19 @@ check("messageFor before", Alerts.messageFor({ prayer = "maghrib", type = "befor
   == "Maghrib in 10 min")
 check("messageFor at", Alerts.messageFor({ prayer = "fajr", type = "at" }) == "Fajr - it's time")
 
--- fire() plays a sound and shows a center-screen notice.
+-- fire() plays a sound and shows the dismissable pop-up.
 WowMock.resetAlerts()
 Alerts.fire({ prayer = "isha", type = "at" }, { sound = true })
 check("fire plays the alert file on Master",
   WowMock.lastSound == 561542 and WowMock.lastSoundChannel == "Master")
-check("fire shows raid notice text", WowMock.lastRaidNotice == "Isha - it's time")
+check("fire shows the pop-up with the message text",
+  Alerts.popup ~= nil and Alerts.popup:IsShown() and Alerts.lastMessage == "Isha - it's time")
 
--- sound = false suppresses the sound but still shows the notice.
+-- sound = false suppresses the sound but still shows the pop-up.
 WowMock.resetAlerts()
 Alerts.fire({ prayer = "isha", type = "at" }, { sound = false })
 check("muted: no sound", WowMock.lastSound == nil)
-check("muted: still shows notice", WowMock.lastRaidNotice ~= nil)
+check("muted: still shows the pop-up", Alerts.popup:IsShown() and Alerts.lastMessage ~= nil)
 
 -- Window wiring: checkNotifications fires due alerts once, deduped.
 do
@@ -673,16 +674,16 @@ do
   local atNow = { minuteOfDay = 993, secondOfDay = 993 * 60 } -- Maghrib at-time
   local evs = Window.checkNotifications(atNow)
   check("Window fires Maghrib at-time", #evs == 1 and evs[1].prayer == "maghrib" and evs[1].type == "at")
-  check("Window center-screen shows Maghrib", WowMock.lastRaidNotice == "Maghrib - it's time")
-  local countAfter = WowMock.raidNoticeCount
+  check("Window pop-up shows Maghrib", Alerts.lastMessage == "Maghrib - it's time")
+  local countAfter = Alerts.showCount
   Window.checkNotifications(atNow) -- same minute again (e.g. next tick / reload)
-  check("Window does not re-fire same minute", WowMock.raidNoticeCount == countAfter)
+  check("Window does not re-fire same minute", Alerts.showCount == countAfter)
 end
 
 -- /pt test path fires a sample alert.
 WowMock.resetAlerts()
 Window.testNotification()
-check("testNotification fires a sample", WowMock.lastRaidNotice ~= nil)
+check("testNotification fires a sample", Alerts.popup ~= nil and Alerts.popup:IsShown())
 
 -- ---- 2d-3: selection model + country grouping + manual validation -------
 local Selection = require("Selection")

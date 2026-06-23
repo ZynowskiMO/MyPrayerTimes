@@ -4,6 +4,14 @@ All notable changes to MyPrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.0.3] - 2026-06-23
+
+### Added
+- Prayer notifications now show a small dismissable pop-up (logo, prayer icon,
+  message, and an X to close) instead of a center-screen flash. The sound and
+  chat line are unchanged.
+- The logo also appears as a crest on the welcome screen.
+
 ## [1.0.2] - 2026-06-23
 
 ### Changed

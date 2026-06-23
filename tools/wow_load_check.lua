@@ -84,7 +84,7 @@ expect("slash command registered", _G.SlashCmdList and _G.SlashCmdList["PRAYERTI
 expect("/pt test fires an alert", (function()
   WowMock.resetAlerts()
   win.testNotification()
-  return WowMock.lastRaidNotice ~= nil
+  return ns.modules.Alerts.popup ~= nil and ns.modules.Alerts.popup:IsShown()
 end)())
 
 print(string.format("\nWoW load-path check: %d files loaded, %d failure(s)",

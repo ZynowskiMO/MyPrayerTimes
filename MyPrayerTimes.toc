@@ -2,7 +2,7 @@
 ## Title: MyPrayerTimes
 ## Notes: Islamic prayer times calculated locally for European cities.
 ## Author: Morhak
-## Version: 1.0.2
+## Version: 1.0.3
 ## SavedVariablesPerCharacter: PrayerTimesDB
 ## X-Curse-Project-ID: 1584276
 ## X-License: MIT
@@ -36,8 +36,8 @@ engine/Selection.lua
 # UI + entry point.
 ui/Locale.lua
 ui/Theme.lua
-ui/Alerts.lua
 ui/Icons.lua
+ui/Alerts.lua
 ui/Window.lua
 ui/Picker.lua
 ui/Wizard.lua
