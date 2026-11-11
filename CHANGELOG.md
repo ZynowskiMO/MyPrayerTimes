@@ -4,6 +4,20 @@ All notable changes to MyPrayerTimes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-11
+
+### Added
+- World of Warcraft: Forever support (interface 16001, read in-game on
+  1.60.1 build 70888). One addon package now covers Retail, TBC Classic and
+  Forever (ADR-0010).
+
+### Changed
+- Retail interface number bumped to 120105 (12.1.5, read in-game).
+
+### Known follow-ups
+- TBC Classic stays on its existing interface number (20505); it will be
+  bumped only after an in-game `GetBuildInfo` check on that client.
+
 ## [1.0.3] - 2026-06-23
 
 ### Added
